@@ -44,13 +44,14 @@ var (
 	procBCryptDestroyHash            = modbcrypt.NewProc("BCryptDestroyHash")
 	procBCryptDuplicateHash          = modbcrypt.NewProc("BCryptDuplicateHash")
 	procBCryptFinishHash             = modbcrypt.NewProc("BCryptFinishHash")
+	procBCryptGenRandom              = modbcrypt.NewProc("BCryptGenRandom")
 	procBCryptGetProperty            = modbcrypt.NewProc("BCryptGetProperty")
 	procBCryptHashData               = modbcrypt.NewProc("BCryptHashData")
 	procBCryptOpenAlgorithmProvider  = modbcrypt.NewProc("BCryptOpenAlgorithmProvider")
 )
 
-func CloseAlgorithmProvider(phAlgorithm ALG_HANDLE, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall(procBCryptCloseAlgorithmProvider.Addr(), 2, uintptr(phAlgorithm), uintptr(dwFlags), 0)
+func CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall(procBCryptCloseAlgorithmProvider.Addr(), 2, uintptr(hAlgorithm), uintptr(dwFlags), 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -83,6 +84,14 @@ func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject *byte
 
 func FinishHash(hHash HASH_HANDLE, pbOutput *byte, cbOutput uint32, dwFlags uint32) (s error) {
 	r0, _, _ := syscall.Syscall6(procBCryptFinishHash.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer *byte, cbBuffer uint32, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall6(procBCryptGenRandom.Addr(), 4, uintptr(hAlgorithm), uintptr(unsafe.Pointer(pbBuffer)), uintptr(cbBuffer), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}

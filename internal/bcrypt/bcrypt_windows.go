@@ -39,3 +39,4 @@ type (
 //sys   HashData(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (s error) = bcrypt.BCryptHashData
 //sys   DuplicateHash(hHash HASH_HANDLE,  phNewHash *HASH_HANDLE, pbHashObject *byte, cbHashObject uint32, dwFlags uint32) (s error) = bcrypt.BCryptDuplicateHash
 //sys   FinishHash(hHash HASH_HANDLE, pbOutput *byte, cbOutput uint32, dwFlags uint32) (s error) = bcrypt.BCryptFinishHash
+//sys   GenRandom(hAlgorithm ALG_HANDLE, pbBuffer *byte, cbBuffer uint32, dwFlags uint32) (s error) = bcrypt.BCryptGenRandom
