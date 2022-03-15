@@ -16,22 +16,22 @@ import (
 
 // NewSHA1 returns a new SHA1 hash.
 func NewSHA1() hash.Hash {
-	return newSHAX(bcrypt.SHA1_ALGORITHM)
+	return newSHAX(bcrypt.SHA1_ALGORITHM, nil)
 }
 
 // NewSHA256 returns a new SHA256 hash.
 func NewSHA256() hash.Hash {
-	return newSHAX(bcrypt.SHA256_ALGORITHM)
+	return newSHAX(bcrypt.SHA256_ALGORITHM, nil)
 }
 
 // NewSHA384 returns a new SHA384 hash.
 func NewSHA384() hash.Hash {
-	return newSHAX(bcrypt.SHA384_ALGORITHM)
+	return newSHAX(bcrypt.SHA384_ALGORITHM, nil)
 }
 
 // NewSHA512 returns a new SHA512 hash.
 func NewSHA512() hash.Hash {
-	return newSHAX(bcrypt.SHA512_ALGORITHM)
+	return newSHAX(bcrypt.SHA512_ALGORITHM, nil)
 }
 
 var shaCache sync.Map
@@ -42,8 +42,8 @@ type shaAlgorithm struct {
 	blockSize uint32
 }
 
-func loadSha(id string, flags uint32) (h shaAlgorithm, err error) {
-	if v, ok := shaCache.Load(algCacheEntry{id, flags}); ok {
+func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (h shaAlgorithm, err error) {
+	if v, ok := shaCache.Load(algCacheEntry{id, uint32(flags)}); ok {
 		return v.(shaAlgorithm), nil
 	}
 	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, flags)
@@ -58,7 +58,7 @@ func loadSha(id string, flags uint32) (h shaAlgorithm, err error) {
 	if err != nil {
 		return
 	}
-	shaCache.Store(algCacheEntry{id, flags}, h)
+	shaCache.Store(algCacheEntry{id, uint32(flags)}, h)
 	return
 }
 
@@ -68,10 +68,15 @@ type shaXHash struct {
 	size      int
 	blockSize int
 	buf       []byte
+	key       []byte
 }
 
-func newSHAX(id string) *shaXHash {
-	h, err := loadSha(id, 0)
+func newSHAX(id string, key []byte) *shaXHash {
+	var flag bcrypt.AlgorithmProviderFlags
+	if len(key) > 0 {
+		flag = bcrypt.ALG_HANDLE_HMAC_FLAG
+	}
+	h, err := loadSha(id, flag)
 	if err != nil {
 		panic(err)
 	}
@@ -80,6 +85,10 @@ func newSHAX(id string) *shaXHash {
 	sha.size = int(h.size)
 	sha.blockSize = int(h.blockSize)
 	sha.buf = make([]byte, sha.size)
+	if len(key) > 0 {
+		sha.key = make([]byte, len(key))
+		copy(sha.key, key)
+	}
 	sha.Reset()
 	runtime.SetFinalizer(sha, (*shaXHash).finalize)
 	return sha
@@ -96,7 +105,7 @@ func (h *shaXHash) Reset() {
 		bcrypt.DestroyHash(h.ctx)
 		h.ctx = 0
 	}
-	err := bcrypt.CreateHash(h.h, &h.ctx, nil, nil, 0)
+	err := bcrypt.CreateHash(h.h, &h.ctx, nil, h.key, 0)
 	if err != nil {
 		panic(err)
 	}
