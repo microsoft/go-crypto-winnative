@@ -142,7 +142,7 @@ func HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (s error) {
 	return
 }
 
-func OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags uint32) (s error) {
+func OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags AlgorithmProviderFlags) (s error) {
 	r0, _, _ := syscall.Syscall6(procBCryptOpenAlgorithmProvider.Addr(), 4, uintptr(unsafe.Pointer(phAlgorithm)), uintptr(unsafe.Pointer(pszAlgId)), uintptr(unsafe.Pointer(pszImplementation)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
