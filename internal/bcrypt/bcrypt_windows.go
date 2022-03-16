@@ -23,6 +23,7 @@ const (
 	HASH_BLOCK_LENGTH = "HashBlockLength"
 	CHAINING_MODE     = "ChainingMode"
 	CHAIN_MODE_ECB    = "ChainingModeECB"
+	CHAIN_MODE_CBC    = "ChainingModeCBC"
 	KEY_LENGTHS       = "KeyLengths"
 )
 
