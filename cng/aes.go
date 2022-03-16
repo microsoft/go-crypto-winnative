@@ -136,3 +136,74 @@ func (c *aesCipher) Decrypt(dst, src []byte) {
 	}
 	runtime.KeepAlive(c)
 }
+
+func (c *aesCipher) NewCBCEncrypter(iv []byte) cipher.BlockMode {
+	return newCBC(true, c.key, iv)
+}
+
+func (c *aesCipher) NewCBCDecrypter(iv []byte) cipher.BlockMode {
+	return newCBC(false, c.key, iv)
+}
+
+type aesCBC struct {
+	kh      bcrypt.KEY_HANDLE
+	iv      [aesBlockSize]byte
+	encrypt bool
+}
+
+func newCBC(encrypt bool, key, iv []byte) *aesCBC {
+	h, err := loadAes(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_CBC)
+	if err != nil {
+		panic(err)
+	}
+	x := &aesCBC{encrypt: encrypt}
+	x.SetIV(iv)
+	err = bcrypt.GenerateSymmetricKey(h.h, &x.kh, nil, 0, &key[0], uint32(len(key)), 0)
+	if err != nil {
+		panic(err)
+	}
+	runtime.SetFinalizer(x, (*aesCBC).finalize)
+	return x
+}
+
+func (x *aesCBC) finalize() {
+	bcrypt.DestroyKey(x.kh)
+}
+
+func (x *aesCBC) BlockSize() int { return aesBlockSize }
+
+func (x *aesCBC) CryptBlocks(dst, src []byte) {
+	if subtle.InexactOverlap(dst, src) {
+		panic("crypto/cipher: invalid buffer overlap")
+	}
+	if len(src)%aesBlockSize != 0 {
+		panic("crypto/cipher: input not full blocks")
+	}
+	if len(dst) < len(src) {
+		panic("crypto/cipher: output smaller than input")
+	}
+	if len(src) == 0 {
+		return
+	}
+	var ret uint32
+	var err error
+	if x.encrypt {
+		err = bcrypt.Encrypt(x.kh, &src[0], uint32(len(src)), 0, &x.iv[0], uint32(len(x.iv)), &dst[0], uint32(len(dst)), &ret, 0)
+	} else {
+		err = bcrypt.Decrypt(x.kh, &src[0], uint32(len(src)), 0, &x.iv[0], uint32(len(x.iv)), &dst[0], uint32(len(dst)), &ret, 0)
+	}
+	if err != nil {
+		panic(err)
+	}
+	if int(ret) != len(src) {
+		panic("crypto/aes: plaintext not fully encrypted")
+	}
+	runtime.KeepAlive(x)
+}
+
+func (x *aesCBC) SetIV(iv []byte) {
+	if len(iv) != aesBlockSize {
+		panic("cipher: incorrect length IV")
+	}
+	copy(x.iv[:], iv)
+}
