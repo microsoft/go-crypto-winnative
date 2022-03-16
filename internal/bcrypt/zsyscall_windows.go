@@ -79,8 +79,8 @@ func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte,
 	return
 }
 
-func Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo uintptr, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall12(procBCryptDecrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+func Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall12(procBCryptDecrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(unsafe.Pointer(pPaddingInfo)), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -115,8 +115,8 @@ func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byt
 	return
 }
 
-func Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo uintptr, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall12(procBCryptEncrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+func Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall12(procBCryptEncrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(unsafe.Pointer(pPaddingInfo)), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
