@@ -12,6 +12,157 @@ import (
 	"testing"
 )
 
+var key = []byte("D249BF6DEC97B1EBD69BC4D6B3A3C49D")
+
+func TestNewGCMNonce(t *testing.T) {
+	ci, err := NewAESCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := ci.(*aesCipher)
+	_, err = c.NewGCM(gcmStandardNonceSize-1, gcmTagSize-1)
+	if err == nil {
+		t.Error("expected error for non-standard tag and nonce size at the same time, got none")
+	}
+	_, err = c.NewGCM(gcmStandardNonceSize-1, gcmTagSize)
+	if err != nil {
+		t.Errorf("expected no error for non-standard nonce size with standard tag size, got: %#v", err)
+	}
+	_, err = c.NewGCM(gcmStandardNonceSize, gcmTagSize-1)
+	if err != nil {
+		t.Errorf("expected no error for standard tag size, got: %#v", err)
+	}
+	_, err = c.NewGCM(gcmStandardNonceSize, gcmTagSize)
+	if err != nil {
+		t.Errorf("expected no error for standard tag / nonce size, got: %#v", err)
+	}
+}
+
+func TestSealAndOpen(t *testing.T) {
+	ci, err := NewAESCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := ci.(*aesCipher)
+	gcm, err := c.NewGCM(gcmStandardNonceSize, gcmTagSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nonce := []byte{0x91, 0xc7, 0xa7, 0x54, 0x52, 0xef, 0x10, 0xdb, 0x91, 0xa8, 0x6c, 0xf9}
+	plainText := []byte{0x01, 0x02, 0x03}
+	additionalData := []byte{0x05, 0x05, 0x07}
+	sealed := gcm.Seal(nil, nonce, plainText, additionalData)
+	decrypted, err := gcm.Open(nil, nonce, sealed, additionalData)
+	if err != nil {
+		t.Error(err)
+	}
+	if !bytes.Equal(decrypted, plainText) {
+		t.Errorf("unexpected decrypted result\ngot: %#v\nexp: %#v", decrypted, plainText)
+	}
+}
+
+func TestSealAndOpenTLS(t *testing.T) {
+	ci, err := NewAESCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := ci.(*aesCipher)
+	gcm, err := c.NewGCMTLS()
+	if err != nil {
+		t.Fatal(err)
+	}
+	nonce := [12]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	nonce1 := [12]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+	nonce9 := [12]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9}
+	nonce10 := [12]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10}
+	nonceMax := [12]byte{0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255}
+	plainText := []byte{0x01, 0x02, 0x03}
+	additionalData := make([]byte, 13)
+	additionalData[11] = byte(len(plainText) >> 8)
+	additionalData[12] = byte(len(plainText))
+	sealed := gcm.Seal(nil, nonce[:], plainText, additionalData)
+	assertPanic(t, func() {
+		gcm.Seal(nil, nonce[:], plainText, additionalData)
+	})
+	sealed1 := gcm.Seal(nil, nonce1[:], plainText, additionalData)
+	gcm.Seal(nil, nonce10[:], plainText, additionalData)
+	assertPanic(t, func() {
+		gcm.Seal(nil, nonce9[:], plainText, additionalData)
+	})
+	assertPanic(t, func() {
+		gcm.Seal(nil, nonceMax[:], plainText, additionalData)
+	})
+	if bytes.Equal(sealed, sealed1) {
+		t.Errorf("different nonces should produce different outputs\ngot: %#v\nexp: %#v", sealed, sealed1)
+	}
+	decrypted, err := gcm.Open(nil, nonce[:], sealed, additionalData)
+	if err != nil {
+		t.Error(err)
+	}
+	decrypted1, err := gcm.Open(nil, nonce1[:], sealed1, additionalData)
+	if err != nil {
+		t.Error(err)
+	}
+	if !bytes.Equal(decrypted, plainText) {
+		t.Errorf("unexpected decrypted result\ngot: %#v\nexp: %#v", decrypted, plainText)
+	}
+	if !bytes.Equal(decrypted, decrypted1) {
+		t.Errorf("unexpected decrypted result\ngot: %#v\nexp: %#v", decrypted, decrypted1)
+	}
+}
+
+func TestSealAndOpenAuthenticationError(t *testing.T) {
+	ci, err := NewAESCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := ci.(*aesCipher)
+	gcm, err := c.NewGCM(gcmStandardNonceSize, gcmTagSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nonce := []byte{0x91, 0xc7, 0xa7, 0x54, 0x52, 0xef, 0x10, 0xdb, 0x91, 0xa8, 0x6c, 0xf9}
+	plainText := []byte{0x01, 0x02, 0x03}
+	additionalData := []byte{0x05, 0x05, 0x07}
+	sealed := gcm.Seal(nil, nonce, plainText, additionalData)
+	_, err = gcm.Open(nil, nonce, sealed, nil)
+	if err != errOpen {
+		t.Errorf("expected authentication error, got: %#v", err)
+	}
+}
+
+func assertPanic(t *testing.T, f func()) {
+	t.Helper()
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+	f()
+}
+
+func TestSealPanic(t *testing.T) {
+	ci, err := NewAESCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := ci.(*aesCipher)
+	gcm, err := c.NewGCM(gcmStandardNonceSize, gcmTagSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPanic(t, func() {
+		gcm.Seal(nil, make([]byte, gcmStandardNonceSize-1), []byte{0x01, 0x02, 0x03}, nil)
+	})
+	assertPanic(t, func() {
+		// maxInt is implemented as math.MaxInt, but this constant
+		// is only available since go1.17.
+		// TODO: use math.MaxInt once go1.16 is no longer supported.
+		maxInt := int((^uint(0)) >> 1)
+		gcm.Seal(nil, make([]byte, gcmStandardNonceSize), make([]byte, maxInt), nil)
+	})
+}
+
 func TestAESInvalidKeySize(t *testing.T) {
 	_, err := NewAESCipher([]byte{1})
 	if err == nil {
@@ -20,7 +171,6 @@ func TestAESInvalidKeySize(t *testing.T) {
 }
 
 func TestEncryptAndDecrypt(t *testing.T) {
-	key := []byte("D249BF6DEC97B1EBD69BC4D6B3A3C49D")
 	ci, err := NewAESCipher(key)
 	if err != nil {
 		t.Fatal(err)
