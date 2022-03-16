@@ -41,13 +41,18 @@ var (
 
 	procBCryptCloseAlgorithmProvider = modbcrypt.NewProc("BCryptCloseAlgorithmProvider")
 	procBCryptCreateHash             = modbcrypt.NewProc("BCryptCreateHash")
+	procBCryptDecrypt                = modbcrypt.NewProc("BCryptDecrypt")
 	procBCryptDestroyHash            = modbcrypt.NewProc("BCryptDestroyHash")
+	procBCryptDestroyKey             = modbcrypt.NewProc("BCryptDestroyKey")
 	procBCryptDuplicateHash          = modbcrypt.NewProc("BCryptDuplicateHash")
+	procBCryptEncrypt                = modbcrypt.NewProc("BCryptEncrypt")
 	procBCryptFinishHash             = modbcrypt.NewProc("BCryptFinishHash")
 	procBCryptGenRandom              = modbcrypt.NewProc("BCryptGenRandom")
+	procBCryptGenerateSymmetricKey   = modbcrypt.NewProc("BCryptGenerateSymmetricKey")
 	procBCryptGetProperty            = modbcrypt.NewProc("BCryptGetProperty")
 	procBCryptHashData               = modbcrypt.NewProc("BCryptHashData")
 	procBCryptOpenAlgorithmProvider  = modbcrypt.NewProc("BCryptOpenAlgorithmProvider")
+	procBCryptSetProperty            = modbcrypt.NewProc("BCryptSetProperty")
 )
 
 func CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (s error) {
@@ -74,8 +79,24 @@ func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte,
 	return
 }
 
+func Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo uintptr, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall12(procBCryptDecrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
 func DestroyHash(hHash HASH_HANDLE) (s error) {
 	r0, _, _ := syscall.Syscall(procBCryptDestroyHash.Addr(), 1, uintptr(hHash), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func DestroyKey(hKey KEY_HANDLE) (s error) {
+	r0, _, _ := syscall.Syscall(procBCryptDestroyKey.Addr(), 1, uintptr(hKey), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -88,6 +109,14 @@ func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byt
 		_p0 = &pbHashObject[0]
 	}
 	r0, _, _ := syscall.Syscall6(procBCryptDuplicateHash.Addr(), 5, uintptr(hHash), uintptr(unsafe.Pointer(phNewHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(dwFlags), 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo uintptr, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall12(procBCryptEncrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -112,6 +141,14 @@ func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (s error)
 		_p0 = &pbBuffer[0]
 	}
 	r0, _, _ := syscall.Syscall6(procBCryptGenRandom.Addr(), 4, uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbBuffer)), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject *byte, cbKeyObject uint32, pbSecret *byte, cbSecret uint32, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall9(procBCryptGenerateSymmetricKey.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(pbKeyObject)), uintptr(cbKeyObject), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -144,6 +181,18 @@ func HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (s error) {
 
 func OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags AlgorithmProviderFlags) (s error) {
 	r0, _, _ := syscall.Syscall6(procBCryptOpenAlgorithmProvider.Addr(), 4, uintptr(unsafe.Pointer(phAlgorithm)), uintptr(unsafe.Pointer(pszAlgId)), uintptr(unsafe.Pointer(pszImplementation)), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func SetProperty(hObject HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	r0, _, _ := syscall.Syscall6(procBCryptSetProperty.Addr(), 5, uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags), 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
