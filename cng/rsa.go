@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"crypto"
 	"errors"
 	"hash"
 	"math/big"
@@ -205,7 +206,25 @@ func EncryptRSANoPadding(pub *PublicKeyRSA, msg []byte) ([]byte, error) {
 	return rsaCrypt(pub.pkey, nil, msg, bcrypt.PAD_NONE, true)
 }
 
-func rsaCrypt(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, in []byte, flags bcrypt.EncryptFlags, encrypt bool) ([]byte, error) {
+func SignRSAPKCS1v15(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte) ([]byte, error) {
+	defer runtime.KeepAlive(priv)
+	info, err := newPKCS1_PADDING_INFO(h)
+	if err != nil {
+		return nil, err
+	}
+	return rsaSign(priv.pkey, unsafe.Pointer(&info), hashed, bcrypt.PAD_PKCS1)
+}
+
+func VerifyRSAPKCS1v15(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte) error {
+	defer runtime.KeepAlive(pub)
+	info, err := newPKCS1_PADDING_INFO(h)
+	if err != nil {
+		return err
+	}
+	return rsaVerify(pub.pkey, unsafe.Pointer(&info), hashed, sig, bcrypt.PAD_PKCS1)
+}
+
+func rsaCrypt(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, in []byte, flags bcrypt.PadMode, encrypt bool) ([]byte, error) {
 	var size uint32
 	var err error
 	if encrypt {
@@ -241,4 +260,50 @@ func rsaOAEP(h hash.Hash, pkey bcrypt.KEY_HANDLE, in, label []byte, encrypt bool
 		info.Label = &label[0]
 	}
 	return rsaCrypt(pkey, unsafe.Pointer(&info), in, bcrypt.PAD_OAEP, encrypt)
+}
+
+func rsaSign(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed []byte, flags bcrypt.PadMode) ([]byte, error) {
+	var size uint32
+	err := bcrypt.SignHash(pkey, info, hashed, nil, &size, flags)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]byte, size)
+	err = bcrypt.SignHash(pkey, info, hashed, out, &size, flags)
+	if err != nil {
+		return nil, err
+	}
+	return out[:size], nil
+}
+
+func rsaVerify(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed, sig []byte, flags bcrypt.PadMode) error {
+	return bcrypt.VerifySignature(pkey, info, hashed, sig, flags)
+}
+
+func newPKCS1_PADDING_INFO(h crypto.Hash) (info bcrypt.PKCS1_PADDING_INFO, err error) {
+	if h != 0 {
+		hashID := cryptoHashToID(h)
+		if hashID == "" {
+			err = errors.New("crypto/rsa: unsupported hash function")
+		} else {
+			info.AlgId = utf16PtrFromString(hashID)
+		}
+	}
+	return
+}
+
+func cryptoHashToID(ch crypto.Hash) string {
+	switch ch {
+	case crypto.MD5:
+		return bcrypt.MD5_ALGORITHM
+	case crypto.SHA1:
+		return bcrypt.SHA1_ALGORITHM
+	case crypto.SHA256:
+		return bcrypt.SHA256_ALGORITHM
+	case crypto.SHA384:
+		return bcrypt.SHA384_ALGORITHM
+	case crypto.SHA512:
+		return bcrypt.SHA512_ALGORITHM
+	}
+	return ""
 }
