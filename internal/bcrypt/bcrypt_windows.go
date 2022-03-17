@@ -28,6 +28,7 @@ const (
 	CHAIN_MODE_GCM    = "ChainingModeGCM"
 	KEY_LENGTHS       = "KeyLengths"
 	OBJECT_LENGTH     = "ObjectLength"
+	BLOCK_LENGTH      = "BlockLength"
 )
 
 const (
@@ -37,6 +38,16 @@ const (
 
 const (
 	USE_SYSTEM_PREFERRED_RNG = 0x00000002
+)
+
+type EncryptFlags uint32
+
+const (
+	EncrytFlagsNone EncryptFlags = 0x0
+	PAD_NONE        EncryptFlags = 0x1
+	PAD_PKCS1       EncryptFlags = 0x2
+	PAD_OAEP        EncryptFlags = 0x4
+	PAD_PSS         EncryptFlags = 0x8
 )
 
 type AlgorithmProviderFlags uint32
@@ -102,6 +113,13 @@ func NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag []byte) *AUTHE
 	return &info
 }
 
+// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_oaep_padding_info
+type OAEP_PADDING_INFO struct {
+	AlgId     *uint16
+	Label     *byte
+	LabelSize uint32
+}
+
 // https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_rsakey_blob
 type RSAKEY_BLOB struct {
 	Magic         KeyBlobMagicNumber
@@ -137,5 +155,5 @@ type RSAKEY_BLOB struct {
 //sys   ImportKeyPair (hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *uint16, phKey *KEY_HANDLE, pbInput []byte, dwFlags uint32) (s error) = bcrypt.BCryptImportKeyPair
 //sys   ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptExportKey
 //sys   DestroyKey(hKey KEY_HANDLE) (s error) = bcrypt.BCryptDestroyKey
-//sys   Encrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptEncrypt
-//sys   Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDecrypt
+//sys   Encrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags EncryptFlags) (s error) = bcrypt.BCryptEncrypt
+//sys   Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags EncryptFlags) (s error) = bcrypt.BCryptDecrypt
