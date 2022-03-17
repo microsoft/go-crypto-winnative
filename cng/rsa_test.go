@@ -8,6 +8,7 @@ package cng
 
 import (
 	"bytes"
+	"crypto"
 	"strconv"
 	"testing"
 )
@@ -101,5 +102,49 @@ func TestEncryptDecryptNoPadding(t *testing.T) {
 	}
 	if !bytes.Equal(dec, msg[:]) {
 		t.Errorf("got:%x want:%x", dec, msg)
+	}
+}
+
+func TestSignVerifyPKCS1v15(t *testing.T) {
+	sha256 := NewSHA256()
+	priv, pub := newRSAKey(t, 2048)
+	sha256.Write([]byte("hi!"))
+	hashed := sha256.Sum(nil)
+	signed, err := SignRSAPKCS1v15(priv, crypto.SHA256, hashed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = VerifyRSAPKCS1v15(pub, crypto.SHA256, hashed, signed)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSignVerifyPKCS1v15_Unhashed(t *testing.T) {
+	msg := []byte("hi!")
+	priv, pub := newRSAKey(t, 2048)
+	signed, err := SignRSAPKCS1v15(priv, 0, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = VerifyRSAPKCS1v15(pub, 0, msg, signed)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSignVerifyPKCS1v15_Invalid(t *testing.T) {
+	sha256 := NewSHA256()
+	msg := []byte("hi!")
+	priv, pub := newRSAKey(t, 2048)
+	sha256.Write(msg)
+	hashed := sha256.Sum(nil)
+	signed, err := SignRSAPKCS1v15(priv, crypto.SHA256, hashed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = VerifyRSAPKCS1v15(pub, crypto.SHA256, msg, signed)
+	if err == nil {
+		t.Fatal("error expected")
 	}
 }
