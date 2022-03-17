@@ -46,11 +46,15 @@ var (
 	procBCryptDestroyKey             = modbcrypt.NewProc("BCryptDestroyKey")
 	procBCryptDuplicateHash          = modbcrypt.NewProc("BCryptDuplicateHash")
 	procBCryptEncrypt                = modbcrypt.NewProc("BCryptEncrypt")
+	procBCryptExportKey              = modbcrypt.NewProc("BCryptExportKey")
+	procBCryptFinalizeKeyPair        = modbcrypt.NewProc("BCryptFinalizeKeyPair")
 	procBCryptFinishHash             = modbcrypt.NewProc("BCryptFinishHash")
 	procBCryptGenRandom              = modbcrypt.NewProc("BCryptGenRandom")
+	procBCryptGenerateKeyPair        = modbcrypt.NewProc("BCryptGenerateKeyPair")
 	procBCryptGenerateSymmetricKey   = modbcrypt.NewProc("BCryptGenerateSymmetricKey")
 	procBCryptGetProperty            = modbcrypt.NewProc("BCryptGetProperty")
 	procBCryptHashData               = modbcrypt.NewProc("BCryptHashData")
+	procBCryptImportKeyPair          = modbcrypt.NewProc("BCryptImportKeyPair")
 	procBCryptOpenAlgorithmProvider  = modbcrypt.NewProc("BCryptOpenAlgorithmProvider")
 	procBCryptSetProperty            = modbcrypt.NewProc("BCryptSetProperty")
 )
@@ -147,6 +151,26 @@ func Encrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo *AUTHENTICATED_CIPHER
 	return
 }
 
+func ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbOutput) > 0 {
+		_p0 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.Syscall9(procBCryptExportKey.Addr(), 7, uintptr(hKey), uintptr(hExportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func FinalizeKeyPair(hKey KEY_HANDLE, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall(procBCryptFinalizeKeyPair.Addr(), 2, uintptr(hKey), uintptr(dwFlags), 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
 func FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (s error) {
 	var _p0 *byte
 	if len(pbOutput) > 0 {
@@ -165,6 +189,14 @@ func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (s error)
 		_p0 = &pbBuffer[0]
 	}
 	r0, _, _ := syscall.Syscall6(procBCryptGenRandom.Addr(), 4, uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbBuffer)), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func GenerateKeyPair(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, dwLength uint32, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall6(procBCryptGenerateKeyPair.Addr(), 4, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(dwLength), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -205,6 +237,18 @@ func HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (s error) {
 		_p0 = &pbInput[0]
 	}
 	r0, _, _ := syscall.Syscall6(procBCryptHashData.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func ImportKeyPair(hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *uint16, phKey *KEY_HANDLE, pbInput []byte, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	r0, _, _ := syscall.Syscall9(procBCryptImportKeyPair.Addr(), 7, uintptr(hAlgorithm), uintptr(hImportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
