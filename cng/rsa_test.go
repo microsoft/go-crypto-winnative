@@ -148,3 +148,18 @@ func TestSignVerifyPKCS1v15_Invalid(t *testing.T) {
 		t.Fatal("error expected")
 	}
 }
+
+func TestSignVerifyRSAPSS(t *testing.T) {
+	sha256 := NewSHA256()
+	priv, pub := newRSAKey(t, 2048)
+	sha256.Write([]byte("testing"))
+	hashed := sha256.Sum(nil)
+	signed, err := SignRSAPSS(priv, crypto.SHA256, hashed, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = VerifyRSAPSS(pub, crypto.SHA256, hashed, signed, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
