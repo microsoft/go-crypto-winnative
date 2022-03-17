@@ -12,27 +12,25 @@ import (
 	"hash"
 	"math/big"
 	"runtime"
-	"sync"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-var rsaCache sync.Map
-
 type rsaAlgorithm struct {
 	h bcrypt.ALG_HANDLE
 }
 
-func loadRsa(id string, flags bcrypt.AlgorithmProviderFlags) (h rsaAlgorithm, err error) {
-	if v, ok := rsaCache.Load(algCacheEntry{id, uint32(flags)}); ok {
+func loadRsa() (h rsaAlgorithm, err error) {
+	const id = bcrypt.RSA_ALGORITHM
+	if v, ok := algCache.Load(id); ok {
 		return v.(rsaAlgorithm), nil
 	}
-	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, flags)
+	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, bcrypt.ALG_NONE_FLAG)
 	if err != nil {
 		return
 	}
-	rsaCache.Store(algCacheEntry{id, uint32(flags)}, h)
+	algCache.Store(id, h)
 	return
 }
 
@@ -42,7 +40,7 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv *big.Int, err error) 
 	bad := func(e error) (N, E, D, P, Q, Dp, Dq, Qinv *big.Int, err error) {
 		return nil, nil, nil, nil, nil, nil, nil, nil, e
 	}
-	h, err := loadRsa(bcrypt.RSA_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+	h, err := loadRsa()
 	if err != nil {
 		return bad(err)
 	}
@@ -95,7 +93,7 @@ type PublicKeyRSA struct {
 }
 
 func NewPublicKeyRSA(N, E *big.Int) (*PublicKeyRSA, error) {
-	h, err := loadRsa(bcrypt.RSA_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+	h, err := loadRsa()
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +120,7 @@ func (k *PrivateKeyRSA) finalize() {
 }
 
 func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv *big.Int) (*PrivateKeyRSA, error) {
-	h, err := loadRsa(bcrypt.RSA_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+	h, err := loadRsa()
 	if err != nil {
 		return nil, err
 	}

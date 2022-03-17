@@ -9,7 +9,6 @@ package cng
 import (
 	"hash"
 	"runtime"
-	"sync"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
@@ -34,8 +33,6 @@ func NewSHA512() hash.Hash {
 	return newSHAX(bcrypt.SHA512_ALGORITHM, nil)
 }
 
-var shaCache sync.Map
-
 type shaAlgorithm struct {
 	h         bcrypt.ALG_HANDLE
 	size      uint32
@@ -43,7 +40,11 @@ type shaAlgorithm struct {
 }
 
 func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (h shaAlgorithm, err error) {
-	if v, ok := shaCache.Load(algCacheEntry{id, uint32(flags)}); ok {
+	type entry struct {
+		id    string
+		flags uint32
+	}
+	if v, ok := algCache.Load(entry{id, uint32(flags)}); ok {
 		return v.(shaAlgorithm), nil
 	}
 	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, flags)
@@ -58,7 +59,7 @@ func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (h shaAlgorithm, er
 	if err != nil {
 		return
 	}
-	shaCache.Store(algCacheEntry{id, uint32(flags)}, h)
+	algCache.Store(entry{id, uint32(flags)}, h)
 	return
 }
 

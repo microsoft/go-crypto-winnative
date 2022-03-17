@@ -9,16 +9,14 @@ package cng
 import (
 	"reflect"
 	"runtime"
+	"sync"
 	"syscall"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-type algCacheEntry struct {
-	id    string
-	flags uint32
-}
+var algCache sync.Map
 
 func utf16PtrFromString(s string) *uint16 {
 	str, err := syscall.UTF16PtrFromString(s)

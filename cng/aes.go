@@ -10,7 +10,6 @@ import (
 	"crypto/cipher"
 	"errors"
 	"runtime"
-	"sync"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -19,20 +18,18 @@ import (
 
 const aesBlockSize = 16
 
-var aesCache sync.Map
-
 type aesAlgorithm struct {
 	h               bcrypt.ALG_HANDLE
 	allowedKeySized []int
 }
 
-type aesCacheEntry struct {
-	id   string
-	mode string
-}
-
-func loadAes(id string, mode string) (h aesAlgorithm, err error) {
-	if v, ok := aesCache.Load(aesCacheEntry{id, mode}); ok {
+func loadAes(mode string) (h aesAlgorithm, err error) {
+	const id = bcrypt.AES_ALGORITHM
+	type aesCacheEntry struct {
+		id   string
+		mode string
+	}
+	if v, ok := algCache.Load(aesCacheEntry{id, mode}); ok {
 		return v.(aesAlgorithm), nil
 	}
 	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, bcrypt.ALG_NONE_FLAG)
@@ -54,7 +51,7 @@ func loadAes(id string, mode string) (h aesAlgorithm, err error) {
 	for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
 		h.allowedKeySized = append(h.allowedKeySized, int(size))
 	}
-	aesCache.Store(aesCacheEntry{id, mode}, h)
+	algCache.Store(aesCacheEntry{id, mode}, h)
 	return
 }
 
@@ -64,7 +61,7 @@ type aesCipher struct {
 }
 
 func NewAESCipher(key []byte) (cipher.Block, error) {
-	h, err := loadAes(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_ECB)
+	h, err := loadAes(bcrypt.CHAIN_MODE_ECB)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +171,7 @@ type aesCBC struct {
 }
 
 func newCBC(encrypt bool, key, iv []byte) *aesCBC {
-	h, err := loadAes(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_CBC)
+	h, err := loadAes(bcrypt.CHAIN_MODE_CBC)
 	if err != nil {
 		panic(err)
 	}
@@ -248,7 +245,7 @@ func (g *aesGCM) finalize() {
 }
 
 func newGCM(key []byte, tls bool) (*aesGCM, error) {
-	h, err := loadAes(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_GCM)
+	h, err := loadAes(bcrypt.CHAIN_MODE_GCM)
 	if err != nil {
 		return nil, err
 	}
