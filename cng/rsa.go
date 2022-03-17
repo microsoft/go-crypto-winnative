@@ -206,6 +206,24 @@ func EncryptRSANoPadding(pub *PublicKeyRSA, msg []byte) ([]byte, error) {
 	return rsaCrypt(pub.pkey, nil, msg, bcrypt.PAD_NONE, true)
 }
 
+func SignRSAPSS(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte, saltLen int) ([]byte, error) {
+	defer runtime.KeepAlive(priv)
+	info, err := newPSS_PADDING_INFO(h, saltLen)
+	if err != nil {
+		return nil, err
+	}
+	return rsaSign(priv.pkey, unsafe.Pointer(&info), hashed, bcrypt.PAD_PSS)
+}
+
+func VerifyRSAPSS(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte, saltLen int) error {
+	defer runtime.KeepAlive(pub)
+	info, err := newPSS_PADDING_INFO(h, saltLen)
+	if err != nil {
+		return err
+	}
+	return rsaVerify(pub.pkey, unsafe.Pointer(&info), hashed, sig, bcrypt.PAD_PSS)
+}
+
 func SignRSAPKCS1v15(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte) ([]byte, error) {
 	defer runtime.KeepAlive(priv)
 	info, err := newPKCS1_PADDING_INFO(h)
@@ -278,6 +296,16 @@ func rsaSign(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed []byte, flags b
 
 func rsaVerify(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed, sig []byte, flags bcrypt.PadMode) error {
 	return bcrypt.VerifySignature(pkey, info, hashed, sig, flags)
+}
+
+func newPSS_PADDING_INFO(h crypto.Hash, saltLen int) (info bcrypt.PSS_PADDING_INFO, err error) {
+	hashID := cryptoHashToID(h)
+	if hashID == "" {
+		return info, errors.New("crypto/rsa: unsupported hash function")
+	}
+	info.AlgId = utf16PtrFromString(hashID)
+	info.Salt = uint32(saltLen)
+	return
 }
 
 func newPKCS1_PADDING_INFO(h crypto.Hash) (info bcrypt.PKCS1_PADDING_INFO, err error) {

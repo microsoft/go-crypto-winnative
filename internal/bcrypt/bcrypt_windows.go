@@ -126,6 +126,12 @@ type PKCS1_PADDING_INFO struct {
 	AlgId *uint16
 }
 
+// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_pss_padding_info
+type PSS_PADDING_INFO struct {
+	AlgId *uint16
+	Salt  uint32
+}
+
 // https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_rsakey_blob
 type RSAKEY_BLOB struct {
 	Magic         KeyBlobMagicNumber
