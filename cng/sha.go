@@ -9,7 +9,6 @@ package cng
 import (
 	"hash"
 	"runtime"
-	"sync"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
@@ -105,8 +104,6 @@ func NewSHA512() hash.Hash {
 	return newSHAX(bcrypt.SHA512_ALGORITHM, nil)
 }
 
-var shaCache sync.Map
-
 type shaAlgorithm struct {
 	h            bcrypt.ALG_HANDLE
 	size         uint32
@@ -114,39 +111,26 @@ type shaAlgorithm struct {
 	objectLength uint32
 }
 
-func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (h shaAlgorithm, err error) {
-	if v, ok := shaCache.Load(algCacheEntry{id, uint32(flags)}); ok {
-		return v.(shaAlgorithm), nil
-	}
-	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, flags)
-	if err != nil {
-		return
-	}
-	defer func() {
+func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (shaAlgorithm, error) {
+	v, err := loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+		size, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_LENGTH)
 		if err != nil {
-			bcrypt.CloseAlgorithmProvider(h.h, 0)
-			h.h = 0
+			return nil, err
 		}
-	}()
-	h.size, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_LENGTH)
+		blockSize, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_BLOCK_LENGTH)
+		if err != nil {
+			return nil, err
+		}
+		objectLength, err := getUint32(bcrypt.HANDLE(h), bcrypt.OBJECT_LENGTH)
+		if err != nil {
+			return nil, err
+		}
+		return shaAlgorithm{h, size, blockSize, objectLength}, nil
+	})
 	if err != nil {
-		return
+		return shaAlgorithm{}, err
 	}
-	h.blockSize, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_BLOCK_LENGTH)
-	if err != nil {
-		return
-	}
-	h.objectLength, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.OBJECT_LENGTH)
-	if err != nil {
-		bcrypt.CloseAlgorithmProvider(h.h, 0)
-		return
-	}
-	if existing, loaded := shaCache.LoadOrStore(algCacheEntry{id, uint32(flags)}, h); loaded {
-		// We can safely use a provider that has already been cached in another concurrent goroutine.
-		bcrypt.CloseAlgorithmProvider(h.h, 0)
-		h = existing.(shaAlgorithm)
-	}
-	return
+	return v.(shaAlgorithm), nil
 }
 
 type shaXHash struct {
