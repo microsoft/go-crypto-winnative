@@ -308,7 +308,7 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, out[len(out)-gcmTagSize:])
 	var encSize uint32
-	err := bcrypt.Encrypt(g.kh, plaintext, info, nil, out, &encSize, 0)
+	err := bcrypt.Encrypt(g.kh, plaintext, unsafe.Pointer(info), nil, out, &encSize, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -345,7 +345,7 @@ func (g *aesGCM) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, er
 
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag)
 	var decSize uint32
-	err := bcrypt.Decrypt(g.kh, ciphertext, info, nil, out, &decSize, 0)
+	err := bcrypt.Decrypt(g.kh, ciphertext, unsafe.Pointer(info), nil, out, &decSize, 0)
 	if err != nil || int(decSize) != len(ciphertext) {
 		for i := range out {
 			out[i] = 0

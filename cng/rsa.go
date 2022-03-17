@@ -7,6 +7,8 @@
 package cng
 
 import (
+	"errors"
+	"hash"
 	"math/big"
 	"runtime"
 	"sync"
@@ -170,4 +172,73 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv *big.Int) []byte {
 		encode(D, hdr.ModulusSize)
 	}
 	return blob
+}
+
+func DecryptRSAOAEP(h hash.Hash, priv *PrivateKeyRSA, ciphertext, label []byte) ([]byte, error) {
+	defer runtime.KeepAlive(priv)
+	return rsaOAEP(h, priv.pkey, ciphertext, label, false)
+}
+
+func EncryptRSAOAEP(h hash.Hash, pub *PublicKeyRSA, msg, label []byte) ([]byte, error) {
+	defer runtime.KeepAlive(pub)
+	return rsaOAEP(h, pub.pkey, msg, label, true)
+}
+
+func DecryptRSAPKCS1(priv *PrivateKeyRSA, ciphertext []byte) ([]byte, error) {
+	defer runtime.KeepAlive(priv)
+	return rsaCrypt(priv.pkey, nil, ciphertext, bcrypt.PAD_PKCS1, false)
+}
+
+func EncryptRSAPKCS1(pub *PublicKeyRSA, msg []byte) ([]byte, error) {
+	defer runtime.KeepAlive(pub)
+	return rsaCrypt(pub.pkey, nil, msg, bcrypt.PAD_PKCS1, true)
+}
+
+func DecryptRSANoPadding(priv *PrivateKeyRSA, ciphertext []byte) ([]byte, error) {
+	defer runtime.KeepAlive(priv)
+	return rsaCrypt(priv.pkey, nil, ciphertext, bcrypt.PAD_NONE, false)
+
+}
+
+func EncryptRSANoPadding(pub *PublicKeyRSA, msg []byte) ([]byte, error) {
+	defer runtime.KeepAlive(pub)
+	return rsaCrypt(pub.pkey, nil, msg, bcrypt.PAD_NONE, true)
+}
+
+func rsaCrypt(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, in []byte, flags bcrypt.EncryptFlags, encrypt bool) ([]byte, error) {
+	var size uint32
+	var err error
+	if encrypt {
+		err = bcrypt.Encrypt(pkey, in, info, nil, nil, &size, flags)
+	} else {
+		err = bcrypt.Decrypt(pkey, in, info, nil, nil, &size, flags)
+	}
+	if err != nil {
+		return nil, err
+	}
+	out := make([]byte, size)
+	if encrypt {
+		err = bcrypt.Encrypt(pkey, in, info, nil, out, &size, flags)
+	} else {
+		err = bcrypt.Decrypt(pkey, in, info, nil, out, &size, flags)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return out[:size], nil
+}
+
+func rsaOAEP(h hash.Hash, pkey bcrypt.KEY_HANDLE, in, label []byte, encrypt bool) ([]byte, error) {
+	hashID := hashToID(h)
+	if hashID == "" {
+		return nil, errors.New("crypto/rsa: unsupported hash function")
+	}
+	info := bcrypt.OAEP_PADDING_INFO{
+		AlgId:     utf16PtrFromString(hashID),
+		LabelSize: uint32(len(label)),
+	}
+	if len(label) > 0 {
+		info.Label = &label[0]
+	}
+	return rsaCrypt(pkey, unsafe.Pointer(&info), in, bcrypt.PAD_OAEP, encrypt)
 }
