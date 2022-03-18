@@ -104,7 +104,9 @@ func (h *shaXHash) Reset() {
 }
 
 func (h *shaXHash) Write(p []byte) (int, error) {
-	if len(p) == 0 {
+	// BCryptHashData only accepts 2**32-1 bytes at a time, so truncate.
+	inputLen := uint32(len(p))
+	if inputLen == 0 {
 		return 0, nil
 	}
 	err := bcrypt.HashData(h.ctx, p, 0)
@@ -112,7 +114,7 @@ func (h *shaXHash) Write(p []byte) (int, error) {
 		return 0, err
 	}
 	runtime.KeepAlive(h)
-	return len(p), nil
+	return int(inputLen), nil
 }
 
 func (h *shaXHash) Size() int {
