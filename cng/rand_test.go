@@ -9,8 +9,23 @@ package cng
 import "testing"
 
 func TestRand(t *testing.T) {
-	_, err := RandReader.Read(make([]byte, 5))
+	b := make([]byte, 5)
+	n, err := RandReader.Read(b)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if want := len(b); n != want {
+		t.Errorf("got:%v want:%v", len(b), n)
+	}
+}
+
+func TestRandBig(t *testing.T) {
+	b := make([]byte, 1<<32+1)
+	n, err := RandReader.Read(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := uint32(len(b)); n != int(want) {
+		t.Errorf("got:%v want:%v", want, n)
 	}
 }
