@@ -80,7 +80,7 @@ func NewAESCipher(key []byte) (cipher.Block, error) {
 	}
 	c := &aesCipher{key: make([]byte, len(key))}
 	copy(c.key, key)
-	err = bcrypt.GenerateSymmetricKey(h.h, &c.kh, nil, 0, &c.key[0], uint32(len(c.key)), 0)
+	err = bcrypt.GenerateSymmetricKey(h.h, &c.kh, nil, c.key, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (c *aesCipher) Encrypt(dst, src []byte) {
 		panic("crypto/aes: output not full block")
 	}
 	var ret uint32
-	err := bcrypt.Encrypt(c.kh, &src[0], uint32(len(src)), nil, nil, 0, &dst[0], uint32(len(dst)), &ret, 0)
+	err := bcrypt.Encrypt(c.kh, src, nil, nil, dst, &ret, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -127,7 +127,7 @@ func (c *aesCipher) Decrypt(dst, src []byte) {
 	}
 
 	var ret uint32
-	err := bcrypt.Decrypt(c.kh, &src[0], uint32(len(src)), nil, nil, 0, &dst[0], uint32(len(dst)), &ret, 0)
+	err := bcrypt.Decrypt(c.kh, src, nil, nil, dst, &ret, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -180,7 +180,7 @@ func newCBC(encrypt bool, key, iv []byte) *aesCBC {
 	}
 	x := &aesCBC{encrypt: encrypt}
 	x.SetIV(iv)
-	err = bcrypt.GenerateSymmetricKey(h.h, &x.kh, nil, 0, &key[0], uint32(len(key)), 0)
+	err = bcrypt.GenerateSymmetricKey(h.h, &x.kh, nil, key, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -210,9 +210,9 @@ func (x *aesCBC) CryptBlocks(dst, src []byte) {
 	var ret uint32
 	var err error
 	if x.encrypt {
-		err = bcrypt.Encrypt(x.kh, &src[0], uint32(len(src)), nil, &x.iv[0], uint32(len(x.iv)), &dst[0], uint32(len(dst)), &ret, 0)
+		err = bcrypt.Encrypt(x.kh, src, nil, x.iv[:], dst, &ret, 0)
 	} else {
-		err = bcrypt.Decrypt(x.kh, &src[0], uint32(len(src)), nil, &x.iv[0], uint32(len(x.iv)), &dst[0], uint32(len(dst)), &ret, 0)
+		err = bcrypt.Decrypt(x.kh, src, nil, x.iv[:], dst, &ret, 0)
 	}
 	if err != nil {
 		panic(err)
@@ -253,7 +253,7 @@ func newGCM(key []byte, tls bool) (*aesGCM, error) {
 		return nil, err
 	}
 	g := &aesGCM{tls: tls}
-	err = bcrypt.GenerateSymmetricKey(h.h, &g.kh, nil, 0, &key[0], uint32(len(key)), 0)
+	err = bcrypt.GenerateSymmetricKey(h.h, &g.kh, nil, key, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +308,7 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, out[len(out)-gcmTagSize:])
 	var encSize uint32
-	err := bcrypt.Encrypt(g.kh, &plaintext[0], uint32(len(plaintext)), info, nil, 0, &out[0], uint32(len(out)), &encSize, 0)
+	err := bcrypt.Encrypt(g.kh, plaintext, info, nil, out, &encSize, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -345,7 +345,7 @@ func (g *aesGCM) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, er
 
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag)
 	var decSize uint32
-	err := bcrypt.Decrypt(g.kh, &ciphertext[0], uint32(len(ciphertext)), info, nil, 0, &out[0], uint32(len(out)), &decSize, 0)
+	err := bcrypt.Decrypt(g.kh, ciphertext, info, nil, out, &decSize, 0)
 	if err != nil || int(decSize) != len(ciphertext) {
 		for i := range out {
 			out[i] = 0

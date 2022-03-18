@@ -107,7 +107,7 @@ func NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag []byte) *AUTHE
 
 // Keys
 
-//sys   GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject *byte, cbKeyObject uint32, pbSecret *byte, cbSecret uint32, dwFlags uint32) (s error) = bcrypt.BCryptGenerateSymmetricKey
+//sys   GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) (s error) = bcrypt.BCryptGenerateSymmetricKey
 //sys   DestroyKey(hKey KEY_HANDLE) (s error) = bcrypt.BCryptDestroyKey
-//sys   Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptEncrypt
-//sys   Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDecrypt
+//sys   Encrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptEncrypt
+//sys   Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDecrypt

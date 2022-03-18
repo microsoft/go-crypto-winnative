@@ -79,8 +79,20 @@ func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte,
 	return
 }
 
-func Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall12(procBCryptDecrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(unsafe.Pointer(pPaddingInfo)), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+func Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	var _p1 *byte
+	if len(pbIV) > 0 {
+		_p1 = &pbIV[0]
+	}
+	var _p2 *byte
+	if len(pbOutput) > 0 {
+		_p2 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.Syscall12(procBCryptDecrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(pPaddingInfo)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -115,8 +127,20 @@ func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byt
 	return
 }
 
-func Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV *byte, cbIV uint32, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall12(procBCryptEncrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(unsafe.Pointer(pPaddingInfo)), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+func Encrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo *AUTHENTICATED_CIPHER_MODE_INFO, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	var _p1 *byte
+	if len(pbIV) > 0 {
+		_p1 = &pbIV[0]
+	}
+	var _p2 *byte
+	if len(pbOutput) > 0 {
+		_p2 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.Syscall12(procBCryptEncrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(pPaddingInfo)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -147,8 +171,16 @@ func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (s error)
 	return
 }
 
-func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject *byte, cbKeyObject uint32, pbSecret *byte, cbSecret uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall9(procBCryptGenerateSymmetricKey.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(pbKeyObject)), uintptr(cbKeyObject), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags), 0, 0)
+func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbKeyObject) > 0 {
+		_p0 = &pbKeyObject[0]
+	}
+	var _p1 *byte
+	if len(pbSecret) > 0 {
+		_p1 = &pbSecret[0]
+	}
+	r0, _, _ := syscall.Syscall9(procBCryptGenerateSymmetricKey.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbKeyObject)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
