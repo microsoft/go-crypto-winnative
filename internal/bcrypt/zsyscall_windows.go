@@ -58,8 +58,16 @@ func CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (s error) {
 	return
 }
 
-func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject *byte, cbHashObject uint32, pbSecret *byte, cbSecret uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall9(procBCryptCreateHash.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phHash)), uintptr(unsafe.Pointer(pbHashObject)), uintptr(cbHashObject), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags), 0, 0)
+func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbHashObject) > 0 {
+		_p0 = &pbHashObject[0]
+	}
+	var _p1 *byte
+	if len(pbSecret) > 0 {
+		_p1 = &pbSecret[0]
+	}
+	r0, _, _ := syscall.Syscall9(procBCryptCreateHash.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
@@ -74,40 +82,60 @@ func DestroyHash(hHash HASH_HANDLE) (s error) {
 	return
 }
 
-func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject *byte, cbHashObject uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall6(procBCryptDuplicateHash.Addr(), 5, uintptr(hHash), uintptr(unsafe.Pointer(phNewHash)), uintptr(unsafe.Pointer(pbHashObject)), uintptr(cbHashObject), uintptr(dwFlags), 0)
+func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbHashObject) > 0 {
+		_p0 = &pbHashObject[0]
+	}
+	r0, _, _ := syscall.Syscall6(procBCryptDuplicateHash.Addr(), 5, uintptr(hHash), uintptr(unsafe.Pointer(phNewHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(dwFlags), 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
 	return
 }
 
-func FinishHash(hHash HASH_HANDLE, pbOutput *byte, cbOutput uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall6(procBCryptFinishHash.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(dwFlags), 0, 0)
+func FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbOutput) > 0 {
+		_p0 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.Syscall6(procBCryptFinishHash.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
 	return
 }
 
-func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer *byte, cbBuffer uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall6(procBCryptGenRandom.Addr(), 4, uintptr(hAlgorithm), uintptr(unsafe.Pointer(pbBuffer)), uintptr(cbBuffer), uintptr(dwFlags), 0, 0)
+func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbBuffer) > 0 {
+		_p0 = &pbBuffer[0]
+	}
+	r0, _, _ := syscall.Syscall6(procBCryptGenRandom.Addr(), 4, uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbBuffer)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
 	return
 }
 
-func GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall6(procBCryptGetProperty.Addr(), 6, uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+func GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbOutput) > 0 {
+		_p0 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.Syscall6(procBCryptGetProperty.Addr(), 6, uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
 	return
 }
 
-func HashData(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (s error) {
-	r0, _, _ := syscall.Syscall6(procBCryptHashData.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(dwFlags), 0, 0)
+func HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	r0, _, _ := syscall.Syscall6(procBCryptHashData.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}

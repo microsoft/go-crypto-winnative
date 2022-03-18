@@ -96,7 +96,7 @@ func (h *shaXHash) Reset() {
 		bcrypt.DestroyHash(h.ctx)
 		h.ctx = 0
 	}
-	err := bcrypt.CreateHash(h.h, &h.ctx, nil, 0, nil, 0, 0)
+	err := bcrypt.CreateHash(h.h, &h.ctx, nil, nil, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +107,7 @@ func (h *shaXHash) Write(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
-	err := bcrypt.HashData(h.ctx, &p[0], uint32(len(p)), 0)
+	err := bcrypt.HashData(h.ctx, p, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -130,12 +130,12 @@ func (h *shaXHash) Sum(in []byte) []byte {
 
 func (h *shaXHash) sum(out []byte) {
 	var ctx2 bcrypt.HASH_HANDLE
-	err := bcrypt.DuplicateHash(h.ctx, &ctx2, nil, 0, 0)
+	err := bcrypt.DuplicateHash(h.ctx, &ctx2, nil, 0)
 	if err != nil {
 		panic(err)
 	}
 	defer bcrypt.DestroyHash(ctx2)
-	err = bcrypt.FinishHash(ctx2, &out[0], uint32(len(out)), 0)
+	err = bcrypt.FinishHash(ctx2, out, 0)
 	if err != nil {
 		panic(err)
 	}

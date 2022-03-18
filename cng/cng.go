@@ -28,6 +28,6 @@ func utf16PtrFromString(s string) *uint16 {
 
 func getUint32(h bcrypt.HANDLE, name string) (uint32, error) {
 	var prop, discard uint32
-	err := bcrypt.GetProperty(h, utf16PtrFromString(name), (*byte)(unsafe.Pointer(&prop)), 4, &discard, 0)
+	err := bcrypt.GetProperty(h, utf16PtrFromString(name), (*[4]byte)(unsafe.Pointer(&prop))[:], &discard, 0)
 	return prop, err
 }

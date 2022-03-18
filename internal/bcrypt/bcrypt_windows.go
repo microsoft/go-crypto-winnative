@@ -31,12 +31,12 @@ type (
 	HASH_HANDLE HANDLE
 )
 
-//sys	GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptGetProperty
+//sys	GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptGetProperty
 //sys	OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags uint32) (s error) = bcrypt.BCryptOpenAlgorithmProvider
 //sys	CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptCloseAlgorithmProvider
-//sys	CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject *byte,	cbHashObject uint32, pbSecret *byte, cbSecret uint32, dwFlags uint32) (s error) = bcrypt.BCryptCreateHash
+//sys	CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (s error) = bcrypt.BCryptCreateHash
 //sys	DestroyHash(hHash HASH_HANDLE) (s error) = bcrypt.BCryptDestroyHash
-//sys   HashData(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (s error) = bcrypt.BCryptHashData
-//sys   DuplicateHash(hHash HASH_HANDLE,  phNewHash *HASH_HANDLE, pbHashObject *byte, cbHashObject uint32, dwFlags uint32) (s error) = bcrypt.BCryptDuplicateHash
-//sys   FinishHash(hHash HASH_HANDLE, pbOutput *byte, cbOutput uint32, dwFlags uint32) (s error) = bcrypt.BCryptFinishHash
-//sys   GenRandom(hAlgorithm ALG_HANDLE, pbBuffer *byte, cbBuffer uint32, dwFlags uint32) (s error) = bcrypt.BCryptGenRandom
+//sys   HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (s error) = bcrypt.BCryptHashData
+//sys   DuplicateHash(hHash HASH_HANDLE,  phNewHash *HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (s error) = bcrypt.BCryptDuplicateHash
+//sys   FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (s error) = bcrypt.BCryptFinishHash
+//sys   GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (s error) = bcrypt.BCryptGenRandom
