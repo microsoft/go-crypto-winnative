@@ -17,7 +17,7 @@ import (
 
 const description = `
 Example:
-  go run ./cmd/mksyscall -output zsyscall_windows.go bcrypt.go
+  go run ./cmd/mksyscall -output zsyscall_windows.go bcrypt_windows.go
 mksyscall wraps golang.org/x/sys/windows/mkwinsyscall and runs it as if
 it was generating syscalls for the standard library. This avoids a dependency
 with golang.org/x/sys, which would difficult integrating go-crypto-winnative
