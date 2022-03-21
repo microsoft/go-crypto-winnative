@@ -47,7 +47,7 @@ func main() {
 	}
 
 	install(goTool)
-	zsys := mkwinsyscall()
+	zsys := generateSyscalls()
 
 	if *output == "" {
 		os.Stdout.Write(zsys)
@@ -73,14 +73,14 @@ func install(goTool string) {
 	}
 }
 
-// mkwinsyscall runs mkwinsyscall with GOROOT set to the current working directory.
+// generateSyscalls runs mkwinsyscall with GOROOT set to the current working directory.
 // This fools mkwinsyscall into believing it is generating syscalls for the standard library.
 // When this happens, mkwinsyscall doesn't import "golang.org/x/sys/windows" but
 // "syscall" and "internal/syscall/windows/sysdll". This last import is used
 // to avoid DLL preloading attacks. As sysdll is a std internal package, this function
 // replaces the generated code's sysdll import with our own version located at
 // "./internal/sysdll".
-func mkwinsyscall() []byte {
+func generateSyscalls() []byte {
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
