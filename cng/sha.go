@@ -52,10 +52,12 @@ func loadSha(id string, flags uint32) (h shaAlgorithm, err error) {
 	}
 	h.size, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_LENGTH)
 	if err != nil {
+		bcrypt.CloseAlgorithmProvider(h.h, 0)
 		return
 	}
 	h.blockSize, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_BLOCK_LENGTH)
 	if err != nil {
+		bcrypt.CloseAlgorithmProvider(h.h, 0)
 		return
 	}
 	if existing, loaded := shaCache.LoadOrStore(algCacheEntry{id, flags}, h); loaded {
