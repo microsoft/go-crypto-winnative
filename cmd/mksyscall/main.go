@@ -64,12 +64,12 @@ func install(goTool string) {
 	}
 }
 
-// mkwinsyscall runs mkwinsyscall setting GOROOT to the current working directory.
+// mkwinsyscall runs mkwinsyscall with GOROOT set to the current working directory.
 // This fools mkwinsyscall into believing it is generating syscalls for the standard library.
-// When this happens, mkwinsyscall don't import "golang.org/x/sys/windows" but
+// When this happens, mkwinsyscall doesn't import "golang.org/x/sys/windows" but
 // "syscall" and "internal/syscall/windows/sysdll". This last import is used
-// to avoid DLL preloading attacks. As is a std internal package, this function
-// also replaces the sysdll import with our own version located at
+// to avoid DLL preloading attacks. As sysdll is a std internal package, this function
+// replaces the generated code's sysdll import with our own version located at
 // "./internal/sysdll".
 func mkwinsyscall() []byte {
 	wd, err := os.Getwd()
