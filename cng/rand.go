@@ -13,16 +13,19 @@ import (
 type randReader int
 
 func (randReader) Read(b []byte) (int, error) {
-	// BCryptGenRandom only accepts 2**32-1 bytes at a time, so truncate.
-	inputLen := uint32(len(b))
-	if inputLen == 0 {
+	if len(b) == 0 {
 		return 0, nil
 	}
-	err := bcrypt.GenRandom(0, b, bcrypt.USE_SYSTEM_PREFERRED_RNG)
+	inputLen, truncated := ulong(len(b))
+	const flags = bcrypt.USE_SYSTEM_PREFERRED_RNG
+	err := bcrypt.GenRandom(0, b[:inputLen], flags)
+	if err == nil && truncated {
+		err = bcrypt.GenRandom(0, b[inputLen:], flags)
+	}
 	if err != nil {
 		return 0, err
 	}
-	return int(inputLen), nil
+	return len(b), nil
 }
 
 const RandReader = randReader(0)
