@@ -50,3 +50,23 @@ func TestSha(t *testing.T) {
 		})
 	}
 }
+
+func TestSha256_Large(t *testing.T) {
+	msg := make([]byte, 1<<32)
+	h := NewSHA256()
+	initSum := h.Sum(nil)
+	n, err := h.Write(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(msg) {
+		t.Errorf("got: %d, want: %d", n, len(msg))
+	}
+	sum := h.Sum(nil)
+	if size := h.Size(); len(sum) != size {
+		t.Errorf("got: %d, want: %d", len(sum), size)
+	}
+	if bytes.Equal(sum, initSum) {
+		t.Error("Write didn't change internal hash state")
+	}
+}

@@ -110,17 +110,17 @@ func (h *shaXHash) Reset() {
 }
 
 func (h *shaXHash) Write(p []byte) (int, error) {
-	// BCryptHashData only accepts 2**32-1 bytes at a time, so truncate.
-	inputLen := uint32(len(p))
-	if inputLen == 0 {
-		return 0, nil
+	inputLen, truncated := ulong(len(p))
+	err := bcrypt.HashData(h.ctx, p[:inputLen], 0)
+	if err == nil && truncated {
+		err = bcrypt.HashData(h.ctx, p[inputLen:], 0)
 	}
-	err := bcrypt.HashData(h.ctx, p, 0)
 	if err != nil {
-		return 0, err
+		// hash.Hash interface mandates Write should never return an error.
+		panic(err)
 	}
 	runtime.KeepAlive(h)
-	return int(inputLen), nil
+	return len(p), nil
 }
 
 func (h *shaXHash) Size() int {
