@@ -58,7 +58,10 @@ func loadSha(id string, flags uint32) (h shaAlgorithm, err error) {
 	if err != nil {
 		return
 	}
-	shaCache.Store(algCacheEntry{id, flags}, h)
+	if existing, loaded := shaCache.LoadOrStore(algCacheEntry{id, flags}, h); loaded { 
+	       bcrypt.CloseAlgorithmProvider(&h.h, flags)
+	       h = existing
+       }
 	return
 }
 
