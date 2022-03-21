@@ -58,10 +58,11 @@ func loadSha(id string, flags uint32) (h shaAlgorithm, err error) {
 	if err != nil {
 		return
 	}
-	if existing, loaded := shaCache.LoadOrStore(algCacheEntry{id, flags}, h); loaded { 
-	       bcrypt.CloseAlgorithmProvider(&h.h, flags)
-	       h = existing
-       }
+	if existing, loaded := shaCache.LoadOrStore(algCacheEntry{id, flags}, h); loaded {
+		// We can safely use a provider that has already been cached in another concurrent goroutine.
+		bcrypt.CloseAlgorithmProvider(h.h, 0)
+		h = existing.(shaAlgorithm)
+	}
 	return
 }
 
