@@ -66,7 +66,7 @@ func install(goTool string) {
 	cmd := exec.Command(goTool, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), []string{"GO111MODULE=on"}...)
+	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -92,7 +92,7 @@ func generateSyscalls() []byte {
 	var bout bytes.Buffer
 	cmd.Stdout = &bout
 	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), []string{"GOROOT=" + wd}...)
+	cmd.Env = append(os.Environ(), "GOROOT=" + wd)
 	err = cmd.Run()
 	if err != nil {
 		log.Fatal(err)

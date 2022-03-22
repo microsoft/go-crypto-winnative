@@ -13,9 +13,9 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-// ulong casts v into a Win32 ULONG, which is a 32-bit unsigned integer.
-// If the cast would overflow, v is truncated to the fit into an uint32.
-func ulong(v int) (ul uint32, truncated bool) {
+// clampUint32 casts v into a Win32 ULONG, which is a 32-bit unsigned integer.
+// If the cast would overflow, v is clamped to fit into a uint32.
+func clampUint32(v int) (ul uint32, clamped bool) {
 	const maxULong = 1<<32 - 1
 	if v > maxULong {
 		return maxULong, true
