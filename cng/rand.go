@@ -16,16 +16,13 @@ func (randReader) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	inputLen, truncated := ulong(len(b))
+	n := clamp32(len(b))
 	const flags = bcrypt.USE_SYSTEM_PREFERRED_RNG
-	err := bcrypt.GenRandom(0, b[:inputLen], flags)
-	if err == nil && truncated {
-		err = bcrypt.GenRandom(0, b[inputLen:], flags)
-	}
+	err := bcrypt.GenRandom(0, b[:n], flags)
 	if err != nil {
 		return 0, err
 	}
-	return len(b), nil
+	return n, nil
 }
 
 const RandReader = randReader(0)

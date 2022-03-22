@@ -13,14 +13,14 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-// clampUint32 casts v into a Win32 ULONG, which is a 32-bit unsigned integer.
-// If the cast would overflow, v is clamped to fit into a uint32.
-func clampUint32(v int) (ul uint32, clamped bool) {
-	const maxULong = 1<<32 - 1
-	if v > maxULong {
-		return maxULong, true
+// clamp32 clamps v so it can fit into a Win32 ULONG,
+// which is a 32-bit unsigned integer, without overflowing.
+func clamp32(v int) int {
+	const maxUint = 1<<32 - 1
+	if v > maxUint {
+		return maxUint
 	}
-	return uint32(v), false
+	return v
 }
 
 type algCacheEntry struct {

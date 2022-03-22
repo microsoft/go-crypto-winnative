@@ -109,11 +109,11 @@ func (h *shaXHash) Reset() {
 	runtime.KeepAlive(h)
 }
 
-func (h *shaXHash) Write(p []byte) (int, error) {
-	inputLen, truncated := ulong(len(p))
-	err := bcrypt.HashData(h.ctx, p[:inputLen], 0)
-	if err == nil && truncated {
-		err = bcrypt.HashData(h.ctx, p[inputLen:], 0)
+func (h *shaXHash) Write(p []byte) (n int, err error) {
+	for n < len(p) && err == nil {
+		nn := clamp32(len(p[n:]))
+		err = bcrypt.HashData(h.ctx, p[n:n+nn], 0)
+		n += nn
 	}
 	if err != nil {
 		// hash.Hash interface mandates Write should never return an error.
