@@ -23,7 +23,7 @@ func TestRand(t *testing.T) {
 }
 
 func TestRandBig(t *testing.T) {
-	b := make([]byte, 1<<34)
+	b := make([]byte, 1<<32+60)
 	n, err := io.ReadFull(RandReader, b)
 	if err != nil {
 		t.Fatal(err)
