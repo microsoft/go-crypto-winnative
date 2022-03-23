@@ -7,20 +7,20 @@
 package cng
 
 import (
+	"math"
 	"syscall"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-// clamp32 clamps v so it can fit into a Win32 ULONG,
+// lenU32 clamps s length so it can fit into a Win32 ULONG,
 // which is a 32-bit unsigned integer, without overflowing.
-func clamp32(v int) int {
-	const maxUint = 1<<32 - 1
-	if v > maxUint {
-		return maxUint
+func lenU32(s []byte) int {
+	if len(s) > math.MaxUint32 {
+		return math.MaxUint32
 	}
-	return v
+	return len(s)
 }
 
 type algCacheEntry struct {

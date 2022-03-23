@@ -111,7 +111,7 @@ func (h *shaXHash) Reset() {
 
 func (h *shaXHash) Write(p []byte) (n int, err error) {
 	for n < len(p) && err == nil {
-		nn := clamp32(len(p[n:]))
+		nn := lenU32(p[n:])
 		err = bcrypt.HashData(h.ctx, p[n:n+nn], 0)
 		n += nn
 	}
