@@ -25,6 +25,13 @@ const (
 	USE_SYSTEM_PREFERRED_RNG = 0x00000002
 )
 
+type AlgorithmProviderFlags uint32
+
+const (
+	ALG_NONE_FLAG        AlgorithmProviderFlags = 0x00000000
+	ALG_HANDLE_HMAC_FLAG AlgorithmProviderFlags = 0x00000008
+)
+
 type (
 	HANDLE      syscall.Handle
 	ALG_HANDLE  HANDLE
@@ -32,7 +39,7 @@ type (
 )
 
 //sys	GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptGetProperty
-//sys	OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags uint32) (s error) = bcrypt.BCryptOpenAlgorithmProvider
+//sys	OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags AlgorithmProviderFlags) (s error) = bcrypt.BCryptOpenAlgorithmProvider
 //sys	CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptCloseAlgorithmProvider
 //sys	CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (s error) = bcrypt.BCryptCreateHash
 //sys	DestroyHash(hHash HASH_HANDLE) (s error) = bcrypt.BCryptDestroyHash
