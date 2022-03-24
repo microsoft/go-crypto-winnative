@@ -43,18 +43,24 @@ func loadAes(id string, mode string) (h aesAlgorithm, err error) {
 	// but Windows 7 requires that it be set on the algorithm before key creation.
 	err = setString(bcrypt.HANDLE(h.h), bcrypt.CHAINING_MODE, mode)
 	if err != nil {
+		bcrypt.CloseAlgorithmProvider(h.h, 0)
 		return
 	}
 	var info bcrypt.KEY_LENGTHS_STRUCT
 	var discard uint32
 	err = bcrypt.GetProperty(bcrypt.HANDLE(h.h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*(*[1<<31 - 1]byte)(unsafe.Pointer(&info)))[:unsafe.Sizeof(info)], &discard, 0)
 	if err != nil {
+		bcrypt.CloseAlgorithmProvider(h.h, 0)
 		return
 	}
 	for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
 		h.allowedKeySized = append(h.allowedKeySized, int(size))
 	}
-	aesCache.Store(aesCacheEntry{id, mode}, h)
+	if existing, loaded := aesCache.LoadOrStore(aesCacheEntry{id, mode}, h); loaded {
+		// We can safely use a provider that has already been cached in another concurrent goroutine.
+		bcrypt.CloseAlgorithmProvider(h.h, 0)
+		h = existing.(aesAlgorithm)
+	}
 	return
 }
 
