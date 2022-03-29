@@ -23,7 +23,7 @@ var aesCache sync.Map
 
 type aesAlgorithm struct {
 	h               bcrypt.ALG_HANDLE
-	allowedKeySized []int
+	allowedKeySizes []int
 }
 
 type aesCacheEntry struct {
@@ -39,22 +39,29 @@ func loadAes(id string, mode string) (h aesAlgorithm, err error) {
 	if err != nil {
 		return
 	}
+	defer func() {
+		if err != nil {
+			bcrypt.CloseAlgorithmProvider(h.h, 0)
+			h.h = 0
+		}
+	}()
 	// Windows 8 added support to set the CipherMode value on a key,
 	// but Windows 7 requires that it be set on the algorithm before key creation.
 	err = setString(bcrypt.HANDLE(h.h), bcrypt.CHAINING_MODE, mode)
 	if err != nil {
-		bcrypt.CloseAlgorithmProvider(h.h, 0)
 		return
 	}
 	var info bcrypt.KEY_LENGTHS_STRUCT
 	var discard uint32
-	err = bcrypt.GetProperty(bcrypt.HANDLE(h.h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*(*[1<<31 - 1]byte)(unsafe.Pointer(&info)))[:unsafe.Sizeof(info)], &discard, 0)
+	err = bcrypt.GetProperty(bcrypt.HANDLE(h.h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*[unsafe.Sizeof(info)]byte)(unsafe.Pointer(&info))[:], &discard, 0)
 	if err != nil {
-		bcrypt.CloseAlgorithmProvider(h.h, 0)
 		return
 	}
+	if info.Increment == 0 || info.MinLength > info.MaxLength {
+		err = errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
+	}
 	for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
-		h.allowedKeySized = append(h.allowedKeySized, int(size))
+		h.allowedKeySizes = append(h.allowedKeySizes, int(size))
 	}
 	if existing, loaded := aesCache.LoadOrStore(aesCacheEntry{id, mode}, h); loaded {
 		// We can safely use a provider that has already been cached in another concurrent goroutine.
@@ -75,7 +82,7 @@ func NewAESCipher(key []byte) (cipher.Block, error) {
 		return nil, err
 	}
 	var allowedKeySize bool
-	for _, size := range h.allowedKeySized {
+	for _, size := range h.allowedKeySizes {
 		if len(key)*8 == size {
 			allowedKeySize = true
 			break
