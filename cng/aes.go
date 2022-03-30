@@ -59,6 +59,7 @@ func loadAes(id string, mode string) (h aesAlgorithm, err error) {
 	}
 	if info.Increment == 0 || info.MinLength > info.MaxLength {
 		err = errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
+		return
 	}
 	for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
 		h.allowedKeySizes = append(h.allowedKeySizes, int(size))
