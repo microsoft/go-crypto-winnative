@@ -14,6 +14,66 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
+func writeSha(ctx bcrypt.HASH_HANDLE, p []byte) (err error) {
+	var n int
+	for n < len(p) && err == nil {
+		nn := lenU32(p[n:])
+		err = bcrypt.HashData(ctx, p[n:n+nn], 0)
+		n += nn
+	}
+	return err
+}
+
+func shaOneShot(id string, p, sum []byte) error {
+	h, err := loadSha(id, 0)
+	if err != nil {
+		return err
+	}
+	var ctx bcrypt.HASH_HANDLE
+	err = bcrypt.CreateHash(h.h, &ctx, nil, nil, 0)
+	if err != nil {
+		return err
+	}
+	defer bcrypt.DestroyHash(ctx)
+	err = writeSha(ctx, p)
+	if err != nil {
+		return err
+	}
+	err = bcrypt.FinishHash(ctx, sum, 0)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func SHA1(p []byte) (sum [20]byte) {
+	if err := shaOneShot(bcrypt.SHA1_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA1 failed")
+	}
+	return
+}
+
+func SHA256(p []byte) (sum [32]byte) {
+	if err := shaOneShot(bcrypt.SHA256_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA256 failed")
+	}
+	return
+}
+
+func SHA384(p []byte) (sum [48]byte) {
+	if err := shaOneShot(bcrypt.SHA384_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA384 failed")
+	}
+	return
+}
+
+func SHA512(p []byte) (sum [64]byte) {
+	if err := shaOneShot(bcrypt.SHA512_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA512 failed")
+	}
+	return
+}
+
 // NewSHA1 returns a new SHA1 hash.
 func NewSHA1() hash.Hash {
 	return newSHAX(bcrypt.SHA1_ALGORITHM, nil)
@@ -123,11 +183,7 @@ func (h *shaXHash) Reset() {
 }
 
 func (h *shaXHash) Write(p []byte) (n int, err error) {
-	for n < len(p) && err == nil {
-		nn := lenU32(p[n:])
-		err = bcrypt.HashData(h.ctx, p[n:n+nn], 0)
-		n += nn
-	}
+	err = writeSha(h.ctx, p)
 	if err != nil {
 		// hash.Hash interface mandates Write should never return an error.
 		panic(err)

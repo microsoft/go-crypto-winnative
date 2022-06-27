@@ -50,3 +50,69 @@ func TestSha(t *testing.T) {
 		})
 	}
 }
+
+func TestSHA_OneShot(t *testing.T) {
+	msg := []byte("testing")
+	var tests = []struct {
+		name    string
+		want    func() hash.Hash
+		oneShot func([]byte) []byte
+	}{
+		{"sha1", NewSHA1, func(p []byte) []byte {
+			b := SHA1(p)
+			return b[:]
+		}},
+		{"sha256", NewSHA256, func(p []byte) []byte {
+			b := SHA256(p)
+			return b[:]
+		}},
+		{"sha384", NewSHA384, func(p []byte) []byte {
+			b := SHA384(p)
+			return b[:]
+		}},
+		{"sha512", NewSHA512, func(p []byte) []byte {
+			b := SHA512(p)
+			return b[:]
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.oneShot(msg)
+			h := tt.want()
+			h.Write(msg)
+			want := h.Sum(nil)
+			if !bytes.Equal(got[:], want) {
+				t.Errorf("got:%x want:%x", got, want)
+			}
+		})
+	}
+}
+
+func BenchmarkHash8Bytes(b *testing.B) {
+	b.StopTimer()
+	h := NewSHA256()
+	sum := make([]byte, h.Size())
+	size := 8
+	buf := make([]byte, size)
+	b.StartTimer()
+	b.SetBytes(int64(size))
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		h.Reset()
+		h.Write(buf[:size])
+		h.Write(buf)
+		h.Sum(sum[:0])
+	}
+}
+
+func BenchmarkSHA256(b *testing.B) {
+	b.StopTimer()
+	size := 8
+	buf := make([]byte, size)
+	b.StartTimer()
+	b.SetBytes(int64(size))
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		SHA256(buf)
+	}
+}
