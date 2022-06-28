@@ -29,8 +29,18 @@ func shaOneShot(id string, p, sum []byte) error {
 	if err != nil {
 		return err
 	}
+	var buf []byte
+	// fbuf is a stack-allocated memory buffer big enough to hold all supported SHA types,
+	// tested on a Windows 11 10.0.22000 x64 machine.
+	// If the SHA object requires more memory, buf will be nil
+	// and bcrypt.CreateHash will internally heap-allocate the necessary memory.
+	// This is a performance optimization which boost one-shot SHAs ~10%.
+	var fbuf [512]byte
+	if h.objectLength <= uint32(len(fbuf)) {
+		buf = fbuf[:h.objectLength]
+	}
 	var ctx bcrypt.HASH_HANDLE
-	err = bcrypt.CreateHash(h.h, &ctx, nil, nil, 0)
+	err = bcrypt.CreateHash(h.h, &ctx, buf, nil, 0)
 	if err != nil {
 		return err
 	}
@@ -43,6 +53,7 @@ func shaOneShot(id string, p, sum []byte) error {
 	if err != nil {
 		return err
 	}
+	runtime.KeepAlive(fbuf)
 	return nil
 }
 
@@ -97,9 +108,10 @@ func NewSHA512() hash.Hash {
 var shaCache sync.Map
 
 type shaAlgorithm struct {
-	h         bcrypt.ALG_HANDLE
-	size      uint32
-	blockSize uint32
+	h            bcrypt.ALG_HANDLE
+	size         uint32
+	blockSize    uint32
+	objectLength uint32
 }
 
 func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (h shaAlgorithm, err error) {
@@ -122,6 +134,11 @@ func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (h shaAlgorithm, er
 	}
 	h.blockSize, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_BLOCK_LENGTH)
 	if err != nil {
+		return
+	}
+	h.objectLength, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.OBJECT_LENGTH)
+	if err != nil {
+		bcrypt.CloseAlgorithmProvider(h.h, 0)
 		return
 	}
 	if existing, loaded := shaCache.LoadOrStore(algCacheEntry{id, uint32(flags)}, h); loaded {
