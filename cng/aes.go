@@ -40,11 +40,11 @@ func loadAes(mode string) (aesAlgorithm, error) {
 		if info.Increment == 0 || info.MinLength > info.MaxLength {
 			return nil, errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
 		}
-		var allowedKeySized []int
+		var allowedKeySizes []int
 		for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
-			allowedKeySized = append(allowedKeySized, int(size))
+			allowedKeySizes = append(allowedKeySizes, int(size))
 		}
-		return aesAlgorithm{h, allowedKeySized}, nil
+		return aesAlgorithm{h, allowedKeySizes}, nil
 	})
 	if err != nil {
 		return aesAlgorithm{}, nil

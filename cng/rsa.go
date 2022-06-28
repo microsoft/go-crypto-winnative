@@ -59,6 +59,10 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv *big.Int, err error) 
 		return bad(err)
 	}
 
+	if size < sizeOfRSABlobHeader {
+		return bad(errors.New("crypto/rsa: exported key is corrupted"))
+	}
+
 	blob := make([]byte, size)
 	err = bcrypt.ExportKey(hkey, 0, utf16PtrFromString(bcrypt.RSAFULLPRIVATE_BLOB), blob, &size, 0)
 	if err != nil {
@@ -66,22 +70,22 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv *big.Int, err error) 
 	}
 	hdr := (*(*bcrypt.RSAKEY_BLOB)(unsafe.Pointer(&blob[0])))
 	if hdr.Magic != bcrypt.RSAFULLPRIVATE_MAGIC || hdr.BitLength != uint32(bits) {
-		panic("crypto/rsa: exported key is corrupted")
+		return bad(errors.New("crypto/rsa: exported key is corrupted"))
 	}
 	data := blob[sizeOfRSABlobHeader:]
-	newInt := func(size uint32) *big.Int {
+	consumeBigInt := func(size uint32) *big.Int {
 		b := new(big.Int).SetBytes(data[:size])
 		data = data[size:]
 		return b
 	}
-	E = newInt(hdr.PublicExpSize)
-	N = newInt(hdr.ModulusSize)
-	P = newInt(hdr.Prime1Size)
-	Q = newInt(hdr.Prime2Size)
-	Dp = newInt(hdr.Prime1Size)
-	Dq = newInt(hdr.Prime2Size)
-	Qinv = newInt(hdr.Prime1Size)
-	D = newInt(hdr.ModulusSize)
+	E = consumeBigInt(hdr.PublicExpSize)
+	N = consumeBigInt(hdr.ModulusSize)
+	P = consumeBigInt(hdr.Prime1Size)
+	Q = consumeBigInt(hdr.Prime2Size)
+	Dp = consumeBigInt(hdr.Prime1Size)
+	Dq = consumeBigInt(hdr.Prime2Size)
+	Qinv = consumeBigInt(hdr.Prime1Size)
+	D = consumeBigInt(hdr.ModulusSize)
 	return
 }
 
@@ -151,7 +155,7 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv *big.Int) []byte {
 		hdr.Prime2Size = bigIntBytesLen(Q)
 		blob = make([]byte, sizeOfRSABlobHeader+hdr.PublicExpSize+hdr.ModulusSize*2+hdr.Prime1Size*3+hdr.Prime2Size*2)
 	}
-	copy(blob[:sizeOfRSABlobHeader], (*(*[1<<31 - 1]byte)(unsafe.Pointer(&hdr)))[:sizeOfRSABlobHeader])
+	copy(blob, (*(*[sizeOfRSABlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfRSABlobHeader:]
 	encode := func(b *big.Int, size uint32) {
 		b.FillBytes(data[:size])
