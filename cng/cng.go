@@ -8,6 +8,8 @@ package cng
 
 import (
 	"math"
+	"reflect"
+	"runtime"
 	"syscall"
 	"unsafe"
 
@@ -34,6 +36,23 @@ func utf16PtrFromString(s string) *uint16 {
 		panic(err)
 	}
 	return str
+}
+
+func utf16FromString(s string) []uint16 {
+	str, err := syscall.UTF16FromString(s)
+	if err != nil {
+		panic(err)
+	}
+	return str
+}
+
+func setString(h bcrypt.HANDLE, name, val string) error {
+	str := utf16FromString(val)
+	defer runtime.KeepAlive(str)
+	in := make([]byte, len(val)+1)
+	sh := (*reflect.SliceHeader)(unsafe.Pointer(&in))
+	sh.Data = uintptr(unsafe.Pointer(&str[0]))
+	return bcrypt.SetProperty(h, utf16PtrFromString(name), in, 0)
 }
 
 func getUint32(h bcrypt.HANDLE, name string) (uint32, error) {

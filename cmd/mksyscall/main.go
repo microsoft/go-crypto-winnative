@@ -92,7 +92,7 @@ func generateSyscalls() []byte {
 	var bout bytes.Buffer
 	cmd.Stdout = &bout
 	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), "GOROOT=" + wd)
+	cmd.Env = append(os.Environ(), "GOROOT="+wd)
 	err = cmd.Run()
 	if err != nil {
 		log.Fatal(err)
