@@ -10,7 +10,6 @@ import (
 	"crypto"
 	"errors"
 	"hash"
-	"math/big"
 	"runtime"
 	"unsafe"
 
@@ -33,8 +32,8 @@ func loadRsa() (rsaAlgorithm, error) {
 
 const sizeOfRSABlobHeader = uint32(unsafe.Sizeof(bcrypt.RSAKEY_BLOB{}))
 
-func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv *big.Int, err error) {
-	bad := func(e error) (N, E, D, P, Q, Dp, Dq, Qinv *big.Int, err error) {
+func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
+	bad := func(e error) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 		return nil, nil, nil, nil, nil, nil, nil, nil, e
 	}
 	h, err := loadRsa()
@@ -73,8 +72,9 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv *big.Int, err error) 
 		return bad(errors.New("crypto/rsa: exported key is corrupted"))
 	}
 	data := blob[sizeOfRSABlobHeader:]
-	consumeBigInt := func(size uint32) *big.Int {
-		b := new(big.Int).SetBytes(data[:size])
+	consumeBigInt := func(size uint32) BigInt {
+		b := make(BigInt, size)
+		copy(b, data)
 		data = data[size:]
 		return b
 	}
@@ -93,7 +93,7 @@ type PublicKeyRSA struct {
 	pkey bcrypt.KEY_HANDLE
 }
 
-func NewPublicKeyRSA(N, E *big.Int) (*PublicKeyRSA, error) {
+func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 	h, err := loadRsa()
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (k *PrivateKeyRSA) finalize() {
 	bcrypt.DestroyKey(k.pkey)
 }
 
-func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv *big.Int) (*PrivateKeyRSA, error) {
+func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error) {
 	h, err := loadRsa()
 	if err != nil {
 		return nil, err
@@ -135,15 +135,11 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv *big.Int) (*PrivateKeyRSA, err
 	return k, nil
 }
 
-func bigIntBytesLen(b *big.Int) uint32 {
-	return uint32(b.BitLen()+7) / 8
-}
-
-func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv *big.Int) []byte {
+func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) []byte {
 	hdr := bcrypt.RSAKEY_BLOB{
-		BitLength:     uint32(N.BitLen()),
-		PublicExpSize: bigIntBytesLen(E),
-		ModulusSize:   bigIntBytesLen(N),
+		BitLength:     uint32(len(N) * 8),
+		PublicExpSize: uint32(len(E)),
+		ModulusSize:   uint32(len(N)),
 	}
 	var blob []byte
 	if D == nil {
@@ -151,14 +147,14 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv *big.Int) []byte {
 		blob = make([]byte, sizeOfRSABlobHeader+hdr.PublicExpSize+hdr.ModulusSize)
 	} else {
 		hdr.Magic = bcrypt.RSAFULLPRIVATE_MAGIC
-		hdr.Prime1Size = bigIntBytesLen(P)
-		hdr.Prime2Size = bigIntBytesLen(Q)
+		hdr.Prime1Size = uint32(len(P))
+		hdr.Prime2Size = uint32(len(Q))
 		blob = make([]byte, sizeOfRSABlobHeader+hdr.PublicExpSize+hdr.ModulusSize*2+hdr.Prime1Size*3+hdr.Prime2Size*2)
 	}
 	copy(blob, (*(*[sizeOfRSABlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfRSABlobHeader:]
-	encode := func(b *big.Int, size uint32) {
-		b.FillBytes(data[:size])
+	encode := func(b BigInt, size uint32) {
+		copy(data, b)
 		data = data[size:]
 	}
 	encode(E, hdr.PublicExpSize)
