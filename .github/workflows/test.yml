@@ -15,5 +15,11 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
+    - name: Set FIPS=1
+      run: REG ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy /v Enabled /t REG_DWORD /f /d 1
     - name: Run Test - Build
-      run: go test -v ./...
+      run: go test -v -count 1 ./...
+    - name: Set FIPS=0
+      run: REG ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy /v Enabled /t REG_DWORD /f /d 0
+    - name: Run Test - Build
+      run: go test -v -count 1 ./...
