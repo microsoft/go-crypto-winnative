@@ -10,6 +10,7 @@ import (
 	"math"
 	"reflect"
 	"runtime"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -25,9 +26,36 @@ func lenU32(s []byte) int {
 	return len(s)
 }
 
-type algCacheEntry struct {
-	id    string
-	flags uint32
+var algCache sync.Map
+
+type newAlgEntryFn func(h bcrypt.ALG_HANDLE) (interface{}, error)
+
+func loadOrStoreAlg(id string, flags bcrypt.AlgorithmProviderFlags, mode string, fn newAlgEntryFn) (interface{}, error) {
+	var entryKey = struct {
+		id    string
+		flags bcrypt.AlgorithmProviderFlags
+		mode  string
+	}{id, flags, mode}
+
+	if v, ok := algCache.Load(entryKey); ok {
+		return v, nil
+	}
+	var h bcrypt.ALG_HANDLE
+	err := bcrypt.OpenAlgorithmProvider(&h, utf16PtrFromString(id), nil, flags)
+	if err != nil {
+		return nil, err
+	}
+	v, err := fn(h)
+	if err != nil {
+		bcrypt.CloseAlgorithmProvider(h, 0)
+		return nil, err
+	}
+	if existing, loaded := algCache.LoadOrStore(entryKey, v); loaded {
+		// We can safely use a provider that has already been cached in another concurrent goroutine.
+		bcrypt.CloseAlgorithmProvider(h, 0)
+		v = existing
+	}
+	return v, nil
 }
 
 func utf16PtrFromString(s string) *uint16 {
