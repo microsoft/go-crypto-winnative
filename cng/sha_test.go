@@ -4,7 +4,7 @@
 //go:build windows
 // +build windows
 
-package cng
+package cng_test
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/microsoft/go-crypto-winnative/cng"
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
@@ -22,10 +23,10 @@ func TestSha(t *testing.T) {
 		name string
 		fn   func() hash.Hash
 	}{
-		{"sha1", NewSHA1},
-		{"sha256", NewSHA256},
-		{"sha384", NewSHA384},
-		{"sha512", NewSHA512},
+		{"sha1", cng.NewSHA1},
+		{"sha256", cng.NewSHA256},
+		{"sha384", cng.NewSHA384},
+		{"sha512", cng.NewSHA512},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -58,29 +59,29 @@ func TestSha(t *testing.T) {
 func TestSHA_OneShot(t *testing.T) {
 	msg := []byte("testing")
 	var tests = []struct {
-		name    string
+		id      string
 		want    func() hash.Hash
 		oneShot func([]byte) []byte
 	}{
-		{"sha1", NewSHA1, func(p []byte) []byte {
-			b := SHA1(p)
+		{bcrypt.SHA1_ALGORITHM, cng.NewSHA1, func(p []byte) []byte {
+			b := cng.SHA1(p)
 			return b[:]
 		}},
-		{"sha256", NewSHA256, func(p []byte) []byte {
-			b := SHA256(p)
+		{bcrypt.SHA256_ALGORITHM, cng.NewSHA256, func(p []byte) []byte {
+			b := cng.SHA256(p)
 			return b[:]
 		}},
-		{"sha384", NewSHA384, func(p []byte) []byte {
-			b := SHA384(p)
+		{bcrypt.SHA384_ALGORITHM, cng.NewSHA384, func(p []byte) []byte {
+			b := cng.SHA384(p)
 			return b[:]
 		}},
-		{"sha512", NewSHA512, func(p []byte) []byte {
-			b := SHA512(p)
+		{bcrypt.SHA512_ALGORITHM, cng.NewSHA512, func(p []byte) []byte {
+			b := cng.SHA512(p)
 			return b[:]
 		}},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.id, func(t *testing.T) {
 			got := tt.oneShot(msg)
 			h := tt.want()
 			h.Write(msg)
@@ -88,17 +89,18 @@ func TestSHA_OneShot(t *testing.T) {
 			if !bytes.Equal(got[:], want) {
 				t.Errorf("got:%x want:%x", got, want)
 			}
+			testSHAObjectLength(t, tt.id)
 		})
 	}
 }
 
-func TestSHAObjectLength(t *testing.T) {
-	id, err := syscall.UTF16PtrFromString(bcrypt.SHA512_ALGORITHM)
+func testSHAObjectLength(t *testing.T, id string) {
+	pid, err := syscall.UTF16PtrFromString(id)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var h bcrypt.ALG_HANDLE
-	err = bcrypt.OpenAlgorithmProvider(&h, id, nil, 0)
+	err = bcrypt.OpenAlgorithmProvider(&h, pid, nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,15 +113,16 @@ func TestSHAObjectLength(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if prop > 512 {
-		t.Errorf("SHA512_ALGORITHM object length is %d, which is higher than 512, the current stack-allocated buffer size.\n"+
-			"Increase the buffer size passed to bcrypt.CreateHash in order to avoid allocating in one-shot SHA functions", prop)
+	const fbufSize = 512
+	if prop > fbufSize {
+		t.Fatalf("%s object length is %d, which is higher than %d, the current stack-allocated buffer size.\n"+
+			"Increase the buffer size passed to bcrypt.CreateHash in order to avoid allocating in one-shot SHA functions", id, prop, fbufSize)
 	}
 }
 
 func BenchmarkHash8Bytes(b *testing.B) {
 	b.StopTimer()
-	h := NewSHA256()
+	h := cng.NewSHA256()
 	sum := make([]byte, h.Size())
 	size := 8
 	buf := make([]byte, size)
@@ -142,6 +145,6 @@ func BenchmarkSHA256(b *testing.B) {
 	b.SetBytes(int64(size))
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		SHA256(buf)
+		cng.SHA256(buf)
 	}
 }
