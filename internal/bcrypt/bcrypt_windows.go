@@ -28,7 +28,6 @@ const (
 	CHAIN_MODE_CBC    = "ChainingModeCBC"
 	CHAIN_MODE_GCM    = "ChainingModeGCM"
 	KEY_LENGTHS       = "KeyLengths"
-	OBJECT_LENGTH     = "ObjectLength"
 	BLOCK_LENGTH      = "BlockLength"
 )
 
@@ -149,6 +148,7 @@ type RSAKEY_BLOB struct {
 
 // SHA and HMAC
 
+//sys	Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (s error) = bcrypt.BCryptHash
 //sys	CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (s error) = bcrypt.BCryptCreateHash
 //sys	DestroyHash(hHash HASH_HANDLE) (s error) = bcrypt.BCryptDestroyHash
 //sys   HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (s error) = bcrypt.BCryptHashData

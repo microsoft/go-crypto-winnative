@@ -9,9 +9,7 @@ package cng_test
 import (
 	"bytes"
 	"hash"
-	"syscall"
 	"testing"
-	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -89,34 +87,7 @@ func TestSHA_OneShot(t *testing.T) {
 			if !bytes.Equal(got[:], want) {
 				t.Errorf("got:%x want:%x", got, want)
 			}
-			testSHAObjectLength(t, tt.id)
 		})
-	}
-}
-
-func testSHAObjectLength(t *testing.T, id string) {
-	pid, err := syscall.UTF16PtrFromString(id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var h bcrypt.ALG_HANDLE
-	err = bcrypt.OpenAlgorithmProvider(&h, pid, nil, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	name, err := syscall.UTF16PtrFromString(bcrypt.OBJECT_LENGTH)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var prop, discard uint32
-	err = bcrypt.GetProperty(bcrypt.HANDLE(h), name, (*[4]byte)(unsafe.Pointer(&prop))[:], &discard, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	const fbufSize = 512
-	if prop > fbufSize {
-		t.Fatalf("%s object length is %d, which is higher than %d, the current stack-allocated buffer size.\n"+
-			"Increase the buffer size passed to bcrypt.CreateHash in order to avoid allocating in one-shot SHA functions", id, prop, fbufSize)
 	}
 }
 
