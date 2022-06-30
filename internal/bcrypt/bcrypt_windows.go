@@ -26,6 +26,7 @@ const (
 	CHAIN_MODE_CBC    = "ChainingModeCBC"
 	CHAIN_MODE_GCM    = "ChainingModeGCM"
 	KEY_LENGTHS       = "KeyLengths"
+	OBJECT_LENGTH     = "ObjectLength"
 )
 
 const (

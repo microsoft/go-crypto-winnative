@@ -4,12 +4,17 @@
 //go:build windows
 // +build windows
 
-package cng
+package cng_test
 
 import (
 	"bytes"
 	"hash"
+	"syscall"
 	"testing"
+	"unsafe"
+
+	"github.com/microsoft/go-crypto-winnative/cng"
+	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
 func TestSha(t *testing.T) {
@@ -18,10 +23,10 @@ func TestSha(t *testing.T) {
 		name string
 		fn   func() hash.Hash
 	}{
-		{"sha1", NewSHA1},
-		{"sha256", NewSHA256},
-		{"sha384", NewSHA384},
-		{"sha512", NewSHA512},
+		{"sha1", cng.NewSHA1},
+		{"sha256", cng.NewSHA256},
+		{"sha384", cng.NewSHA384},
+		{"sha512", cng.NewSHA512},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -48,5 +53,98 @@ func TestSha(t *testing.T) {
 				t.Errorf("got:%x want:%x", sum, initSum)
 			}
 		})
+	}
+}
+
+func TestSHA_OneShot(t *testing.T) {
+	msg := []byte("testing")
+	var tests = []struct {
+		id      string
+		want    func() hash.Hash
+		oneShot func([]byte) []byte
+	}{
+		{bcrypt.SHA1_ALGORITHM, cng.NewSHA1, func(p []byte) []byte {
+			b := cng.SHA1(p)
+			return b[:]
+		}},
+		{bcrypt.SHA256_ALGORITHM, cng.NewSHA256, func(p []byte) []byte {
+			b := cng.SHA256(p)
+			return b[:]
+		}},
+		{bcrypt.SHA384_ALGORITHM, cng.NewSHA384, func(p []byte) []byte {
+			b := cng.SHA384(p)
+			return b[:]
+		}},
+		{bcrypt.SHA512_ALGORITHM, cng.NewSHA512, func(p []byte) []byte {
+			b := cng.SHA512(p)
+			return b[:]
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			got := tt.oneShot(msg)
+			h := tt.want()
+			h.Write(msg)
+			want := h.Sum(nil)
+			if !bytes.Equal(got[:], want) {
+				t.Errorf("got:%x want:%x", got, want)
+			}
+			testSHAObjectLength(t, tt.id)
+		})
+	}
+}
+
+func testSHAObjectLength(t *testing.T, id string) {
+	pid, err := syscall.UTF16PtrFromString(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var h bcrypt.ALG_HANDLE
+	err = bcrypt.OpenAlgorithmProvider(&h, pid, nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, err := syscall.UTF16PtrFromString(bcrypt.OBJECT_LENGTH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var prop, discard uint32
+	err = bcrypt.GetProperty(bcrypt.HANDLE(h), name, (*[4]byte)(unsafe.Pointer(&prop))[:], &discard, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const fbufSize = 512
+	if prop > fbufSize {
+		t.Fatalf("%s object length is %d, which is higher than %d, the current stack-allocated buffer size.\n"+
+			"Increase the buffer size passed to bcrypt.CreateHash in order to avoid allocating in one-shot SHA functions", id, prop, fbufSize)
+	}
+}
+
+func BenchmarkHash8Bytes(b *testing.B) {
+	b.StopTimer()
+	h := cng.NewSHA256()
+	sum := make([]byte, h.Size())
+	size := 8
+	buf := make([]byte, size)
+	b.StartTimer()
+	b.SetBytes(int64(size))
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		h.Reset()
+		h.Write(buf[:size])
+		h.Write(buf)
+		h.Sum(sum[:0])
+	}
+}
+
+func BenchmarkSHA256(b *testing.B) {
+	b.StopTimer()
+	size := 8
+	buf := make([]byte, size)
+	b.StartTimer()
+	b.SetBytes(int64(size))
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		cng.SHA256(buf)
 	}
 }
