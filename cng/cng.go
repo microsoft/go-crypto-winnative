@@ -17,6 +17,15 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
+func FIPS() (bool, error) {
+	var enabled bool
+	err := bcrypt.GetFipsAlgorithmMode(&enabled)
+	if err != nil {
+		return false, err
+	}
+	return enabled, nil
+}
+
 // lenU32 clamps s length so it can fit into a Win32 ULONG,
 // which is a 32-bit unsigned integer, without overflowing.
 func lenU32(s []byte) int {

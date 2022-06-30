@@ -52,6 +52,7 @@ var (
 	procBCryptGenRandom              = modbcrypt.NewProc("BCryptGenRandom")
 	procBCryptGenerateKeyPair        = modbcrypt.NewProc("BCryptGenerateKeyPair")
 	procBCryptGenerateSymmetricKey   = modbcrypt.NewProc("BCryptGenerateSymmetricKey")
+	procBCryptGetFipsAlgorithmMode   = modbcrypt.NewProc("BCryptGetFipsAlgorithmMode")
 	procBCryptGetProperty            = modbcrypt.NewProc("BCryptGetProperty")
 	procBCryptHash                   = modbcrypt.NewProc("BCryptHash")
 	procBCryptHashData               = modbcrypt.NewProc("BCryptHashData")
@@ -216,6 +217,19 @@ func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject 
 		_p1 = &pbSecret[0]
 	}
 	r0, _, _ := syscall.Syscall9(procBCryptGenerateSymmetricKey.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbKeyObject)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func GetFipsAlgorithmMode(enabled *bool) (s error) {
+	var _p0 uint32
+	if *enabled {
+		_p0 = 1
+	}
+	r0, _, _ := syscall.Syscall(procBCryptGetFipsAlgorithmMode.Addr(), 1, uintptr(unsafe.Pointer(&_p0)), 0, 0)
+	*enabled = _p0 != 0
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
