@@ -9,52 +9,16 @@ package cng
 import (
 	"hash"
 	"runtime"
-	"sync"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
-
-func writeSha(ctx bcrypt.HASH_HANDLE, p []byte) (err error) {
-	var n int
-	for n < len(p) && err == nil {
-		nn := lenU32(p[n:])
-		err = bcrypt.HashData(ctx, p[n:n+nn], 0)
-		n += nn
-	}
-	return err
-}
 
 func shaOneShot(id string, p, sum []byte) error {
 	h, err := loadSha(id, 0)
 	if err != nil {
 		return err
 	}
-	var buf []byte
-	// fbuf is a stack-allocated memory buffer big enough to hold all supported SHA types,
-	// tested on a Windows 11 10.0.22000 x64 machine.
-	// If the SHA object requires more memory, buf will be nil
-	// and bcrypt.CreateHash will internally heap-allocate the necessary memory.
-	// This is a performance optimization which boost one-shot SHAs ~10%.
-	var fbuf [512]byte
-	if h.objectLength <= uint32(len(fbuf)) {
-		buf = fbuf[:h.objectLength]
-	}
-	var ctx bcrypt.HASH_HANDLE
-	err = bcrypt.CreateHash(h.h, &ctx, buf, nil, 0)
-	if err != nil {
-		return err
-	}
-	defer bcrypt.DestroyHash(ctx)
-	err = writeSha(ctx, p)
-	if err != nil {
-		return err
-	}
-	err = bcrypt.FinishHash(ctx, sum, 0)
-	if err != nil {
-		return err
-	}
-	runtime.KeepAlive(fbuf)
-	return nil
+	return bcrypt.Hash(h.h, nil, p, sum)
 }
 
 func SHA1(p []byte) (sum [20]byte) {
@@ -105,48 +69,28 @@ func NewSHA512() hash.Hash {
 	return newSHAX(bcrypt.SHA512_ALGORITHM, nil)
 }
 
-var shaCache sync.Map
-
 type shaAlgorithm struct {
-	h            bcrypt.ALG_HANDLE
-	size         uint32
-	blockSize    uint32
-	objectLength uint32
+	h         bcrypt.ALG_HANDLE
+	size      uint32
+	blockSize uint32
 }
 
-func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (h shaAlgorithm, err error) {
-	if v, ok := shaCache.Load(algCacheEntry{id, uint32(flags)}); ok {
-		return v.(shaAlgorithm), nil
-	}
-	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, flags)
-	if err != nil {
-		return
-	}
-	defer func() {
+func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (shaAlgorithm, error) {
+	v, err := loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+		size, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_LENGTH)
 		if err != nil {
-			bcrypt.CloseAlgorithmProvider(h.h, 0)
-			h.h = 0
+			return nil, err
 		}
-	}()
-	h.size, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_LENGTH)
+		blockSize, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_BLOCK_LENGTH)
+		if err != nil {
+			return nil, err
+		}
+		return shaAlgorithm{h, size, blockSize}, nil
+	})
 	if err != nil {
-		return
+		return shaAlgorithm{}, err
 	}
-	h.blockSize, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_BLOCK_LENGTH)
-	if err != nil {
-		return
-	}
-	h.objectLength, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.OBJECT_LENGTH)
-	if err != nil {
-		bcrypt.CloseAlgorithmProvider(h.h, 0)
-		return
-	}
-	if existing, loaded := shaCache.LoadOrStore(algCacheEntry{id, uint32(flags)}, h); loaded {
-		// We can safely use a provider that has already been cached in another concurrent goroutine.
-		bcrypt.CloseAlgorithmProvider(h.h, 0)
-		h = existing.(shaAlgorithm)
-	}
-	return
+	return v.(shaAlgorithm), nil
 }
 
 type shaXHash struct {
@@ -200,7 +144,11 @@ func (h *shaXHash) Reset() {
 }
 
 func (h *shaXHash) Write(p []byte) (n int, err error) {
-	err = writeSha(h.ctx, p)
+	for n < len(p) && err == nil {
+		nn := lenU32(p[n:])
+		err = bcrypt.HashData(h.ctx, p[n:n+nn], 0)
+		n += nn
+	}
 	if err != nil {
 		// hash.Hash interface mandates Write should never return an error.
 		panic(err)

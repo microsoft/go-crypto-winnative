@@ -10,7 +10,6 @@ import (
 	"crypto/cipher"
 	"errors"
 	"runtime"
-	"sync"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -19,57 +18,38 @@ import (
 
 const aesBlockSize = 16
 
-var aesCache sync.Map
-
 type aesAlgorithm struct {
 	h               bcrypt.ALG_HANDLE
 	allowedKeySizes []int
 }
 
-type aesCacheEntry struct {
-	id   string
-	mode string
-}
-
-func loadAes(id string, mode string) (h aesAlgorithm, err error) {
-	if v, ok := aesCache.Load(aesCacheEntry{id, mode}); ok {
-		return v.(aesAlgorithm), nil
-	}
-	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, bcrypt.ALG_NONE_FLAG)
-	if err != nil {
-		return
-	}
-	defer func() {
+func loadAes(mode string) (aesAlgorithm, error) {
+	v, err := loadOrStoreAlg(bcrypt.AES_ALGORITHM, bcrypt.ALG_NONE_FLAG, mode, func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+		// Windows 8 added support to set the CipherMode value on a key,
+		// but Windows 7 requires that it be set on the algorithm before key creation.
+		err := setString(bcrypt.HANDLE(h), bcrypt.CHAINING_MODE, mode)
 		if err != nil {
-			bcrypt.CloseAlgorithmProvider(h.h, 0)
-			h.h = 0
+			return nil, err
 		}
-	}()
-	// Windows 8 added support to set the CipherMode value on a key,
-	// but Windows 7 requires that it be set on the algorithm before key creation.
-	err = setString(bcrypt.HANDLE(h.h), bcrypt.CHAINING_MODE, mode)
+		var info bcrypt.KEY_LENGTHS_STRUCT
+		var discard uint32
+		err = bcrypt.GetProperty(bcrypt.HANDLE(h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*[unsafe.Sizeof(info)]byte)(unsafe.Pointer(&info))[:], &discard, 0)
+		if err != nil {
+			return nil, err
+		}
+		if info.Increment == 0 || info.MinLength > info.MaxLength {
+			return nil, errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
+		}
+		var allowedKeySizes []int
+		for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
+			allowedKeySizes = append(allowedKeySizes, int(size))
+		}
+		return aesAlgorithm{h, allowedKeySizes}, nil
+	})
 	if err != nil {
-		return
+		return aesAlgorithm{}, nil
 	}
-	var info bcrypt.KEY_LENGTHS_STRUCT
-	var discard uint32
-	err = bcrypt.GetProperty(bcrypt.HANDLE(h.h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*[unsafe.Sizeof(info)]byte)(unsafe.Pointer(&info))[:], &discard, 0)
-	if err != nil {
-		return
-	}
-	if info.Increment == 0 || info.MinLength > info.MaxLength {
-		err = errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
-		return
-	}
-	for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
-		h.allowedKeySizes = append(h.allowedKeySizes, int(size))
-	}
-	if existing, loaded := aesCache.LoadOrStore(aesCacheEntry{id, mode}, h); loaded {
-		// We can safely use a provider that has already been cached in another concurrent goroutine.
-		bcrypt.CloseAlgorithmProvider(h.h, 0)
-		h = existing.(aesAlgorithm)
-	}
-	return
+	return v.(aesAlgorithm), nil
 }
 
 type aesCipher struct {
@@ -78,7 +58,7 @@ type aesCipher struct {
 }
 
 func NewAESCipher(key []byte) (cipher.Block, error) {
-	h, err := loadAes(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_ECB)
+	h, err := loadAes(bcrypt.CHAIN_MODE_ECB)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +174,7 @@ type aesCBC struct {
 }
 
 func newCBC(encrypt bool, key, iv []byte) *aesCBC {
-	h, err := loadAes(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_CBC)
+	h, err := loadAes(bcrypt.CHAIN_MODE_CBC)
 	if err != nil {
 		panic(err)
 	}
@@ -268,7 +248,7 @@ func (g *aesGCM) finalize() {
 }
 
 func newGCM(key []byte, tls bool) (*aesGCM, error) {
-	h, err := loadAes(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_GCM)
+	h, err := loadAes(bcrypt.CHAIN_MODE_GCM)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +308,7 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, out[len(out)-gcmTagSize:])
 	var encSize uint32
-	err := bcrypt.Encrypt(g.kh, plaintext, info, nil, out, &encSize, 0)
+	err := bcrypt.Encrypt(g.kh, plaintext, unsafe.Pointer(info), nil, out, &encSize, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -365,7 +345,7 @@ func (g *aesGCM) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, er
 
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag)
 	var decSize uint32
-	err := bcrypt.Decrypt(g.kh, ciphertext, info, nil, out, &decSize, 0)
+	err := bcrypt.Decrypt(g.kh, ciphertext, unsafe.Pointer(info), nil, out, &decSize, 0)
 	if err != nil || int(decSize) != len(ciphertext) {
 		for i := range out {
 			out[i] = 0
