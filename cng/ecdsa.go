@@ -74,15 +74,15 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 		panic("crypto/ecdsa: exported key is corrupted")
 	}
 	data := blob[sizeOfECCBlobHeader:]
-	newInt := func(size uint32) BigInt {
+	consumeBigInt := func(size uint32) BigInt {
 		b := make(BigInt, size)
 		copy(b, data)
 		data = data[size:]
 		return b
 	}
-	X = newInt(hdr.KeySize)
-	Y = newInt(hdr.KeySize)
-	D = newInt(hdr.KeySize)
+	X = consumeBigInt(hdr.KeySize)
+	Y = consumeBigInt(hdr.KeySize)
+	D = consumeBigInt(hdr.KeySize)
 	return
 }
 
@@ -114,7 +114,10 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	blob := encodeECDSAKey(id, bits, X, Y, nil)
+	blob, err := encodeECDSAKey(id, bits, X, Y, nil)
+	if err != nil {
+		return nil, err
+	}
 	k := new(PublicKeyECDSA)
 	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.ECCPUBLIC_BLOB), &k.pkey, blob, 0)
 	if err != nil {
@@ -143,7 +146,10 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 	if err != nil {
 		return nil, err
 	}
-	blob := encodeECDSAKey(id, bits, X, Y, D)
+	blob, err := encodeECDSAKey(id, bits, X, Y, D)
+	if err != nil {
+		return nil, err
+	}
 	k := new(PrivateKeyECDSA)
 	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.ECCPRIVATE_BLOB), &k.pkey, blob, 0)
 	if err != nil {
@@ -158,7 +164,7 @@ func (k *PrivateKeyECDSA) finalize() {
 	bcrypt.DestroyKey(k.pkey)
 }
 
-func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) []byte {
+func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 	var magic bcrypt.KeyBlobMagicNumber
 	switch id {
 	case bcrypt.ECDSA_P256_ALGORITHM:
@@ -184,6 +190,9 @@ func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) []byte {
 		Magic:   magic,
 		KeySize: (bits + 7) / 8,
 	}
+	if len(X) > int(hdr.KeySize) || len(Y) > int(hdr.KeySize) || len(D) > int(hdr.KeySize) {
+		return nil, errors.New("crypto/ecdsa: invalid parameters")
+	}
 	var blob []byte
 	if D == nil {
 		blob = make([]byte, sizeOfECCBlobHeader+hdr.KeySize*2)
@@ -193,7 +202,9 @@ func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) []byte {
 	copy(blob, (*(*[sizeOfECCBlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfECCBlobHeader:]
 	encode := func(b BigInt, size uint32) {
-		copy(data, b)
+		// b might be shorter than size if the original big number contained leading zeros.
+		leadingZeros := int(size) - len(b)
+		copy(data[leadingZeros:], b)
 		data = data[size:]
 	}
 	encode(X, hdr.KeySize)
@@ -201,7 +212,7 @@ func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) []byte {
 	if D != nil {
 		encode(D, hdr.KeySize)
 	}
-	return blob
+	return blob, nil
 }
 
 type ecdsaSignature struct {

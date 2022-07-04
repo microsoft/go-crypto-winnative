@@ -98,7 +98,10 @@ func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	blob := encodeRSAKey(N, E, nil, nil, nil, nil, nil, nil)
+	blob, err := encodeRSAKey(N, E, nil, nil, nil, nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
 	k := new(PublicKeyRSA)
 	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.RSAPUBLIC_KEY_BLOB), &k.pkey, blob, 0)
 	if err != nil {
@@ -125,7 +128,10 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 	if err != nil {
 		return nil, err
 	}
-	blob := encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv)
+	blob, err := encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv)
+	if err != nil {
+		return nil, err
+	}
 	k := new(PrivateKeyRSA)
 	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.RSAFULLPRIVATE_BLOB), &k.pkey, blob, 0)
 	if err != nil {
@@ -135,7 +141,7 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 	return k, nil
 }
 
-func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) []byte {
+func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) ([]byte, error) {
 	hdr := bcrypt.RSAKEY_BLOB{
 		BitLength:     uint32(len(N) * 8),
 		PublicExpSize: uint32(len(E)),
@@ -153,8 +159,18 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) []byte {
 	}
 	copy(blob, (*(*[sizeOfRSABlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfRSABlobHeader:]
+	var err error
 	encode := func(b BigInt, size uint32) {
-		copy(data, b)
+		if err != nil {
+			return
+		}
+		// b might be shorter than size if the original big number contained leading zeros.
+		leadingZeros := int(size) - len(b)
+		if leadingZeros < 0 {
+			err = errors.New("crypto/rsa: invalid parameters")
+			return
+		}
+		copy(data[leadingZeros:], b)
 		data = data[size:]
 	}
 	encode(E, hdr.PublicExpSize)
@@ -167,7 +183,10 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) []byte {
 		encode(Qinv, hdr.Prime1Size)
 		encode(D, hdr.ModulusSize)
 	}
-	return blob
+	if err != nil {
+		return nil, err
+	}
+	return blob, nil
 }
 
 func DecryptRSAOAEP(h hash.Hash, priv *PrivateKeyRSA, ciphertext, label []byte) ([]byte, error) {
