@@ -17,7 +17,7 @@ import (
 )
 
 type rsaAlgorithm struct {
-	h bcrypt.ALG_HANDLE
+	handle bcrypt.ALG_HANDLE
 }
 
 func loadRsa() (rsaAlgorithm, error) {
@@ -41,7 +41,7 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 		return bad(err)
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err = bcrypt.GenerateKeyPair(h.h, &hkey, uint32(bits), 0)
+	err = bcrypt.GenerateKeyPair(h.handle, &hkey, uint32(bits), 0)
 	if err != nil {
 		return bad(err)
 	}
@@ -103,7 +103,7 @@ func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 		return nil, err
 	}
 	k := new(PublicKeyRSA)
-	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.RSAPUBLIC_KEY_BLOB), &k.pkey, blob, 0)
+	err = bcrypt.ImportKeyPair(h.handle, 0, utf16PtrFromString(bcrypt.RSAPUBLIC_KEY_BLOB), &k.pkey, blob, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 		return nil, err
 	}
 	k := new(PrivateKeyRSA)
-	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.RSAFULLPRIVATE_BLOB), &k.pkey, blob, 0)
+	err = bcrypt.ImportKeyPair(h.handle, 0, utf16PtrFromString(bcrypt.RSAFULLPRIVATE_BLOB), &k.pkey, blob, 0)
 	if err != nil {
 		return nil, err
 	}

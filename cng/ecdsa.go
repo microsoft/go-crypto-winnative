@@ -19,14 +19,14 @@ var errUnknownCurve = errors.New("openssl: unknown elliptic curve")
 var errUnsupportedCurve = errors.New("openssl: unsupported elliptic curve")
 
 type ecdsaAlgorithm struct {
-	h bcrypt.ALG_HANDLE
+	handle bcrypt.ALG_HANDLE
 }
 
 func loadEcdsa(id string) (h ecdsaAlgorithm, err error) {
 	if v, ok := algCache.Load(id); ok {
 		return v.(ecdsaAlgorithm), nil
 	}
-	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, bcrypt.ALG_NONE_FLAG)
+	err = bcrypt.OpenAlgorithmProvider(&h.handle, utf16PtrFromString(id), nil, bcrypt.ALG_NONE_FLAG)
 	if err != nil {
 		return
 	}
@@ -49,7 +49,7 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 		return
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err = bcrypt.GenerateKeyPair(h.h, &hkey, bits, 0)
+	err = bcrypt.GenerateKeyPair(h.handle, &hkey, bits, 0)
 	if err != nil {
 		return
 	}
@@ -119,7 +119,7 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 		return nil, err
 	}
 	k := new(PublicKeyECDSA)
-	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.ECCPUBLIC_BLOB), &k.pkey, blob, 0)
+	err = bcrypt.ImportKeyPair(h.handle, 0, utf16PtrFromString(bcrypt.ECCPUBLIC_BLOB), &k.pkey, blob, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 		return nil, err
 	}
 	k := new(PrivateKeyECDSA)
-	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.ECCPRIVATE_BLOB), &k.pkey, blob, 0)
+	err = bcrypt.ImportKeyPair(h.handle, 0, utf16PtrFromString(bcrypt.ECCPRIVATE_BLOB), &k.pkey, blob, 0)
 	if err != nil {
 		return nil, err
 	}
