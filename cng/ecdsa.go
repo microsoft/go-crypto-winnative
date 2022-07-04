@@ -7,7 +7,6 @@
 package cng
 
 import (
-	"encoding/asn1"
 	"errors"
 	"math/big"
 	"runtime"
@@ -20,8 +19,7 @@ var errUnknownCurve = errors.New("openssl: unknown elliptic curve")
 var errUnsupportedCurve = errors.New("openssl: unsupported elliptic curve")
 
 type ecdsaAlgorithm struct {
-	h    bcrypt.ALG_HANDLE
-	size uint32
+	h bcrypt.ALG_HANDLE
 }
 
 func loadEcdsa(id string) (h ecdsaAlgorithm, err error) {
@@ -38,7 +36,7 @@ func loadEcdsa(id string) (h ecdsaAlgorithm, err error) {
 
 const sizeOfECCBlobHeader = uint32(unsafe.Sizeof(bcrypt.ECCKEY_BLOB{}))
 
-func GenerateKeyECDSA(curve string) (X, Y, D *big.Int, err error) {
+func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	var id string
 	var bits uint32
 	id, bits, err = curveToID(curve)
@@ -56,7 +54,7 @@ func GenerateKeyECDSA(curve string) (X, Y, D *big.Int, err error) {
 		return
 	}
 	defer bcrypt.DestroyKey(hkey)
-	// The key cannot be used until BcryptFinalizeKeyPair has been called.
+	// The key cannot be used until BCryptFinalizeKeyPair has been called.
 	err = bcrypt.FinalizeKeyPair(hkey, 0)
 	if err != nil {
 		return
@@ -76,8 +74,9 @@ func GenerateKeyECDSA(curve string) (X, Y, D *big.Int, err error) {
 		panic("crypto/ecdsa: exported key is corrupted")
 	}
 	data := blob[sizeOfECCBlobHeader:]
-	newInt := func(size uint32) *big.Int {
-		b := new(big.Int).SetBytes(data[:size])
+	newInt := func(size uint32) BigInt {
+		b := make(BigInt, size)
+		copy(b, data)
 		data = data[size:]
 		return b
 	}
@@ -106,7 +105,7 @@ type PublicKeyECDSA struct {
 	size int
 }
 
-func NewPublicKeyECDSA(curve string, X, Y *big.Int) (*PublicKeyECDSA, error) {
+func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 	id, bits, err := curveToID(curve)
 	if err != nil {
 		return nil, err
@@ -135,7 +134,7 @@ type PrivateKeyECDSA struct {
 	size int
 }
 
-func NewPrivateKeyECDSA(curve string, X, Y, D *big.Int) (*PrivateKeyECDSA, error) {
+func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) {
 	id, bits, err := curveToID(curve)
 	if err != nil {
 		return nil, err
@@ -159,7 +158,7 @@ func (k *PrivateKeyECDSA) finalize() {
 	bcrypt.DestroyKey(k.pkey)
 }
 
-func encodeECDSAKey(id string, bits uint32, X, Y, D *big.Int) []byte {
+func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) []byte {
 	var magic bcrypt.KeyBlobMagicNumber
 	switch id {
 	case bcrypt.ECDSA_P256_ALGORITHM:
@@ -191,10 +190,10 @@ func encodeECDSAKey(id string, bits uint32, X, Y, D *big.Int) []byte {
 	} else {
 		blob = make([]byte, sizeOfECCBlobHeader+hdr.KeySize*3)
 	}
-	copy(blob[:sizeOfECCBlobHeader], (*(*[1<<31 - 1]byte)(unsafe.Pointer(&hdr)))[:sizeOfECCBlobHeader])
+	copy(blob, (*(*[sizeOfECCBlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfECCBlobHeader:]
-	encode := func(b *big.Int, size uint32) {
-		b.FillBytes(data[:size])
+	encode := func(b BigInt, size uint32) {
+		copy(data, b)
 		data = data[size:]
 	}
 	encode(X, hdr.KeySize)
@@ -209,7 +208,14 @@ type ecdsaSignature struct {
 	R, S *big.Int
 }
 
-func SignECDSA(priv *PrivateKeyECDSA, hash []byte) (r, s *big.Int, err error) {
+// SignECDSA signs a hash (which should be the result of hashing a larger message),
+// using the private key, priv.
+//
+// We provide this function instead of a boring.SignMarshalECDSA equivalent
+// because BCryptSignHash returns the signature encoded using P1363 instead of ASN.1,
+// so we would have to transform P1363 to ASN.1 using encoding/asn1, which we can't import here,
+// only to be decoded into raw big.Int by the caller.
+func SignECDSA(priv *PrivateKeyECDSA, hash []byte) (r, s BigInt, err error) {
 	sig, err := keySign(priv.pkey, nil, hash, bcrypt.PAD_UNDEFINED)
 	if err != nil {
 		return nil, nil, err
@@ -217,25 +223,17 @@ func SignECDSA(priv *PrivateKeyECDSA, hash []byte) (r, s *big.Int, err error) {
 	// BCRYPTSignHash generates ECDSA signatures in P1363 format,
 	// which is simply (r, s), each of them exactly half of the array.
 	if len(sig) != priv.size*2 {
-		return nil, nil, errors.New("crypto/ecdsa: invalid signature size")
+		return nil, nil, errors.New("crypto/ecdsa: invalid signature size from bcrypt")
 	}
-	r = new(big.Int).SetBytes(sig[:priv.size])
-	s = new(big.Int).SetBytes(sig[priv.size:])
-	return
+	return sig[:priv.size], sig[priv.size:], nil
 }
 
-func SignMarshalECDSA(priv *PrivateKeyECDSA, hash []byte) ([]byte, error) {
-	r, s, err := SignECDSA(priv, hash)
-	if err != nil {
-		return nil, err
+// VerifyECDSA verifies the signature in r, s of hash using the public key, pub.
+func VerifyECDSA(pub *PublicKeyECDSA, hash []byte, r, s BigInt) bool {
+	if len(r) != len(s) {
+		return false
 	}
-	return asn1.Marshal(ecdsaSignature{r, s})
-}
-
-func VerifyECDSA(pub *PublicKeyECDSA, hash []byte, r, s *big.Int) bool {
-	sig := make([]byte, pub.size*2)
-	r.FillBytes(sig[:pub.size])
-	s.FillBytes(sig[pub.size:])
+	sig := append(r, s...)
 	defer runtime.KeepAlive(pub)
 	return keyVerify(pub.pkey, nil, hash, sig, bcrypt.PAD_UNDEFINED) == nil
 }

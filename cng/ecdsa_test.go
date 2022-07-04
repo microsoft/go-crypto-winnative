@@ -4,13 +4,15 @@
 //go:build windows
 // +build windows
 
-package cng
+package cng_test
 
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"encoding/asn1"
 	"testing"
+
+	"github.com/microsoft/go-crypto-winnative/cng"
+	"github.com/microsoft/go-crypto-winnative/cng/bbig"
 )
 
 func testAllCurves(t *testing.T, f func(*testing.T, elliptic.Curve)) {
@@ -53,43 +55,32 @@ func testECDSASignAndVerify(t *testing.T, c elliptic.Curve) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	priv, err := NewPrivateKeyECDSA(key.Params().Name, key.X, key.Y, key.D)
+	priv, err := cng.NewPrivateKeyECDSA(key.Params().Name, bbig.Enc(key.X), bbig.Enc(key.Y), bbig.Enc(key.D))
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub, err := NewPublicKeyECDSA(key.Params().Name, key.X, key.Y)
+	pub, err := cng.NewPublicKeyECDSA(key.Params().Name, bbig.Enc(key.X), bbig.Enc(key.Y))
 	if err != nil {
 		t.Fatal(err)
 	}
 	hashed := []byte("testing")
-	r, s, err := SignECDSA(priv, hashed)
+	r, s, err := cng.SignECDSA(priv, hashed)
 	if err != nil {
 		t.Fatalf("SignECDSA error: %s", err)
 	}
-	sig, err := SignMarshalECDSA(priv, hashed)
-	if err != nil {
-		t.Fatalf("SignMarshalECDSA error: %s", err)
-	}
-	if !VerifyECDSA(pub, hashed, r, s) {
+	if !cng.VerifyECDSA(pub, hashed, r, s) {
 		t.Errorf("Verify failed")
 	}
-	var esig ecdsaSignature
-	if _, err := asn1.Unmarshal(sig, &esig); err != nil {
-		t.Error(err)
-	}
-	if !VerifyECDSA(pub, hashed, esig.R, esig.S) {
-		t.Errorf("Verify from SignMarshalECDSA failed")
-	}
 	hashed[0] ^= 0xff
-	if VerifyECDSA(pub, hashed, r, s) {
+	if cng.VerifyECDSA(pub, hashed, r, s) {
 		t.Errorf("Verify succeeded despite intentionally invalid hash!")
 	}
 }
 
 func generateKeycurve(c elliptic.Curve) (*ecdsa.PrivateKey, error) {
-	x, y, d, err := GenerateKeyECDSA(c.Params().Name)
+	x, y, d, err := cng.GenerateKeyECDSA(c.Params().Name)
 	if err != nil {
 		return nil, err
 	}
-	return &ecdsa.PrivateKey{PublicKey: ecdsa.PublicKey{Curve: c, X: x, Y: y}, D: d}, nil
+	return &ecdsa.PrivateKey{PublicKey: ecdsa.PublicKey{Curve: c, X: bbig.Dec(x), Y: bbig.Dec(y)}, D: bbig.Dec(d)}, nil
 }
