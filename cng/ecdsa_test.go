@@ -51,11 +51,10 @@ func TestECDSASignAndVerify(t *testing.T) {
 }
 
 func testECDSASignAndVerify(t *testing.T, c elliptic.Curve) {
-	x, y, d, err := cng.GenerateKeyECDSA(c.Params().Name)
+	key, err := generateKeycurve(c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	key := &ecdsa.PrivateKey{PublicKey: ecdsa.PublicKey{Curve: c, X: bbig.Dec(x), Y: bbig.Dec(y)}, D: bbig.Dec(d)}
 	priv, err := cng.NewPrivateKeyECDSA(key.Params().Name, bbig.Enc(key.X), bbig.Enc(key.Y), bbig.Enc(key.D))
 	if err != nil {
 		t.Fatal(err)
