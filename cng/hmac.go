@@ -42,5 +42,14 @@ func NewHMAC(h func() hash.Hash, key []byte) hash.Hash {
 	if id == "" {
 		return nil
 	}
+	if len(key) > ch.BlockSize() {
+		// Keys longer than BlockSize are first hashed using
+		// the same hash function, according to RFC 2104, Section 3.
+		// BCrypt already does that, but if we hash the key on our side
+		// we avoid allocating unnecessary memory and
+		// allow keys longer than math.MaxUint32 bytes.
+		ch.Write(key)
+		key = ch.Sum(nil)
+	}
 	return newSHAX(id, key)
 }

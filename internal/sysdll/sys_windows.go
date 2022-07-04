@@ -2,6 +2,11 @@
 // Licensed under the MIT License.
 
 // Package sysdll is a custom version of the standard library internal/syscall/windows/sysdll package.
+// sysdll is used to guard against Windows DLL preloading attacks.
+// We can't call Go's sysdll.Add function from within go-crypto-winnative because sysdll is an internal package,
+// so we have reimplemented the sysdll.Add function in a way that it always returns
+// DLL absolute paths rooted at the system directory.
+// See go.dev/issues/14959 for more info.
 package sysdll
 
 import (

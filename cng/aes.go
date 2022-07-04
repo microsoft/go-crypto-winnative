@@ -20,39 +20,36 @@ const aesBlockSize = 16
 
 type aesAlgorithm struct {
 	h               bcrypt.ALG_HANDLE
-	allowedKeySized []int
+	allowedKeySizes []int
 }
 
-func loadAes(mode string) (h aesAlgorithm, err error) {
-	const id = bcrypt.AES_ALGORITHM
-	type aesCacheEntry struct {
-		id   string
-		mode string
-	}
-	if v, ok := algCache.Load(aesCacheEntry{id, mode}); ok {
-		return v.(aesAlgorithm), nil
-	}
-	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, bcrypt.ALG_NONE_FLAG)
+func loadAes(mode string) (aesAlgorithm, error) {
+	v, err := loadOrStoreAlg(bcrypt.AES_ALGORITHM, bcrypt.ALG_NONE_FLAG, mode, func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+		// Windows 8 added support to set the CipherMode value on a key,
+		// but Windows 7 requires that it be set on the algorithm before key creation.
+		err := setString(bcrypt.HANDLE(h), bcrypt.CHAINING_MODE, mode)
+		if err != nil {
+			return nil, err
+		}
+		var info bcrypt.KEY_LENGTHS_STRUCT
+		var discard uint32
+		err = bcrypt.GetProperty(bcrypt.HANDLE(h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*[unsafe.Sizeof(info)]byte)(unsafe.Pointer(&info))[:], &discard, 0)
+		if err != nil {
+			return nil, err
+		}
+		if info.Increment == 0 || info.MinLength > info.MaxLength {
+			return nil, errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
+		}
+		var allowedKeySizes []int
+		for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
+			allowedKeySizes = append(allowedKeySizes, int(size))
+		}
+		return aesAlgorithm{h, allowedKeySizes}, nil
+	})
 	if err != nil {
-		return
+		return aesAlgorithm{}, nil
 	}
-	// Windows 8 added support to set the CipherMode value on a key,
-	// but Windows 7 requires that it be set on the algorithm before key creation.
-	err = setString(bcrypt.HANDLE(h.h), bcrypt.CHAINING_MODE, mode)
-	if err != nil {
-		return
-	}
-	var info bcrypt.KEY_LENGTHS_STRUCT
-	var discard uint32
-	err = bcrypt.GetProperty(bcrypt.HANDLE(h.h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*(*[1<<31 - 1]byte)(unsafe.Pointer(&info)))[:unsafe.Sizeof(info)], &discard, 0)
-	if err != nil {
-		return
-	}
-	for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
-		h.allowedKeySized = append(h.allowedKeySized, int(size))
-	}
-	algCache.Store(aesCacheEntry{id, mode}, h)
-	return
+	return v.(aesAlgorithm), nil
 }
 
 type aesCipher struct {
@@ -66,7 +63,7 @@ func NewAESCipher(key []byte) (cipher.Block, error) {
 		return nil, err
 	}
 	var allowedKeySize bool
-	for _, size := range h.allowedKeySized {
+	for _, size := range h.allowedKeySizes {
 		if len(key)*8 == size {
 			allowedKeySize = true
 			break
@@ -158,6 +155,12 @@ func (c *aesCipher) NewGCM(nonceSize, tagSize int) (cipher.AEAD, error) {
 		return cipher.NewGCMWithTagSize(&noGCM{c}, tagSize)
 	}
 	return newGCM(c.key, false)
+}
+
+// NewGCMTLS returns a GCM cipher specific to TLS
+// and should not be used for non-TLS purposes.
+func NewGCMTLS(c cipher.Block) (cipher.AEAD, error) {
+	return c.(*aesCipher).NewGCMTLS()
 }
 
 func (c *aesCipher) NewGCMTLS() (cipher.AEAD, error) {

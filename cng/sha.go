@@ -13,6 +13,42 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
+func shaOneShot(id string, p, sum []byte) error {
+	h, err := loadSha(id, 0)
+	if err != nil {
+		return err
+	}
+	return bcrypt.Hash(h.h, nil, p, sum)
+}
+
+func SHA1(p []byte) (sum [20]byte) {
+	if err := shaOneShot(bcrypt.SHA1_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA1 failed")
+	}
+	return
+}
+
+func SHA256(p []byte) (sum [32]byte) {
+	if err := shaOneShot(bcrypt.SHA256_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA256 failed")
+	}
+	return
+}
+
+func SHA384(p []byte) (sum [48]byte) {
+	if err := shaOneShot(bcrypt.SHA384_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA384 failed")
+	}
+	return
+}
+
+func SHA512(p []byte) (sum [64]byte) {
+	if err := shaOneShot(bcrypt.SHA512_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA512 failed")
+	}
+	return
+}
+
 // NewSHA1 returns a new SHA1 hash.
 func NewSHA1() hash.Hash {
 	return newSHAX(bcrypt.SHA1_ALGORITHM, nil)
@@ -39,28 +75,22 @@ type shaAlgorithm struct {
 	blockSize uint32
 }
 
-func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (h shaAlgorithm, err error) {
-	type entry struct {
-		id    string
-		flags uint32
-	}
-	if v, ok := algCache.Load(entry{id, uint32(flags)}); ok {
-		return v.(shaAlgorithm), nil
-	}
-	err = bcrypt.OpenAlgorithmProvider(&h.h, utf16PtrFromString(id), nil, flags)
+func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (shaAlgorithm, error) {
+	v, err := loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+		size, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_LENGTH)
+		if err != nil {
+			return nil, err
+		}
+		blockSize, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_BLOCK_LENGTH)
+		if err != nil {
+			return nil, err
+		}
+		return shaAlgorithm{h, size, blockSize}, nil
+	})
 	if err != nil {
-		return
+		return shaAlgorithm{}, err
 	}
-	h.size, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_LENGTH)
-	if err != nil {
-		return
-	}
-	h.blockSize, err = getUint32(bcrypt.HANDLE(h.h), bcrypt.HASH_BLOCK_LENGTH)
-	if err != nil {
-		return
-	}
-	algCache.Store(entry{id, uint32(flags)}, h)
-	return
+	return v.(shaAlgorithm), nil
 }
 
 type shaXHash struct {
@@ -113,18 +143,18 @@ func (h *shaXHash) Reset() {
 	runtime.KeepAlive(h)
 }
 
-func (h *shaXHash) Write(p []byte) (int, error) {
-	// BCryptHashData only accepts 2**32-1 bytes at a time, so truncate.
-	inputLen := uint32(len(p))
-	if inputLen == 0 {
-		return 0, nil
+func (h *shaXHash) Write(p []byte) (n int, err error) {
+	for n < len(p) && err == nil {
+		nn := lenU32(p[n:])
+		err = bcrypt.HashData(h.ctx, p[n:n+nn], 0)
+		n += nn
 	}
-	err := bcrypt.HashData(h.ctx, p, 0)
 	if err != nil {
-		return 0, err
+		// hash.Hash interface mandates Write should never return an error.
+		panic(err)
 	}
 	runtime.KeepAlive(h)
-	return int(inputLen), nil
+	return len(p), nil
 }
 
 func (h *shaXHash) Size() int {

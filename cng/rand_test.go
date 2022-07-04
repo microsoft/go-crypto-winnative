@@ -6,7 +6,10 @@
 
 package cng
 
-import "testing"
+import (
+	"io"
+	"testing"
+)
 
 func TestRand(t *testing.T) {
 	b := make([]byte, 5)
@@ -20,12 +23,12 @@ func TestRand(t *testing.T) {
 }
 
 func TestRandBig(t *testing.T) {
-	b := make([]byte, 1<<32+1)
-	n, err := RandReader.Read(b)
+	b := make([]byte, 1<<32+60)
+	n, err := io.ReadFull(RandReader, b)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := uint32(len(b)); n != int(want) {
+	if want := len(b); n != int(want) {
 		t.Errorf("got:%v want:%v", want, n)
 	}
 }

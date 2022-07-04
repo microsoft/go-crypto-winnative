@@ -17,26 +17,28 @@ func TestHMAC(t *testing.T) {
 	var tests = []struct {
 		name string
 		fn   func() hash.Hash
+		key  []byte
 	}{
-		{"sha1", NewSHA1},
-		{"sha256", NewSHA256},
-		{"sha384", NewSHA384},
-		{"sha512", NewSHA512},
+		{"sha1", NewSHA1, key},
+		{"sha256", NewSHA256, key},
+		{"sha256-big", NewSHA256, append(key, make([]byte, 1000)...)},
+		{"sha384", NewSHA384, key},
+		{"sha512", NewSHA512, key},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHMAC(tt.fn, key)
+			h := NewHMAC(tt.fn, tt.key)
 			h.Write([]byte("hello"))
 			sumHello := h.Sum(nil)
 
-			h = NewHMAC(tt.fn, key)
+			h = NewHMAC(tt.fn, tt.key)
 			h.Write([]byte("hello world"))
 			sumHelloWorld := h.Sum(nil)
 
 			// Test that Sum has no effect on future Sum or Write operations.
 			// This is a bit unusual as far as usage, but it's allowed
 			// by the definition of Go hash.Hash, and some clients expect it to work.
-			h = NewHMAC(tt.fn, key)
+			h = NewHMAC(tt.fn, tt.key)
 			h.Write([]byte("hello"))
 			if sum := h.Sum(nil); !bytes.Equal(sum, sumHello) {
 				t.Fatalf("1st Sum after hello = %x, want %x", sum, sumHello)

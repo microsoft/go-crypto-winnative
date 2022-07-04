@@ -66,8 +66,7 @@ func TestSealAndOpenTLS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := ci.(*aesCipher)
-	gcm, err := c.NewGCMTLS()
+	gcm, err := NewGCMTLS(ci)
 	if err != nil {
 		t.Fatal(err)
 	}

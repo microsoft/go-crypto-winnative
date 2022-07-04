@@ -52,7 +52,9 @@ var (
 	procBCryptGenRandom              = modbcrypt.NewProc("BCryptGenRandom")
 	procBCryptGenerateKeyPair        = modbcrypt.NewProc("BCryptGenerateKeyPair")
 	procBCryptGenerateSymmetricKey   = modbcrypt.NewProc("BCryptGenerateSymmetricKey")
+	procBCryptGetFipsAlgorithmMode   = modbcrypt.NewProc("BCryptGetFipsAlgorithmMode")
 	procBCryptGetProperty            = modbcrypt.NewProc("BCryptGetProperty")
+	procBCryptHash                   = modbcrypt.NewProc("BCryptHash")
 	procBCryptHashData               = modbcrypt.NewProc("BCryptHashData")
 	procBCryptImportKeyPair          = modbcrypt.NewProc("BCryptImportKeyPair")
 	procBCryptOpenAlgorithmProvider  = modbcrypt.NewProc("BCryptOpenAlgorithmProvider")
@@ -221,12 +223,45 @@ func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject 
 	return
 }
 
+func GetFipsAlgorithmMode(enabled *bool) (s error) {
+	var _p0 uint32
+	if *enabled {
+		_p0 = 1
+	}
+	r0, _, _ := syscall.Syscall(procBCryptGetFipsAlgorithmMode.Addr(), 1, uintptr(unsafe.Pointer(&_p0)), 0, 0)
+	*enabled = _p0 != 0
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
 func GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) {
 	var _p0 *byte
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
 	}
 	r0, _, _ := syscall.Syscall6(procBCryptGetProperty.Addr(), 6, uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (s error) {
+	var _p0 *byte
+	if len(pbSecret) > 0 {
+		_p0 = &pbSecret[0]
+	}
+	var _p1 *byte
+	if len(pbInput) > 0 {
+		_p1 = &pbInput[0]
+	}
+	var _p2 *byte
+	if len(pbOutput) > 0 {
+		_p2 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.Syscall9(procBCryptHash.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbSecret)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
