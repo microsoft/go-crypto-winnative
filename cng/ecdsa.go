@@ -71,7 +71,8 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	}
 	hdr := (*(*bcrypt.ECCKEY_BLOB)(unsafe.Pointer(&blob[0])))
 	if hdr.KeySize != (bits+7)/8 {
-		panic("crypto/ecdsa: exported key is corrupted")
+		err = errors.New("crypto/ecdsa: exported key is corrupted")
+		return
 	}
 	data := blob[sizeOfECCBlobHeader:]
 	consumeBigInt := func(size uint32) BigInt {
