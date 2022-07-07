@@ -8,7 +8,6 @@ package cng
 
 import (
 	"errors"
-	"math/big"
 	"runtime"
 	"unsafe"
 
@@ -214,10 +213,6 @@ func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 		encode(D, hdr.KeySize)
 	}
 	return blob, nil
-}
-
-type ecdsaSignature struct {
-	R, S *big.Int
 }
 
 // SignECDSA signs a hash (which should be the result of hashing a larger message),
