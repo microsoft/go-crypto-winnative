@@ -84,3 +84,62 @@ func generateKeycurve(c elliptic.Curve) (*ecdsa.PrivateKey, error) {
 	}
 	return &ecdsa.PrivateKey{PublicKey: ecdsa.PublicKey{Curve: c, X: bbig.Dec(x), Y: bbig.Dec(y)}, D: bbig.Dec(d)}, nil
 }
+
+func BenchmarkSignECDSA(b *testing.B) {
+	name := "P-256"
+	x, y, d, err := cng.GenerateKeyECDSA(name)
+	if err != nil {
+		b.Fatal(err)
+	}
+	priv, err := cng.NewPrivateKeyECDSA(name, x, y, d)
+	if err != nil {
+		b.Fatal(err)
+	}
+	hashed := []byte("testing")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, err := cng.SignECDSA(priv, hashed)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkVerifyECDSA(b *testing.B) {
+	name := "P-256"
+	x, y, d, err := cng.GenerateKeyECDSA(name)
+	if err != nil {
+		b.Fatal(err)
+	}
+	pub, err := cng.NewPublicKeyECDSA(name, x, y)
+	if err != nil {
+		b.Fatal(err)
+	}
+	priv, err := cng.NewPrivateKeyECDSA(name, x, y, d)
+	if err != nil {
+		b.Fatal(err)
+	}
+	hashed := []byte("testing")
+	r, s, err := cng.SignECDSA(priv, hashed)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cng.VerifyECDSA(pub, hashed, r, s)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGenerateKeyECDSA(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _, _, err := cng.GenerateKeyECDSA("P-256")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
