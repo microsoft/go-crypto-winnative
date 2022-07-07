@@ -42,7 +42,7 @@ func testECDSAKeyGeneration(t *testing.T, c elliptic.Curve) {
 		t.Fatal(err)
 	}
 	if !c.IsOnCurve(priv.PublicKey.X, priv.PublicKey.Y) {
-		t.Errorf("public key invalid: %s", err)
+		t.Error("public key invalid: not on curve")
 	}
 }
 
