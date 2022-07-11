@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
-	"syscall"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -68,19 +67,18 @@ func loadOrStoreAlg(id string, flags bcrypt.AlgorithmProviderFlags, mode string,
 }
 
 func utf16PtrFromString(s string) *uint16 {
-	str, err := syscall.UTF16PtrFromString(s)
-	if err != nil {
-		panic(err)
-	}
-	return str
+	return &utf16FromString(s)[0]
 }
 
 func utf16FromString(s string) []uint16 {
-	str, err := syscall.UTF16FromString(s)
-	if err != nil {
-		panic(err)
+	a := make([]uint16, 0, 32)
+	for _, v := range s {
+		if v == 0 || v > 127 {
+			panic("utf16FromString only supports ASCII characters, got " + s)
+		}
+		a = append(a, uint16(v))
 	}
-	return str
+	return a
 }
 
 func setString(h bcrypt.HANDLE, name, val string) error {
