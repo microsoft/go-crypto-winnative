@@ -127,9 +127,9 @@ func BenchmarkVerifyECDSA(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cng.VerifyECDSA(pub, hashed, r, s)
-		if err != nil {
-			b.Fatal(err)
+		ok := cng.VerifyECDSA(pub, hashed, r, s)
+		if !ok {
+			b.Fatal("verify failed")
 		}
 	}
 }
