@@ -17,7 +17,7 @@ import (
 )
 
 type rsaAlgorithm struct {
-	h bcrypt.ALG_HANDLE
+	handle bcrypt.ALG_HANDLE
 }
 
 func loadRsa() (rsaAlgorithm, error) {
@@ -25,7 +25,7 @@ func loadRsa() (rsaAlgorithm, error) {
 		return rsaAlgorithm{h}, nil
 	})
 	if err != nil {
-		return rsaAlgorithm{}, nil
+		return rsaAlgorithm{}, err
 	}
 	return v.(rsaAlgorithm), nil
 }
@@ -41,7 +41,7 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 		return bad(err)
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err = bcrypt.GenerateKeyPair(h.h, &hkey, uint32(bits), 0)
+	err = bcrypt.GenerateKeyPair(h.handle, &hkey, uint32(bits), 0)
 	if err != nil {
 		return bad(err)
 	}
@@ -98,9 +98,12 @@ func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	blob := encodeRSAKey(N, E, nil, nil, nil, nil, nil, nil)
+	blob, err := encodeRSAKey(N, E, nil, nil, nil, nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
 	k := new(PublicKeyRSA)
-	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.RSAPUBLIC_KEY_BLOB), &k.pkey, blob, 0)
+	err = bcrypt.ImportKeyPair(h.handle, 0, utf16PtrFromString(bcrypt.RSAPUBLIC_KEY_BLOB), &k.pkey, blob, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +128,12 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 	if err != nil {
 		return nil, err
 	}
-	blob := encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv)
+	blob, err := encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv)
+	if err != nil {
+		return nil, err
+	}
 	k := new(PrivateKeyRSA)
-	err = bcrypt.ImportKeyPair(h.h, 0, utf16PtrFromString(bcrypt.RSAFULLPRIVATE_BLOB), &k.pkey, blob, 0)
+	err = bcrypt.ImportKeyPair(h.handle, 0, utf16PtrFromString(bcrypt.RSAFULLPRIVATE_BLOB), &k.pkey, blob, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +141,7 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 	return k, nil
 }
 
-func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) []byte {
+func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) ([]byte, error) {
 	hdr := bcrypt.RSAKEY_BLOB{
 		BitLength:     uint32(len(N) * 8),
 		PublicExpSize: uint32(len(E)),
@@ -153,8 +159,18 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) []byte {
 	}
 	copy(blob, (*(*[sizeOfRSABlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfRSABlobHeader:]
+	var err error
 	encode := func(b BigInt, size uint32) {
-		copy(data, b)
+		if err != nil {
+			return
+		}
+		// b might be shorter than size if the original big number contained leading zeros.
+		leadingZeros := int(size) - len(b)
+		if leadingZeros < 0 {
+			err = errors.New("crypto/rsa: invalid parameters")
+			return
+		}
+		copy(data[leadingZeros:], b)
 		data = data[size:]
 	}
 	encode(E, hdr.PublicExpSize)
@@ -167,7 +183,10 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) []byte {
 		encode(Qinv, hdr.Prime1Size)
 		encode(D, hdr.ModulusSize)
 	}
-	return blob
+	if err != nil {
+		return nil, err
+	}
+	return blob, nil
 }
 
 func DecryptRSAOAEP(h hash.Hash, priv *PrivateKeyRSA, ciphertext, label []byte) ([]byte, error) {
@@ -207,7 +226,7 @@ func SignRSAPSS(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte, saltLen int) 
 	if err != nil {
 		return nil, err
 	}
-	return rsaSign(priv.pkey, unsafe.Pointer(&info), hashed, bcrypt.PAD_PSS)
+	return keySign(priv.pkey, unsafe.Pointer(&info), hashed, bcrypt.PAD_PSS)
 }
 
 func VerifyRSAPSS(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte, saltLen int) error {
@@ -216,7 +235,7 @@ func VerifyRSAPSS(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte, saltLen 
 	if err != nil {
 		return err
 	}
-	return rsaVerify(pub.pkey, unsafe.Pointer(&info), hashed, sig, bcrypt.PAD_PSS)
+	return keyVerify(pub.pkey, unsafe.Pointer(&info), hashed, sig, bcrypt.PAD_PSS)
 }
 
 func SignRSAPKCS1v15(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte) ([]byte, error) {
@@ -225,7 +244,7 @@ func SignRSAPKCS1v15(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte) ([]byte,
 	if err != nil {
 		return nil, err
 	}
-	return rsaSign(priv.pkey, unsafe.Pointer(&info), hashed, bcrypt.PAD_PKCS1)
+	return keySign(priv.pkey, unsafe.Pointer(&info), hashed, bcrypt.PAD_PKCS1)
 }
 
 func VerifyRSAPKCS1v15(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte) error {
@@ -234,7 +253,7 @@ func VerifyRSAPKCS1v15(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte) err
 	if err != nil {
 		return err
 	}
-	return rsaVerify(pub.pkey, unsafe.Pointer(&info), hashed, sig, bcrypt.PAD_PKCS1)
+	return keyVerify(pub.pkey, unsafe.Pointer(&info), hashed, sig, bcrypt.PAD_PKCS1)
 }
 
 func rsaCrypt(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, in []byte, flags bcrypt.PadMode, encrypt bool) ([]byte, error) {
@@ -275,7 +294,7 @@ func rsaOAEP(h hash.Hash, pkey bcrypt.KEY_HANDLE, in, label []byte, encrypt bool
 	return rsaCrypt(pkey, unsafe.Pointer(&info), in, bcrypt.PAD_OAEP, encrypt)
 }
 
-func rsaSign(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed []byte, flags bcrypt.PadMode) ([]byte, error) {
+func keySign(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed []byte, flags bcrypt.PadMode) ([]byte, error) {
 	var size uint32
 	err := bcrypt.SignHash(pkey, info, hashed, nil, &size, flags)
 	if err != nil {
@@ -289,7 +308,7 @@ func rsaSign(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed []byte, flags b
 	return out[:size], nil
 }
 
-func rsaVerify(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed, sig []byte, flags bcrypt.PadMode) error {
+func keyVerify(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed, sig []byte, flags bcrypt.PadMode) error {
 	return bcrypt.VerifySignature(pkey, info, hashed, sig, flags)
 }
 

@@ -19,7 +19,7 @@ import (
 const aesBlockSize = 16
 
 type aesAlgorithm struct {
-	h               bcrypt.ALG_HANDLE
+	handle          bcrypt.ALG_HANDLE
 	allowedKeySizes []int
 }
 
@@ -74,7 +74,7 @@ func NewAESCipher(key []byte) (cipher.Block, error) {
 	}
 	c := &aesCipher{key: make([]byte, len(key))}
 	copy(c.key, key)
-	err = bcrypt.GenerateSymmetricKey(h.h, &c.kh, nil, c.key, 0)
+	err = bcrypt.GenerateSymmetricKey(h.handle, &c.kh, nil, c.key, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func newCBC(encrypt bool, key, iv []byte) *aesCBC {
 	}
 	x := &aesCBC{encrypt: encrypt}
 	x.SetIV(iv)
-	err = bcrypt.GenerateSymmetricKey(h.h, &x.kh, nil, key, 0)
+	err = bcrypt.GenerateSymmetricKey(h.handle, &x.kh, nil, key, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -253,7 +253,7 @@ func newGCM(key []byte, tls bool) (*aesGCM, error) {
 		return nil, err
 	}
 	g := &aesGCM{tls: tls}
-	err = bcrypt.GenerateSymmetricKey(h.h, &g.kh, nil, key, 0)
+	err = bcrypt.GenerateSymmetricKey(h.handle, &g.kh, nil, key, 0)
 	if err != nil {
 		return nil, err
 	}

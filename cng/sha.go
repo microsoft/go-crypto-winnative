@@ -18,7 +18,7 @@ func shaOneShot(id string, p, sum []byte) error {
 	if err != nil {
 		return err
 	}
-	return bcrypt.Hash(h.h, nil, p, sum)
+	return bcrypt.Hash(h.handle, nil, p, sum)
 }
 
 func SHA1(p []byte) (sum [20]byte) {
@@ -70,7 +70,7 @@ func NewSHA512() hash.Hash {
 }
 
 type shaAlgorithm struct {
-	h         bcrypt.ALG_HANDLE
+	handle    bcrypt.ALG_HANDLE
 	size      uint32
 	blockSize uint32
 }
@@ -112,7 +112,7 @@ func newSHAX(id string, key []byte) *shaXHash {
 		panic(err)
 	}
 	sha := new(shaXHash)
-	sha.h = h.h
+	sha.h = h.handle
 	sha.size = int(h.size)
 	sha.blockSize = int(h.blockSize)
 	sha.buf = make([]byte, sha.size)

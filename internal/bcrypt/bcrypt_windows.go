@@ -11,13 +11,16 @@ import (
 )
 
 const (
-	SHA1_ALGORITHM   = "SHA1"
-	SHA256_ALGORITHM = "SHA256"
-	SHA384_ALGORITHM = "SHA384"
-	SHA512_ALGORITHM = "SHA512"
-	AES_ALGORITHM    = "AES"
-	RSA_ALGORITHM    = "RSA"
-	MD5_ALGORITHM    = "MD5"
+	SHA1_ALGORITHM       = "SHA1"
+	SHA256_ALGORITHM     = "SHA256"
+	SHA384_ALGORITHM     = "SHA384"
+	SHA512_ALGORITHM     = "SHA512"
+	AES_ALGORITHM        = "AES"
+	RSA_ALGORITHM        = "RSA"
+	MD5_ALGORITHM        = "MD5"
+	ECDSA_P256_ALGORITHM = "ECDSA_P256"
+	ECDSA_P384_ALGORITHM = "ECDSA_P384"
+	ECDSA_P521_ALGORITHM = "ECDSA_P521"
 )
 
 const (
@@ -34,6 +37,8 @@ const (
 const (
 	RSAPUBLIC_KEY_BLOB  = "RSAPUBLICBLOB"
 	RSAFULLPRIVATE_BLOB = "RSAFULLPRIVATEBLOB"
+	ECCPUBLIC_BLOB      = "ECCPUBLICBLOB"
+	ECCPRIVATE_BLOB     = "ECCPRIVATEBLOB"
 )
 
 const (
@@ -62,6 +67,15 @@ type KeyBlobMagicNumber uint32
 const (
 	RSAPUBLIC_MAGIC      KeyBlobMagicNumber = 0x31415352
 	RSAFULLPRIVATE_MAGIC KeyBlobMagicNumber = 0x33415352
+
+	ECDSA_PUBLIC_P256_MAGIC     KeyBlobMagicNumber = 0x31534345
+	ECDSA_PRIVATE_P256_MAGIC    KeyBlobMagicNumber = 0x32534345
+	ECDSA_PUBLIC_P384_MAGIC     KeyBlobMagicNumber = 0x33534345
+	ECDSA_PRIVATE_P384_MAGIC    KeyBlobMagicNumber = 0x34534345
+	ECDSA_PUBLIC_P521_MAGIC     KeyBlobMagicNumber = 0x35534345
+	ECDSA_PRIVATE_P521_MAGIC    KeyBlobMagicNumber = 0x36534345
+	ECDSA_PUBLIC_GENERIC_MAGIC  KeyBlobMagicNumber = 0x50444345
+	ECDSA_PRIVATE_GENERIC_MAGIC KeyBlobMagicNumber = 0x56444345
 )
 
 type (
@@ -139,6 +153,12 @@ type RSAKEY_BLOB struct {
 	ModulusSize   uint32
 	Prime1Size    uint32
 	Prime2Size    uint32
+}
+
+// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_ecckey_blob
+type ECCKEY_BLOB struct {
+	Magic   KeyBlobMagicNumber
+	KeySize uint32
 }
 
 //sys	GetFipsAlgorithmMode(enabled *bool) (s error) = bcrypt.BCryptGetFipsAlgorithmMode
