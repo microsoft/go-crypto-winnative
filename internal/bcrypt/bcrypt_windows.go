@@ -18,6 +18,7 @@ const (
 	AES_ALGORITHM        = "AES"
 	RSA_ALGORITHM        = "RSA"
 	MD5_ALGORITHM        = "MD5"
+	ECDSA_ALGORITHM      = "ECDSA"
 	ECDSA_P256_ALGORITHM = "ECDSA_P256"
 	ECDSA_P384_ALGORITHM = "ECDSA_P384"
 	ECDSA_P521_ALGORITHM = "ECDSA_P521"
@@ -32,6 +33,7 @@ const (
 	CHAIN_MODE_GCM    = "ChainingModeGCM"
 	KEY_LENGTHS       = "KeyLengths"
 	BLOCK_LENGTH      = "BlockLength"
+	ECC_PARAMETERS    = "ECCParameters"
 )
 
 const (
@@ -159,6 +161,18 @@ type RSAKEY_BLOB struct {
 type ECCKEY_BLOB struct {
 	Magic   KeyBlobMagicNumber
 	KeySize uint32
+}
+
+// Undocumented.Copied from
+// https://github.com/dotnet/runtime/blob/889404f6900ffb39bb33a66fa9e624191cab217c/src/libraries/Common/src/Interop/Windows/BCrypt/Interop.Blobs.cs#L290
+type ECC_PARAMETER_HEADER struct {
+	Version              uint32
+	CurveType            uint32
+	CurveGenerationAlgId uint32
+	FieldLength          uint32
+	SubgroupOrder        uint32
+	Cofactor             uint32
+	Seed                 uint32
 }
 
 //sys	GetFipsAlgorithmMode(enabled *bool) (s error) = bcrypt.BCryptGetFipsAlgorithmMode

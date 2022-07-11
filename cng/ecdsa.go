@@ -9,6 +9,7 @@ package cng
 import (
 	"errors"
 	"runtime"
+	"strconv"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -21,13 +22,23 @@ type ecdsaAlgorithm struct {
 	handle bcrypt.ALG_HANDLE
 }
 
-func loadEcdsa(id string) (h ecdsaAlgorithm, err error) {
+func loadEcdsa(id string, bits uint32) (h ecdsaAlgorithm, err error) {
+	if id == bcrypt.ECDSA_ALGORITHM && bits != 224 {
+		// This should happen, it means we called loadEcdsa with the wrong parameters.
+		panic("P-" + strconv.Itoa(int(bits)) + " is not a supported generic curve")
+	}
 	if v, ok := algCache.Load(id); ok {
 		return v.(ecdsaAlgorithm), nil
 	}
 	err = bcrypt.OpenAlgorithmProvider(&h.handle, utf16PtrFromString(id), nil, bcrypt.ALG_NONE_FLAG)
 	if err != nil {
 		return
+	}
+	if bits == 224 {
+		err = bcrypt.SetProperty(bcrypt.HANDLE(h.handle), utf16PtrFromString(bcrypt.ECC_PARAMETERS), bcrypt.P224Params[:], 0)
+		if err != nil {
+			return
+		}
 	}
 	algCache.Store(id, h)
 	return
@@ -43,7 +54,7 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 		return
 	}
 	var h ecdsaAlgorithm
-	h, err = loadEcdsa(id)
+	h, err = loadEcdsa(id, bits)
 	if err != nil {
 		return
 	}
@@ -89,7 +100,7 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 func curveToID(curve string) (string, uint32, error) {
 	switch curve {
 	case "P-224":
-		return "", 0, errUnsupportedCurve
+		return bcrypt.ECDSA_ALGORITHM, 224, nil
 	case "P-256":
 		return bcrypt.ECDSA_P256_ALGORITHM, 256, nil
 	case "P-384":
@@ -110,7 +121,7 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	h, err := loadEcdsa(id)
+	h, err := loadEcdsa(id, bits)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +153,7 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 	if err != nil {
 		return nil, err
 	}
-	h, err := loadEcdsa(id)
+	h, err := loadEcdsa(id, bits)
 	if err != nil {
 		return nil, err
 	}
@@ -184,6 +195,12 @@ func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 			magic = bcrypt.ECDSA_PRIVATE_P521_MAGIC
 		} else {
 			magic = bcrypt.ECDSA_PUBLIC_P521_MAGIC
+		}
+	case bcrypt.ECDSA_ALGORITHM:
+		if D != nil {
+			magic = bcrypt.ECDSA_PRIVATE_GENERIC_MAGIC
+		} else {
+			magic = bcrypt.ECDSA_PUBLIC_GENERIC_MAGIC
 		}
 	}
 	hdr := bcrypt.ECCKEY_BLOB{

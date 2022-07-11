@@ -20,6 +20,7 @@ func testAllCurves(t *testing.T, f func(*testing.T, elliptic.Curve)) {
 		name  string
 		curve elliptic.Curve
 	}{
+		{"P224", elliptic.P224()},
 		{"P256", elliptic.P256()},
 		{"P384", elliptic.P384()},
 		{"P521", elliptic.P521()},
@@ -108,7 +109,7 @@ func BenchmarkSignECDSA(b *testing.B) {
 }
 
 func BenchmarkVerifyECDSA(b *testing.B) {
-	name := "P-256"
+	name := "P-224"
 	x, y, d, err := cng.GenerateKeyECDSA(name)
 	if err != nil {
 		b.Fatal(err)
