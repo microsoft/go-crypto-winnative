@@ -75,8 +75,7 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	}
 	data := blob[sizeOfECCBlobHeader:]
 	consumeBigInt := func(size uint32) BigInt {
-		b := make(BigInt, size)
-		copy(b, data)
+		b := data[:size]
 		data = data[size:]
 		return b
 	}

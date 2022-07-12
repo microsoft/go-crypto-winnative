@@ -73,8 +73,7 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 	}
 	data := blob[sizeOfRSABlobHeader:]
 	consumeBigInt := func(size uint32) BigInt {
-		b := make(BigInt, size)
-		copy(b, data)
+		b := data[:size]
 		data = data[size:]
 		return b
 	}
