@@ -1,14 +1,18 @@
-# Project
+# go-crypto-winnative
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+<!-- Add once the repostory has been pulled publicly.
+[![Go Reference](https://pkg.go.dev/badge/github.com/microsoft/go-crypto-winnative/cng.svg)](https://pkg.go.dev/github.com/microsoft/go-crypto-winnative/cng)
+-->
 
-As the maintainer of this project, please make a few updates:
+The `cng` package implements Go crypto primitives on Windows using [CNG](https://docs.microsoft.com/en-us/windows/win32/seccng/cng-portal). When configured correctly, CNG can be executed in FIPS mode.
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+The `cng` package is designed to be used as a drop-in replacement for the [boring](https://pkg.go.dev/crypto/internal/boring) package in order to facilitate integrating `cng` inside a forked Go toolchain.
+
+Visit the [FIPS documentation in the microsoft/go repository](https://github.com/microsoft/go/tree/microsoft/main/eng/doc/fips) for more information about FIPS, enabling FIPS mode, and writing a FIPS compliant Go application.
+
+## Disclaimer
+
+A program directly or indirectly using this package in FIPS mode can claim it is using a FIPS-certified cryptographic module (CNG), but it can't claim the program as a whole is FIPS certified without passing the certification process, nor claim it is FIPS compliant without ensuring all crypto APIs and workflows are implemented in a FIPS-compliant manner.
 
 ## Contributing
 
