@@ -8,6 +8,8 @@ The `cng` package implements Go crypto primitives on Windows using [CNG](https:/
 
 The `cng` package is designed to be used as a drop-in replacement for the [boring](https://pkg.go.dev/crypto/internal/boring) package in order to facilitate integrating `cng` inside a forked Go toolchain.
 
+Visit the [FIPS documentation in the microsoft/go repository](https://github.com/microsoft/go/tree/microsoft/main/eng/doc/fips) for more information about FIPS, enabling FIPS mode, and writing a FIPS compliant Go application.
+
 ## Disclaimer
 
 A program directly or indirectly using this package in FIPS mode can claim it is using a FIPS-certified cryptographic module (CNG), but it can't claim the program as a whole is FIPS certified without passing the certification process, nor claim it is FIPS compliant without ensuring all crypto APIs and workflows are implemented in a FIPS-compliant manner.
