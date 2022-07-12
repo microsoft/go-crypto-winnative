@@ -70,7 +70,12 @@ func utf16PtrFromString(s string) *uint16 {
 	return &utf16FromString(s)[0]
 }
 
+// utf16FromString converts the string using a stack-allocated slice of 32 bytes.
+// It should only be used to convert known BCrypt identifiers which only contains ASCII characters.
+// utf16FromString allocates if s is longer than 31 characters.
 func utf16FromString(s string) []uint16 {
+	// Once https://go.dev/issues/51896 lands and our support matrix allows it,
+	// we can replace part of this function by utf16.AppendRune
 	a := make([]uint16, 0, 32)
 	for _, v := range s {
 		if v == 0 || v > 127 {
@@ -78,6 +83,8 @@ func utf16FromString(s string) []uint16 {
 		}
 		a = append(a, uint16(v))
 	}
+	// Finish with a NULL byte.
+	a = append(a, 0)
 	return a
 }
 
