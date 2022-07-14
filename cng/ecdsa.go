@@ -237,10 +237,21 @@ func SignECDSA(priv *PrivateKeyECDSA, hash []byte) (r, s BigInt, err error) {
 
 // VerifyECDSA verifies the signature in r, s of hash using the public key, pub.
 func VerifyECDSA(pub *PublicKeyECDSA, hash []byte, r, s BigInt) bool {
-	if len(r) != len(s) {
+	// r and s might be shorter than size
+	// if the original big number contained leading zeros.
+	if len(r) > pub.size || len(s) > pub.size {
 		return false
 	}
-	sig := append(r, s...)
+	sig := make([]byte, 0, pub.size*2)
+	prependZeros := func(l int) {
+		if zeros := pub.size - l; zeros > 0 {
+			sig = append(sig, make([]byte, zeros)...)
+		}
+	}
+	prependZeros(len(r))
+	sig = append(sig, r...)
+	prependZeros(len(s))
+	sig = append(sig, s...)
 	defer runtime.KeepAlive(pub)
 	return keyVerify(pub.pkey, nil, hash, sig, bcrypt.PAD_UNDEFINED) == nil
 }

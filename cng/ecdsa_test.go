@@ -20,9 +20,9 @@ func testAllCurves(t *testing.T, f func(*testing.T, elliptic.Curve)) {
 		name  string
 		curve elliptic.Curve
 	}{
+		{"P521", elliptic.P521()},
 		{"P256", elliptic.P256()},
 		{"P384", elliptic.P384()},
-		{"P521", elliptic.P521()},
 	}
 	for _, test := range tests {
 		curve := test.curve
@@ -68,7 +68,8 @@ func testECDSASignAndVerify(t *testing.T, c elliptic.Curve) {
 	if err != nil {
 		t.Fatalf("SignECDSA error: %s", err)
 	}
-	if !cng.VerifyECDSA(pub, hashed, r, s) {
+	// Exercise bbig roundtrip.
+	if !cng.VerifyECDSA(pub, hashed, bbig.Enc(bbig.Dec(r)), bbig.Enc(bbig.Dec(s))) {
 		t.Errorf("Verify failed")
 	}
 	hashed[0] ^= 0xff
