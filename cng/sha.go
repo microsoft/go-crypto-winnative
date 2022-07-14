@@ -104,7 +104,8 @@ type shaXHash struct {
 
 func newSHAX(id string, key []byte) *shaXHash {
 	var flag bcrypt.AlgorithmProviderFlags
-	if len(key) > 0 {
+	if key != nil {
+		// HMAC can pass an empty key to newSHAX.
 		flag = bcrypt.ALG_HANDLE_HMAC_FLAG
 	}
 	h, err := loadSha(id, flag)

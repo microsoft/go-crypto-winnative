@@ -50,6 +50,8 @@ func NewHMAC(h func() hash.Hash, key []byte) hash.Hash {
 		// allow keys longer than math.MaxUint32 bytes.
 		ch.Write(key)
 		key = ch.Sum(nil)
+	} else if key == nil {
+		key = []byte{}
 	}
 	return newSHAX(id, key)
 }
