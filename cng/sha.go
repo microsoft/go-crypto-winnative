@@ -51,22 +51,22 @@ func SHA512(p []byte) (sum [64]byte) {
 
 // NewSHA1 returns a new SHA1 hash.
 func NewSHA1() hash.Hash {
-	return newSHAX(bcrypt.SHA1_ALGORITHM, nil)
+	return newSHAX(bcrypt.SHA1_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
 }
 
 // NewSHA256 returns a new SHA256 hash.
 func NewSHA256() hash.Hash {
-	return newSHAX(bcrypt.SHA256_ALGORITHM, nil)
+	return newSHAX(bcrypt.SHA256_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
 }
 
 // NewSHA384 returns a new SHA384 hash.
 func NewSHA384() hash.Hash {
-	return newSHAX(bcrypt.SHA384_ALGORITHM, nil)
+	return newSHAX(bcrypt.SHA384_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
 }
 
 // NewSHA512 returns a new SHA512 hash.
 func NewSHA512() hash.Hash {
-	return newSHAX(bcrypt.SHA512_ALGORITHM, nil)
+	return newSHAX(bcrypt.SHA512_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
 }
 
 type shaAlgorithm struct {
@@ -102,12 +102,7 @@ type shaXHash struct {
 	key       []byte
 }
 
-func newSHAX(id string, key []byte) *shaXHash {
-	var flag bcrypt.AlgorithmProviderFlags
-	if key != nil {
-		// HMAC can pass an empty key to newSHAX.
-		flag = bcrypt.ALG_HANDLE_HMAC_FLAG
-	}
+func newSHAX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *shaXHash {
 	h, err := loadSha(id, flag)
 	if err != nil {
 		panic(err)
