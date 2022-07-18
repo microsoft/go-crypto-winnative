@@ -51,5 +51,5 @@ func NewHMAC(h func() hash.Hash, key []byte) hash.Hash {
 		ch.Write(key)
 		key = ch.Sum(nil)
 	}
-	return newSHAX(id, key)
+	return newSHAX(id, bcrypt.ALG_HANDLE_HMAC_FLAG, key)
 }

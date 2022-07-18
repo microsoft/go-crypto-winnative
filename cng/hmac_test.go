@@ -8,9 +8,34 @@ package cng
 
 import (
 	"bytes"
+	"fmt"
 	"hash"
 	"testing"
 )
+
+func TestHMAC_EmptyKey(t *testing.T) {
+	const payload = "message"
+	var tests = []struct {
+		name string
+		fn   func() hash.Hash
+		out  string
+	}{
+		{"sha1", NewSHA1, "d5d1ed05121417247616cfc8378f360a39da7cfa"},
+		{"sha256", NewSHA256, "eb08c1f56d5ddee07f7bdf80468083da06b64cf4fac64fe3a90883df5feacae4"},
+		{"sha384", NewSHA384, "a1302a8028a419bb834bfae53c5e98ab48e07aed9ef8b980a821df28685902003746ade315072edd8ce009a1d23705ec"},
+		{"sha512", NewSHA512, "08fce52f6395d59c2a3fb8abb281d74ad6f112b9a9c787bcea290d94dadbc82b2ca3e5e12bf2277c7fedbb0154d5493e41bb7459f63c8e39554ea3651b812492"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewHMAC(tt.fn, nil)
+			h.Write([]byte(payload))
+			sum := fmt.Sprintf("%x", h.Sum(nil))
+			if sum != tt.out {
+				t.Errorf("have %s want %s\n", sum, tt.out)
+			}
+		})
+	}
+}
 
 func TestHMAC(t *testing.T) {
 	key := []byte{1, 2, 3}
