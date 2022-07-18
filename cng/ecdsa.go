@@ -22,15 +22,13 @@ type ecdsaAlgorithm struct {
 }
 
 func loadEcdsa(id string) (h ecdsaAlgorithm, err error) {
-	if v, ok := algCache.Load(id); ok {
-		return v.(ecdsaAlgorithm), nil
-	}
-	err = bcrypt.OpenAlgorithmProvider(&h.handle, utf16PtrFromString(id), nil, bcrypt.ALG_NONE_FLAG)
+	v, err := loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+		return ecdsaAlgorithm{h}, nil
+	})
 	if err != nil {
-		return
+		return ecdsaAlgorithm{}, err
 	}
-	algCache.Store(id, h)
-	return
+	return v.(ecdsaAlgorithm), nil
 }
 
 const sizeOfECCBlobHeader = uint32(unsafe.Sizeof(bcrypt.ECCKEY_BLOB{}))

@@ -34,6 +34,13 @@ func newRSAKey(t *testing.T, size int) (*cng.PrivateKeyRSA, *cng.PublicKeyRSA) {
 	return priv, pub
 }
 
+func TestGenerateKeyRSA_InvalidLength(t *testing.T) {
+	_, _, _, _, _, _, _, _, err := cng.GenerateKeyRSA(2)
+	if err == nil {
+		t.Error("error expected")
+	}
+}
+
 func TestRSAKeyGeneration(t *testing.T) {
 	for _, size := range []int{2048, 3072} {
 		t.Run(strconv.Itoa(size), func(t *testing.T) {

@@ -19,8 +19,8 @@ import (
 const aesBlockSize = 16
 
 type aesAlgorithm struct {
-	handle          bcrypt.ALG_HANDLE
-	allowedKeySizes []int
+	handle            bcrypt.ALG_HANDLE
+	allowedKeyLengths bcrypt.KEY_LENGTHS_STRUCT
 }
 
 func loadAes(mode string) (aesAlgorithm, error) {
@@ -31,20 +31,11 @@ func loadAes(mode string) (aesAlgorithm, error) {
 		if err != nil {
 			return nil, err
 		}
-		var info bcrypt.KEY_LENGTHS_STRUCT
-		var discard uint32
-		err = bcrypt.GetProperty(bcrypt.HANDLE(h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*[unsafe.Sizeof(info)]byte)(unsafe.Pointer(&info))[:], &discard, 0)
+		lengths, err := getKeyLengths(bcrypt.HANDLE(h))
 		if err != nil {
 			return nil, err
 		}
-		if info.Increment == 0 || info.MinLength > info.MaxLength {
-			return nil, errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
-		}
-		var allowedKeySizes []int
-		for size := info.MinLength; size <= info.MaxLength; size += info.Increment {
-			allowedKeySizes = append(allowedKeySizes, int(size))
-		}
-		return aesAlgorithm{h, allowedKeySizes}, nil
+		return aesAlgorithm{h, lengths}, nil
 	})
 	if err != nil {
 		return aesAlgorithm{}, nil
@@ -62,14 +53,7 @@ func NewAESCipher(key []byte) (cipher.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	var allowedKeySize bool
-	for _, size := range h.allowedKeySizes {
-		if len(key)*8 == size {
-			allowedKeySize = true
-			break
-		}
-	}
-	if !allowedKeySize {
+	if !keyIsAllowed(h.allowedKeyLengths, uint32(len(key)*8)) {
 		return nil, errors.New("crypto/cipher: invalid key size")
 	}
 	c := &aesCipher{key: make([]byte, len(key))}

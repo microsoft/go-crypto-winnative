@@ -17,12 +17,17 @@ import (
 )
 
 type rsaAlgorithm struct {
-	handle bcrypt.ALG_HANDLE
+	handle            bcrypt.ALG_HANDLE
+	allowedKeyLengths bcrypt.KEY_LENGTHS_STRUCT
 }
 
 func loadRsa() (rsaAlgorithm, error) {
 	v, err := loadOrStoreAlg(bcrypt.RSA_ALGORITHM, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
-		return rsaAlgorithm{h}, nil
+		lengths, err := getKeyLengths(bcrypt.HANDLE(h))
+		if err != nil {
+			return nil, err
+		}
+		return rsaAlgorithm{h, lengths}, nil
 	})
 	if err != nil {
 		return rsaAlgorithm{}, err
@@ -39,6 +44,9 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 	h, err := loadRsa()
 	if err != nil {
 		return bad(err)
+	}
+	if !keyIsAllowed(h.allowedKeyLengths, uint32(bits)) {
+		return bad(errors.New("crypto/rsa: invalid key size"))
 	}
 	var hkey bcrypt.KEY_HANDLE
 	err = bcrypt.GenerateKeyPair(h.handle, &hkey, uint32(bits), 0)
@@ -98,6 +106,9 @@ func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 	if err != nil {
 		return nil, err
 	}
+	if !keyIsAllowed(h.allowedKeyLengths, uint32(len(N)*8)) {
+		return nil, errors.New("crypto/rsa: invalid key size")
+	}
 	blob, err := encodeRSAKey(N, E, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		return nil, err
@@ -127,6 +138,9 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 	h, err := loadRsa()
 	if err != nil {
 		return nil, err
+	}
+	if !keyIsAllowed(h.allowedKeyLengths, uint32(len(N)*8)) {
+		return nil, errors.New("crypto/rsa: invalid key size")
 	}
 	blob, err := encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv)
 	if err != nil {
