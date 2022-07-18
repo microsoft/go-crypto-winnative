@@ -68,7 +68,8 @@ func testECDSASignAndVerify(t *testing.T, c elliptic.Curve) {
 	if err != nil {
 		t.Fatalf("SignECDSA error: %s", err)
 	}
-	if !cng.VerifyECDSA(pub, hashed, r, s) {
+	// Exercise bbig roundtrip.
+	if !cng.VerifyECDSA(pub, hashed, bbig.Enc(bbig.Dec(r)), bbig.Enc(bbig.Dec(s))) {
 		t.Errorf("Verify failed")
 	}
 	hashed[0] ^= 0xff
