@@ -238,13 +238,14 @@ func SignECDSA(priv *PrivateKeyECDSA, hash []byte) (r, s BigInt, err error) {
 // VerifyECDSA verifies the signature in r, s of hash using the public key, pub.
 func VerifyECDSA(pub *PublicKeyECDSA, hash []byte, r, s BigInt) bool {
 	// r and s might be shorter than size
-	// if the original big number contained leading zeros.
+	// if the original big number contained leading zeros,
+	// but they must not be longer than the public key size.
 	if len(r) > pub.size || len(s) > pub.size {
 		return false
 	}
 	sig := make([]byte, 0, pub.size*2)
-	prependZeros := func(l int) {
-		if zeros := pub.size - l; zeros > 0 {
+	prependZeros := func(nonZeroBytes int) {
+		if zeros := pub.size - nonZeroBytes; zeros > 0 {
 			sig = append(sig, make([]byte, zeros)...)
 		}
 	}
