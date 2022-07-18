@@ -32,6 +32,7 @@ const (
 	CHAIN_MODE_GCM    = "ChainingModeGCM"
 	KEY_LENGTHS       = "KeyLengths"
 	BLOCK_LENGTH      = "BlockLength"
+	OBJECT_LENGTH     = "ObjectLength"
 )
 
 const (

@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"errors"
 	"hash"
 	"runtime"
 
@@ -70,9 +71,10 @@ func NewSHA512() hash.Hash {
 }
 
 type shaAlgorithm struct {
-	handle    bcrypt.ALG_HANDLE
-	size      uint32
-	blockSize uint32
+	handle       bcrypt.ALG_HANDLE
+	size         uint32
+	blockSize    uint32
+	objectLength uint32
 }
 
 func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (shaAlgorithm, error) {
@@ -85,7 +87,11 @@ func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (shaAlgorithm, erro
 		if err != nil {
 			return nil, err
 		}
-		return shaAlgorithm{h, size, blockSize}, nil
+		objectLength, err := getUint32(bcrypt.HANDLE(h), bcrypt.OBJECT_LENGTH)
+		if err != nil {
+			return nil, err
+		}
+		return shaAlgorithm{h, size, blockSize, objectLength}, nil
 	})
 	if err != nil {
 		return shaAlgorithm{}, err
@@ -98,6 +104,7 @@ type shaXHash struct {
 	ctx       bcrypt.HASH_HANDLE
 	size      int
 	blockSize int
+	obj       []byte
 	buf       []byte
 	key       []byte
 }
@@ -111,6 +118,7 @@ func newSHAX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *shaXHas
 	sha.h = h.handle
 	sha.size = int(h.size)
 	sha.blockSize = int(h.blockSize)
+	sha.obj = make([]byte, h.objectLength)
 	sha.buf = make([]byte, sha.size)
 	if len(key) > 0 {
 		sha.key = make([]byte, len(key))
@@ -119,6 +127,20 @@ func newSHAX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *shaXHas
 	sha.Reset()
 	runtime.SetFinalizer(sha, (*shaXHash).finalize)
 	return sha
+}
+
+func (h *shaXHash) MarshalBinary() (data []byte, err error) {
+	state := make([]byte, len(h.obj))
+	copy(state, h.obj)
+	return state, nil
+}
+
+func (h *shaXHash) UnmarshalBinary(data []byte) error {
+	if len(data) != len(h.obj) {
+		return errors.New("invalid hash state")
+	}
+	copy(h.obj, data)
+	return nil
 }
 
 func (h *shaXHash) finalize() {
@@ -132,7 +154,7 @@ func (h *shaXHash) Reset() {
 		bcrypt.DestroyHash(h.ctx)
 		h.ctx = 0
 	}
-	err := bcrypt.CreateHash(h.h, &h.ctx, nil, h.key, 0)
+	err := bcrypt.CreateHash(h.h, &h.ctx, h.obj, h.key, 0)
 	if err != nil {
 		panic(err)
 	}

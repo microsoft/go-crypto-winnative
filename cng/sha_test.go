@@ -8,6 +8,7 @@ package cng_test
 
 import (
 	"bytes"
+	"encoding"
 	"hash"
 	"testing"
 
@@ -43,6 +44,18 @@ func TestSha(t *testing.T) {
 			}
 			if bytes.Equal(sum, initSum) {
 				t.Error("Write didn't change internal hash state")
+			}
+
+			state, err := h.(encoding.BinaryMarshaler).MarshalBinary()
+			if err != nil {
+				t.Errorf("could not marshal: %v", err)
+			}
+			h2 := tt.fn()
+			if err := h2.(encoding.BinaryUnmarshaler).UnmarshalBinary(state); err != nil {
+				t.Errorf("could not unmarshal: %v", err)
+			}
+			if actual, actual2 := h.Sum(nil), h2.Sum(nil); !bytes.Equal(actual, actual2) {
+				t.Errorf("0x%x != marshaled 0x%x", actual, actual2)
 			}
 
 			h.Reset()
@@ -103,7 +116,6 @@ func BenchmarkHash8Bytes(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		h.Reset()
 		h.Write(buf[:size])
-		h.Write(buf)
 		h.Sum(sum[:0])
 	}
 }
