@@ -318,7 +318,14 @@ func newPSS_PADDING_INFO(h crypto.Hash, saltLen int) (info bcrypt.PSS_PADDING_IN
 		return info, errors.New("crypto/rsa: unsupported hash function")
 	}
 	info.AlgId = utf16PtrFromString(hashID)
-	info.Salt = uint32(saltLen)
+	switch saltLen {
+	case -1: // rsa.PSSSaltLengthEqualsHash
+		info.Salt = uint32(h.Size())
+	case 0: // rsa.PSSSaltLengthAuto
+		err = errors.New("crypto/rsa: rsa.PSSSaltLengthAuto not supported")
+	default:
+		info.Salt = uint32(saltLen)
+	}
 	return
 }
 
