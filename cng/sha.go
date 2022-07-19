@@ -102,8 +102,9 @@ func loadSha(id string, flags bcrypt.AlgorithmProviderFlags) (shaAlgorithm, erro
 type shaXHash struct {
 	h         bcrypt.ALG_HANDLE
 	ctx       bcrypt.HASH_HANDLE
-	size      int
-	blockSize int
+	size      uint32
+	blockSize uint32
+	magic     [7]byte
 	obj       []byte
 	buf       []byte
 	key       []byte
@@ -116,8 +117,9 @@ func newSHAX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *shaXHas
 	}
 	sha := new(shaXHash)
 	sha.h = h.handle
-	sha.size = int(h.size)
-	sha.blockSize = int(h.blockSize)
+	sha.size = h.size
+	sha.blockSize = h.blockSize
+	sha.magic = hashMagic(h.size)
 	sha.obj = make([]byte, h.objectLength)
 	sha.buf = make([]byte, sha.size)
 	if len(key) > 0 {
@@ -129,13 +131,31 @@ func newSHAX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *shaXHas
 	return sha
 }
 
-func (h *shaXHash) MarshalBinary() (data []byte, err error) {
-	state := make([]byte, len(h.obj))
-	copy(state, h.obj)
+func hashMagic(size uint32) [7]byte {
+	var m [7]byte
+	m[0], m[1], m[2] = 'c', 'n', 'g'
+	// Encode size as little endian.
+	m[3], m[4], m[5], m[6] = byte(size>>24), byte(size>>16), byte(size>>8), byte(size)
+	return m
+}
+
+// MarshalBinary returns the hash internal state.
+// The state is not compatible with the Go standard library hash state scheme.
+// The state might not be compatible across Windows version.
+func (h *shaXHash) MarshalBinary() ([]byte, error) {
+	state := make([]byte, len(h.magic)+len(h.obj))
+	copy(state, h.magic[:])
+	copy(state[len(h.magic):], h.obj)
 	return state, nil
 }
 
+// UnmarshalBinary sets the internal hash state.
+// The state must be generated using shaXHash.MarshalBinary().
 func (h *shaXHash) UnmarshalBinary(data []byte) error {
+	if len(data) < len(h.magic) || string(data[:len(h.magic)]) != string(h.magic[:]) {
+		return errors.New("invalid hash state identifier")
+	}
+	data = data[len(h.magic):]
 	if len(data) != len(h.obj) {
 		return errors.New("invalid hash state")
 	}
@@ -176,11 +196,11 @@ func (h *shaXHash) Write(p []byte) (n int, err error) {
 }
 
 func (h *shaXHash) Size() int {
-	return h.size
+	return int(h.size)
 }
 
 func (h *shaXHash) BlockSize() int {
-	return h.blockSize
+	return int(h.blockSize)
 }
 
 func (h *shaXHash) Sum(in []byte) []byte {
