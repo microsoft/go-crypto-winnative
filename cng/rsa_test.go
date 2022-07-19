@@ -157,11 +157,11 @@ func TestSignVerifyRSAPSS(t *testing.T) {
 	priv, pub := newRSAKey(t, 2048)
 	sha256.Write([]byte("testing"))
 	hashed := sha256.Sum(nil)
-	signed, err := cng.SignRSAPSS(priv, crypto.SHA256, hashed, 8)
+	signed, err := cng.SignRSAPSS(priv, crypto.SHA256, hashed, 42)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = cng.VerifyRSAPSS(pub, crypto.SHA256, hashed, signed, 8)
+	err = cng.VerifyRSAPSS(pub, crypto.SHA256, hashed, signed, 42)
 	if err != nil {
 		t.Fatal(err)
 	}
