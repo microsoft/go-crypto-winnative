@@ -45,6 +45,15 @@ func TestSha(t *testing.T) {
 				t.Error("Write didn't change internal hash state")
 			}
 
+			h2, err := h.(interface{ Clone() (hash.Hash, error) }).Clone()
+			if err != nil {
+				t.Fatal(err)
+			}
+			h.Write(msg)
+			h2.Write(msg)
+			if actual, actual2 := h.Sum(nil), h2.Sum(nil); !bytes.Equal(actual, actual2) {
+				t.Errorf("%s(%q) = 0x%x != cloned 0x%x", tt.name, msg, actual, actual2)
+			}
 			h.Reset()
 			sum = h.Sum(nil)
 			if !bytes.Equal(sum, initSum) {

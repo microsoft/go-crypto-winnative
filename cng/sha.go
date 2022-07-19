@@ -127,6 +127,23 @@ func (h *shaXHash) finalize() {
 	}
 }
 
+func (h *shaXHash) Clone() (hash.Hash, error) {
+	h2 := &shaXHash{
+		h:         h.h,
+		size:      h.size,
+		blockSize: h.blockSize,
+		buf:       make([]byte, len(h.buf)),
+		key:       make([]byte, len(h.key)),
+	}
+	copy(h2.key, h.key)
+	err := bcrypt.DuplicateHash(h.ctx, &h2.ctx, nil, 0)
+	if err != nil {
+		return nil, err
+	}
+	runtime.KeepAlive(h)
+	return h2, nil
+}
+
 func (h *shaXHash) Reset() {
 	if h.ctx != 0 {
 		bcrypt.DestroyHash(h.ctx)
