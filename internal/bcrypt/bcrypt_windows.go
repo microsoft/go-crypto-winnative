@@ -111,7 +111,7 @@ type AUTHENTICATED_CIPHER_MODE_INFO struct {
 
 func NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag []byte) *AUTHENTICATED_CIPHER_MODE_INFO {
 	var aad *byte
-	if additionalData != nil {
+	if len(additionalData) > 0 {
 		aad = &additionalData[0]
 	}
 	info := AUTHENTICATED_CIPHER_MODE_INFO{
