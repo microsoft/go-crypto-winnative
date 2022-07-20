@@ -59,6 +59,15 @@ func TestSealAndOpen(t *testing.T) {
 	if !bytes.Equal(decrypted, plainText) {
 		t.Errorf("unexpected decrypted result\ngot: %#v\nexp: %#v", decrypted, plainText)
 	}
+	// Test with no additional data.
+	sealed = gcm.Seal(nil, nonce, plainText, []byte{})
+	decrypted, err = gcm.Open(nil, nonce, sealed, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	if !bytes.Equal(decrypted, plainText) {
+		t.Errorf("unexpected decrypted result\ngot: %#v\nexp: %#v", decrypted, plainText)
+	}
 }
 
 func TestSealAndOpenTLS(t *testing.T) {
