@@ -14,8 +14,8 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-var errUnknownCurve = errors.New("openssl: unknown elliptic curve")
-var errUnsupportedCurve = errors.New("openssl: unsupported elliptic curve")
+var errUnknownCurve = errors.New("cng: unknown elliptic curve")
+var errUnsupportedCurve = errors.New("cng: unsupported elliptic curve")
 
 type ecdsaAlgorithm struct {
 	handle bcrypt.ALG_HANDLE
