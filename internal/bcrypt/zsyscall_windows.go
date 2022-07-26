@@ -135,20 +135,16 @@ func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byt
 	return
 }
 
-func Encrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) {
+func _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) {
 	var _p0 *byte
-	if len(pbInput) > 0 {
-		_p0 = &pbInput[0]
+	if len(pbIV) > 0 {
+		_p0 = &pbIV[0]
 	}
 	var _p1 *byte
-	if len(pbIV) > 0 {
-		_p1 = &pbIV[0]
-	}
-	var _p2 *byte
 	if len(pbOutput) > 0 {
-		_p2 = &pbOutput[0]
+		_p1 = &pbOutput[0]
 	}
-	r0, _, _ := syscall.Syscall12(procBCryptEncrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.Syscall12(procBCryptEncrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}

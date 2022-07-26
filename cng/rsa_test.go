@@ -72,6 +72,24 @@ func TestEncryptDecryptOAEP(t *testing.T) {
 	}
 }
 
+func TestEncryptDecryptOAEP_Empty(t *testing.T) {
+	sha256 := cng.NewSHA256()
+	msg := []byte("")
+	label := []byte("ho!")
+	priv, pub := newRSAKey(t, 2048)
+	enc, err := cng.EncryptRSAOAEP(sha256, pub, msg, label)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dec, err := cng.DecryptRSAOAEP(sha256, priv, enc, label)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(dec, msg) {
+		t.Errorf("got:%x want:%x", dec, msg)
+	}
+}
+
 func TestEncryptDecryptOAEP_WrongLabel(t *testing.T) {
 	sha256 := cng.NewSHA256()
 	msg := []byte("hi!")
