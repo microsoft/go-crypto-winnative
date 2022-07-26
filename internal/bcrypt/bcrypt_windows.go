@@ -167,8 +167,8 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 		pInput = &plaintext[0]
 	} else {
 		// BCryptEncrypt does not support nil plaintext.
-		// Allocate an zero byte here just to make CNG happy.
-		// It wont be encrypted anyway because the plaintext length is zero.
+		// Allocate a zero byte here just to make CNG happy.
+		// It won't be encrypted anyway because the plaintext length is zero.
 		pInput = new(byte)
 	}
 	return _Encrypt(hKey, pInput, uint32(len(plaintext)), pPaddingInfo, pbIV, pbOutput, pcbResult, dwFlags)
