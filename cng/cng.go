@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"errors"
 	"math"
 	"reflect"
 	"runtime"
@@ -96,4 +97,27 @@ func getUint32(h bcrypt.HANDLE, name string) (uint32, error) {
 	var prop, discard uint32
 	err := bcrypt.GetProperty(h, utf16PtrFromString(name), (*[4]byte)(unsafe.Pointer(&prop))[:], &discard, 0)
 	return prop, err
+}
+
+func getKeyLengths(h bcrypt.HANDLE) (lengths bcrypt.KEY_LENGTHS_STRUCT, err error) {
+	var discard uint32
+	err = bcrypt.GetProperty(bcrypt.HANDLE(h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*[unsafe.Sizeof(lengths)]byte)(unsafe.Pointer(&lengths))[:], &discard, 0)
+	if err != nil {
+		return
+	}
+	if lengths.MinLength > lengths.MaxLength || (lengths.Increment == 0 && lengths.MinLength != lengths.MaxLength) {
+		err = errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
+		return
+	}
+	return lengths, nil
+}
+
+func keyIsAllowed(lengths bcrypt.KEY_LENGTHS_STRUCT, bits uint32) bool {
+	if bits < lengths.MinLength || bits > lengths.MaxLength {
+		return false
+	}
+	if lengths.Increment == 0 {
+		return bits == lengths.MinLength
+	}
+	return (bits-lengths.MinLength)%lengths.Increment == 0
 }
