@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
-	"syscall"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -69,19 +68,25 @@ func loadOrStoreAlg(id string, flags bcrypt.AlgorithmProviderFlags, mode string,
 }
 
 func utf16PtrFromString(s string) *uint16 {
-	str, err := syscall.UTF16PtrFromString(s)
-	if err != nil {
-		panic(err)
-	}
-	return str
+	return &utf16FromString(s)[0]
 }
 
+// utf16FromString converts the string using a stack-allocated slice of 64 bytes.
+// It should only be used to convert known BCrypt identifiers which only contains ASCII characters.
+// utf16FromString allocates if s is longer than 31 characters.
 func utf16FromString(s string) []uint16 {
-	str, err := syscall.UTF16FromString(s)
-	if err != nil {
-		panic(err)
+	// Once https://go.dev/issues/51896 lands and our support matrix allows it,
+	// we can replace part of this function by utf16.AppendRune
+	a := make([]uint16, 0, 32)
+	for _, v := range s {
+		if v == 0 || v > 127 {
+			panic("utf16FromString only supports ASCII characters, got " + s)
+		}
+		a = append(a, uint16(v))
 	}
-	return str
+	// Finish with a NULL byte.
+	a = append(a, 0)
+	return a
 }
 
 func setString(h bcrypt.HANDLE, name, val string) error {
