@@ -70,7 +70,7 @@ func utf16PtrFromString(s string) *uint16 {
 	return &utf16FromString(s)[0]
 }
 
-// utf16FromString converts the string using a stack-allocated slice of 32 bytes.
+// utf16FromString converts the string using a stack-allocated slice of 64 bytes.
 // It should only be used to convert known BCrypt identifiers which only contains ASCII characters.
 // utf16FromString allocates if s is longer than 31 characters.
 func utf16FromString(s string) []uint16 {
