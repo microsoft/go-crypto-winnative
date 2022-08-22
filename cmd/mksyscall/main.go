@@ -62,7 +62,10 @@ func main() {
 // install makes sure mkwinsyscall can be called by
 // running go install golang.org/x/sys/windows/mkwinsyscall.
 func install(goTool string) {
-	args := []string{"install", "golang.org/x/sys/windows/mkwinsyscall"}
+	// mkwinsyscall is hardcoded here instead of adding it to go.mod so
+	// it doesn't appear in go.sum, which will reduce the likelihood
+	// of having patch conflicts when vendoring go-crypto-winnative.
+	args := []string{"install", "golang.org/x/sys/windows/mkwinsyscall@b874c991c1a5"}
 	cmd := exec.Command(goTool, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
