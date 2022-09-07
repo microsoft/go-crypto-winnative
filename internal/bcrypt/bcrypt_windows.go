@@ -30,6 +30,7 @@ const (
 	CHAIN_MODE_ECB    = "ChainingModeECB"
 	CHAIN_MODE_CBC    = "ChainingModeCBC"
 	CHAIN_MODE_GCM    = "ChainingModeGCM"
+	KEY_LENGTH        = "KeyLength"
 	KEY_LENGTHS       = "KeyLengths"
 	BLOCK_LENGTH      = "BlockLength"
 )

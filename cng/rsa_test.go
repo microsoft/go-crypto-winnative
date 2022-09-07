@@ -9,6 +9,7 @@ package cng_test
 import (
 	"bytes"
 	"crypto"
+	"crypto/rsa"
 	"math/big"
 	"strconv"
 	"testing"
@@ -178,32 +179,35 @@ func TestSignVerifyPKCS1v15_Invalid(t *testing.T) {
 }
 
 func TestSignVerifyRSAPSS(t *testing.T) {
+	const keyBits = 2048
+	var saltLengthCombinations = []struct {
+		signSaltLength, verifySaltLength int
+		good                             bool
+	}{
+		{rsa.PSSSaltLengthAuto, rsa.PSSSaltLengthAuto, false},
+		{rsa.PSSSaltLengthEqualsHash, rsa.PSSSaltLengthAuto, false},
+		{rsa.PSSSaltLengthEqualsHash, rsa.PSSSaltLengthEqualsHash, true},
+		{rsa.PSSSaltLengthEqualsHash, 8, false},
+		{rsa.PSSSaltLengthAuto, rsa.PSSSaltLengthEqualsHash, false},
+		{8, 8, true},
+		{rsa.PSSSaltLengthAuto, keyBits/8 - 2 - 32, true}, // simulate Go PSSSaltLengthAuto algorithm (32 = sha256 size)
+		{rsa.PSSSaltLengthAuto, 20, false},
+		{rsa.PSSSaltLengthAuto, -2, false},
+	}
 	sha256 := cng.NewSHA256()
-	priv, pub := newRSAKey(t, 2048)
+	priv, pub := newRSAKey(t, keyBits)
 	sha256.Write([]byte("testing"))
 	hashed := sha256.Sum(nil)
-	signed, err := cng.SignRSAPSS(priv, crypto.SHA256, hashed, 42)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = cng.VerifyRSAPSS(pub, crypto.SHA256, hashed, signed, 42)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestSignVerifyRSAPSS_PSSSaltLengthEqualsHash(t *testing.T) {
-	sha256 := cng.NewSHA256()
-	priv, pub := newRSAKey(t, 2048)
-	sha256.Write([]byte("testing"))
-	hashed := sha256.Sum(nil)
-	signed, err := cng.SignRSAPSS(priv, crypto.SHA256, hashed, -1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = cng.VerifyRSAPSS(pub, crypto.SHA256, hashed, signed, -1)
-	if err != nil {
-		t.Fatal(err)
+	for i, test := range saltLengthCombinations {
+		signed, err := cng.SignRSAPSS(priv, crypto.SHA256, hashed, test.signSaltLength)
+		if err != nil {
+			t.Errorf("#%d: error while signing: %s", i, err)
+			continue
+		}
+		err = cng.VerifyRSAPSS(pub, crypto.SHA256, hashed, signed, test.verifySaltLength)
+		if (err == nil) != test.good {
+			t.Errorf("#%d: bad result, wanted: %t, got: %s", i, test.good, err)
+		}
 	}
 }
 

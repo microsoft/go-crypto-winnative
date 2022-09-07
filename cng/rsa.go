@@ -235,7 +235,7 @@ func EncryptRSANoPadding(pub *PublicKeyRSA, msg []byte) ([]byte, error) {
 
 func SignRSAPSS(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte, saltLen int) ([]byte, error) {
 	defer runtime.KeepAlive(priv)
-	info, err := newPSS_PADDING_INFO(h, saltLen)
+	info, err := newPSS_PADDING_INFO(priv.pkey, h, saltLen, true)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +244,7 @@ func SignRSAPSS(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte, saltLen int) 
 
 func VerifyRSAPSS(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte, saltLen int) error {
 	defer runtime.KeepAlive(pub)
-	info, err := newPSS_PADDING_INFO(h, saltLen)
+	info, err := newPSS_PADDING_INFO(pub.pkey, h, saltLen, false)
 	if err != nil {
 		return err
 	}
@@ -325,17 +325,36 @@ func keyVerify(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed, sig []byte, 
 	return bcrypt.VerifySignature(pkey, info, hashed, sig, flags)
 }
 
-func newPSS_PADDING_INFO(h crypto.Hash, saltLen int) (info bcrypt.PSS_PADDING_INFO, err error) {
+func newPSS_PADDING_INFO(pkey bcrypt.KEY_HANDLE, h crypto.Hash, saltLen int, sign bool) (info bcrypt.PSS_PADDING_INFO, err error) {
 	hashID := cryptoHashToID(h)
 	if hashID == "" {
 		return info, errors.New("crypto/rsa: unsupported hash function")
 	}
 	info.AlgId = utf16PtrFromString(hashID)
+
+	// A salt length of -1 and 0 are valid Go sentinel values.
+	if saltLen <= -2 {
+		return info, errors.New("crypto/rsa: PSSOptions.SaltLength cannot be negative")
+	}
+	// CNG does not support salt length special cases like Go do,
+	// so we do a best-effort to resolve them.
 	switch saltLen {
 	case -1: // rsa.PSSSaltLengthEqualsHash
 		info.Salt = uint32(h.Size())
 	case 0: // rsa.PSSSaltLengthAuto
-		err = errors.New("crypto/rsa: rsa.PSSSaltLengthAuto not supported")
+		if sign {
+			// Go sets the salt as large as possible when signing.
+			bits, err := getUint32(bcrypt.HANDLE(pkey), bcrypt.KEY_LENGTH)
+			if err != nil {
+				return info, errors.New("crypto/rsa: key length can't be retrieved" + err.Error())
+			}
+			info.Salt = (bits-1+7)/8 - 2 - uint32(h.Size())
+		} else {
+			// Go auto-detects the salt length from the signature structure when verifying.
+			// The auto-detection logic is deep in the verification process,
+			// we can't replicate it without exhaustive validation.
+			err = errors.New("crypto/rsa: rsa.PSSSaltLengthAuto not supported")
+		}
 	default:
 		info.Salt = uint32(saltLen)
 	}
