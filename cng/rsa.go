@@ -336,7 +336,7 @@ func newPSS_PADDING_INFO(pkey bcrypt.KEY_HANDLE, h crypto.Hash, saltLen int, sig
 	if saltLen <= -2 {
 		return info, errors.New("crypto/rsa: PSSOptions.SaltLength cannot be negative")
 	}
-	// CNG does not support salt length special cases like Go do,
+	// CNG does not support salt length special cases like Go crypto does,
 	// so we do a best-effort to resolve them.
 	switch saltLen {
 	case -1: // rsa.PSSSaltLengthEqualsHash
@@ -346,7 +346,7 @@ func newPSS_PADDING_INFO(pkey bcrypt.KEY_HANDLE, h crypto.Hash, saltLen int, sig
 			// Go sets the salt as large as possible when signing.
 			bits, err := getUint32(bcrypt.HANDLE(pkey), bcrypt.KEY_LENGTH)
 			if err != nil {
-				return info, errors.New("crypto/rsa: key length can't be retrieved" + err.Error())
+				return info, errors.New("crypto/rsa: key length can't be retrieved " + err.Error())
 			}
 			info.Salt = (bits-1+7)/8 - 2 - uint32(h.Size())
 		} else {
