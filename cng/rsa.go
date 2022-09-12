@@ -344,11 +344,15 @@ func newPSS_PADDING_INFO(pkey bcrypt.KEY_HANDLE, h crypto.Hash, saltLen int, sig
 	case 0: // rsa.PSSSaltLengthAuto
 		if sign {
 			// Go sets the salt as large as possible when signing.
-			bits, err := getUint32(bcrypt.HANDLE(pkey), bcrypt.KEY_LENGTH)
+			sizeBits, err := getUint32(bcrypt.HANDLE(pkey), bcrypt.KEY_LENGTH)
 			if err != nil {
 				return info, errors.New("crypto/rsa: key length can't be retrieved " + err.Error())
 			}
-			info.Salt = (bits-1+7)/8 - 2 - uint32(h.Size())
+			// Algorithm taken from RFC 3447 Section 9.1.1, which is also implemented by Go at
+			// https://github.com/golang/go/blob/54182ff54a687272dd7632c3a963e036ce03cb7c/src/crypto/rsa/pss.go#L288.
+			emLen := (sizeBits - 1 + 7) / 8
+			hLen := uint32(h.Size())
+			info.Salt = emLen - hLen - 2
 		} else {
 			// Go auto-detects the salt length from the signature structure when verifying.
 			// The auto-detection logic is deep in the verification process,

@@ -179,6 +179,8 @@ func TestSignVerifyPKCS1v15_Invalid(t *testing.T) {
 }
 
 func TestSignVerifyRSAPSS(t *testing.T) {
+	// Test cases taken from
+	// https://github.com/golang/go/blob/54182ff54a687272dd7632c3a963e036ce03cb7c/src/crypto/rsa/pss_test.go#L200.
 	const keyBits = 2048
 	var saltLengthCombinations = []struct {
 		signSaltLength, verifySaltLength int
