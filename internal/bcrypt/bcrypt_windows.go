@@ -21,6 +21,9 @@ const (
 	ECDSA_P256_ALGORITHM = "ECDSA_P256"
 	ECDSA_P384_ALGORITHM = "ECDSA_P384"
 	ECDSA_P521_ALGORITHM = "ECDSA_P521"
+	ECDH_P256_ALGORITHM  = "ECDH_P256"
+	ECDH_P384_ALGORITHM  = "ECDH_P384"
+	ECDH_P521_ALGORITHM  = "ECDH_P521"
 )
 
 const (
@@ -46,6 +49,10 @@ const (
 	USE_SYSTEM_PREFERRED_RNG = 0x00000002
 )
 
+const (
+	KDF_RAW_SECRET = "TRUNCATE"
+)
+
 type PadMode uint32
 
 const (
@@ -69,21 +76,27 @@ const (
 	RSAPUBLIC_MAGIC      KeyBlobMagicNumber = 0x31415352
 	RSAFULLPRIVATE_MAGIC KeyBlobMagicNumber = 0x33415352
 
-	ECDSA_PUBLIC_P256_MAGIC     KeyBlobMagicNumber = 0x31534345
-	ECDSA_PRIVATE_P256_MAGIC    KeyBlobMagicNumber = 0x32534345
-	ECDSA_PUBLIC_P384_MAGIC     KeyBlobMagicNumber = 0x33534345
-	ECDSA_PRIVATE_P384_MAGIC    KeyBlobMagicNumber = 0x34534345
-	ECDSA_PUBLIC_P521_MAGIC     KeyBlobMagicNumber = 0x35534345
-	ECDSA_PRIVATE_P521_MAGIC    KeyBlobMagicNumber = 0x36534345
-	ECDSA_PUBLIC_GENERIC_MAGIC  KeyBlobMagicNumber = 0x50444345
-	ECDSA_PRIVATE_GENERIC_MAGIC KeyBlobMagicNumber = 0x56444345
+	ECDSA_PUBLIC_P256_MAGIC  KeyBlobMagicNumber = 0x31534345
+	ECDSA_PRIVATE_P256_MAGIC KeyBlobMagicNumber = 0x32534345
+	ECDSA_PUBLIC_P384_MAGIC  KeyBlobMagicNumber = 0x33534345
+	ECDSA_PRIVATE_P384_MAGIC KeyBlobMagicNumber = 0x34534345
+	ECDSA_PUBLIC_P521_MAGIC  KeyBlobMagicNumber = 0x35534345
+	ECDSA_PRIVATE_P521_MAGIC KeyBlobMagicNumber = 0x36534345
+
+	ECDH_PUBLIC_P256_MAGIC  KeyBlobMagicNumber = 0x314B4345
+	ECDH_PRIVATE_P256_MAGIC KeyBlobMagicNumber = 0x324B4345
+	ECDH_PUBLIC_P384_MAGIC  KeyBlobMagicNumber = 0x334B4345
+	ECDH_PRIVATE_P384_MAGIC KeyBlobMagicNumber = 0x344B4345
+	ECDH_PUBLIC_P521_MAGIC  KeyBlobMagicNumber = 0x354B4345
+	ECDH_PRIVATE_P521_MAGIC KeyBlobMagicNumber = 0x364B4345
 )
 
 type (
-	HANDLE      syscall.Handle
-	ALG_HANDLE  HANDLE
-	HASH_HANDLE HANDLE
-	KEY_HANDLE  HANDLE
+	HANDLE        syscall.Handle
+	ALG_HANDLE    HANDLE
+	HASH_HANDLE   HANDLE
+	KEY_HANDLE    HANDLE
+	SECRET_HANDLE HANDLE
 )
 
 // https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_key_lengths_struct
@@ -206,3 +219,6 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 //sys   Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) = bcrypt.BCryptDecrypt
 //sys   SignHash (hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) = bcrypt.BCryptSignHash
 //sys   VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags PadMode) (s error) = bcrypt.BCryptVerifySignature
+//sys   SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SECRET_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptSecretAgreement
+//sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *byte, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDeriveKey
+//sys   DestroySecret (hSecret SECRET_HANDLE) (s error) = bcrypt.BCryptDestroySecret

@@ -36,7 +36,7 @@ const sizeOfECCBlobHeader = uint32(unsafe.Sizeof(bcrypt.ECCKEY_BLOB{}))
 func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	var id string
 	var bits uint32
-	id, bits, err = curveToID(curve)
+	id, bits, err = curveToEcdsaID(curve)
 	if err != nil {
 		return
 	}
@@ -83,7 +83,7 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	return
 }
 
-func curveToID(curve string) (string, uint32, error) {
+func curveToEcdsaID(curve string) (string, uint32, error) {
 	switch curve {
 	case "P-224":
 		return "", 0, errUnsupportedCurve
@@ -103,7 +103,7 @@ type PublicKeyECDSA struct {
 }
 
 func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
-	id, bits, err := curveToID(curve)
+	id, bits, err := curveToEcdsaID(curve)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	blob, err := encodeECDSAKey(id, bits, X, Y, nil)
+	blob, err := encodeECCKey(id, bits, X, Y, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ type PrivateKeyECDSA struct {
 }
 
 func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) {
-	id, bits, err := curveToID(curve)
+	id, bits, err := curveToEcdsaID(curve)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 	if err != nil {
 		return nil, err
 	}
-	blob, err := encodeECDSAKey(id, bits, X, Y, D)
+	blob, err := encodeECCKey(id, bits, X, Y, D)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func (k *PrivateKeyECDSA) finalize() {
 	bcrypt.DestroyKey(k.pkey)
 }
 
-func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
+func encodeECCKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 	var magic bcrypt.KeyBlobMagicNumber
 	switch id {
 	case bcrypt.ECDSA_P256_ALGORITHM:
@@ -181,6 +181,24 @@ func encodeECDSAKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 			magic = bcrypt.ECDSA_PRIVATE_P521_MAGIC
 		} else {
 			magic = bcrypt.ECDSA_PUBLIC_P521_MAGIC
+		}
+	case bcrypt.ECDH_P256_ALGORITHM:
+		if D != nil {
+			magic = bcrypt.ECDH_PRIVATE_P256_MAGIC
+		} else {
+			magic = bcrypt.ECDH_PUBLIC_P256_MAGIC
+		}
+	case bcrypt.ECDH_P384_ALGORITHM:
+		if D != nil {
+			magic = bcrypt.ECDH_PRIVATE_P384_MAGIC
+		} else {
+			magic = bcrypt.ECDH_PUBLIC_P384_MAGIC
+		}
+	case bcrypt.ECDH_P521_ALGORITHM:
+		if D != nil {
+			magic = bcrypt.ECDH_PRIVATE_P521_MAGIC
+		} else {
+			magic = bcrypt.ECDH_PUBLIC_P521_MAGIC
 		}
 	}
 	hdr := bcrypt.ECCKEY_BLOB{
