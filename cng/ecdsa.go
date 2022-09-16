@@ -19,12 +19,10 @@ var errUnsupportedCurve = errors.New("cng: unsupported elliptic curve")
 type ecdsaAlgorithm struct {
 	handle bcrypt.ALG_HANDLE
 	id     string
-	bits   uint32
 }
 
-func loadEcdsa(curve string) (h ecdsaAlgorithm, err error) {
+func loadEcdsa(curve string) (h ecdsaAlgorithm, bits uint32, err error) {
 	var id string
-	var bits uint32
 	switch curve {
 	case "P-224":
 		err = errUnsupportedCurve
@@ -41,22 +39,23 @@ func loadEcdsa(curve string) (h ecdsaAlgorithm, err error) {
 		return
 	}
 	v, err := loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
-		return ecdsaAlgorithm{h, id, bits}, nil
+		return ecdsaAlgorithm{h, id}, nil
 	})
 	if err != nil {
-		return ecdsaAlgorithm{}, err
+		return ecdsaAlgorithm{}, 0, err
 	}
-	return v.(ecdsaAlgorithm), nil
+	return v.(ecdsaAlgorithm), 0, nil
 }
 
 func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	var h ecdsaAlgorithm
-	h, err = loadEcdsa(curve)
+	var bits uint32
+	h, bits, err = loadEcdsa(curve)
 	if err != nil {
 		return
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err = bcrypt.GenerateKeyPair(h.handle, &hkey, h.bits, 0)
+	err = bcrypt.GenerateKeyPair(h.handle, &hkey, bits, 0)
 	if err != nil {
 		return
 	}
@@ -87,17 +86,17 @@ type PublicKeyECDSA struct {
 }
 
 func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
-	h, err := loadEcdsa(curve)
+	h, bits, err := loadEcdsa(curve)
 	if err != nil {
 		return nil, err
 	}
-	hkey, err := importECCKey(h.handle, h.id, h.bits, X, Y, nil)
+	hkey, err := importECCKey(h.handle, h.id, bits, X, Y, nil)
 	if err != nil {
 		return nil, err
 	}
 	k := new(PublicKeyECDSA)
 	k.hkey = hkey
-	k.size = (int(h.bits) + 7) / 8
+	k.size = (int(bits) + 7) / 8
 	runtime.SetFinalizer(k, (*PublicKeyECDSA).finalize)
 	return k, nil
 }
@@ -112,17 +111,17 @@ type PrivateKeyECDSA struct {
 }
 
 func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) {
-	h, err := loadEcdsa(curve)
+	h, bits, err := loadEcdsa(curve)
 	if err != nil {
 		return nil, err
 	}
-	hkey, err := importECCKey(h.handle, h.id, h.bits, X, Y, D)
+	hkey, err := importECCKey(h.handle, h.id, bits, X, Y, D)
 	if err != nil {
 		return nil, err
 	}
 	k := new(PrivateKeyECDSA)
 	k.hkey = hkey
-	k.size = (int(h.bits) + 7) / 8
+	k.size = (int(bits) + 7) / 8
 	runtime.SetFinalizer(k, (*PrivateKeyECDSA).finalize)
 	return k, nil
 }
