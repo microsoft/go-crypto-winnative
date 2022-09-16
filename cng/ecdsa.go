@@ -82,7 +82,6 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 
 type PublicKeyECDSA struct {
 	hkey bcrypt.KEY_HANDLE
-	size int
 }
 
 func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
@@ -96,7 +95,6 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 	}
 	k := new(PublicKeyECDSA)
 	k.hkey = hkey
-	k.size = (int(bits) + 7) / 8
 	runtime.SetFinalizer(k, (*PublicKeyECDSA).finalize)
 	return k, nil
 }
@@ -107,7 +105,6 @@ func (k *PublicKeyECDSA) finalize() {
 
 type PrivateKeyECDSA struct {
 	hkey bcrypt.KEY_HANDLE
-	size int
 }
 
 func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) {
@@ -121,7 +118,6 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 	}
 	k := new(PrivateKeyECDSA)
 	k.hkey = hkey
-	k.size = (int(bits) + 7) / 8
 	runtime.SetFinalizer(k, (*PrivateKeyECDSA).finalize)
 	return k, nil
 }
@@ -138,29 +134,36 @@ func (k *PrivateKeyECDSA) finalize() {
 // so we would have to transform P1363 to ASN.1 using encoding/asn1, which we can't import here,
 // only to be decoded into raw big.Int by the caller.
 func SignECDSA(priv *PrivateKeyECDSA, hash []byte) (r, s BigInt, err error) {
+	defer runtime.KeepAlive(priv)
 	sig, err := keySign(priv.hkey, nil, hash, bcrypt.PAD_UNDEFINED)
 	if err != nil {
 		return nil, nil, err
 	}
 	// BCRYPTSignHash generates ECDSA signatures in P1363 format,
 	// which is simply (r, s), each of them exactly half of the array.
-	if len(sig) != priv.size*2 {
+	if len(sig)%2 != 0 {
 		return nil, nil, errors.New("crypto/ecdsa: invalid signature size from bcrypt")
 	}
-	return sig[:priv.size], sig[priv.size:], nil
+	return sig[:len(sig)/2], sig[len(sig)/2:], nil
 }
 
 // VerifyECDSA verifies the signature in r, s of hash using the public key, pub.
 func VerifyECDSA(pub *PublicKeyECDSA, hash []byte, r, s BigInt) bool {
+	defer runtime.KeepAlive(pub)
+	sizeBits, err := getUint32(bcrypt.HANDLE(pub.hkey), bcrypt.KEY_LENGTH)
+	if err != nil {
+		return false
+	}
+	size := int(sizeBits+7) / 8
 	// r and s might be shorter than size
 	// if the original big number contained leading zeros,
 	// but they must not be longer than the public key size.
-	if len(r) > pub.size || len(s) > pub.size {
+	if len(r) > size || len(s) > size {
 		return false
 	}
-	sig := make([]byte, 0, pub.size*2)
+	sig := make([]byte, 0, size*2)
 	prependZeros := func(nonZeroBytes int) {
-		if zeros := pub.size - nonZeroBytes; zeros > 0 {
+		if zeros := size - nonZeroBytes; zeros > 0 {
 			sig = append(sig, make([]byte, zeros)...)
 		}
 	}
@@ -168,6 +171,5 @@ func VerifyECDSA(pub *PublicKeyECDSA, hash []byte, r, s BigInt) bool {
 	sig = append(sig, r...)
 	prependZeros(len(s))
 	sig = append(sig, s...)
-	defer runtime.KeepAlive(pub)
 	return keyVerify(pub.hkey, nil, hash, sig, bcrypt.PAD_UNDEFINED) == nil
 }
