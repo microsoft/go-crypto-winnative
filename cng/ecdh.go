@@ -21,12 +21,10 @@ var errInvalidPrivateKey = errors.New("cng: invalid private key")
 type ecdhAlgorithm struct {
 	handle bcrypt.ALG_HANDLE
 	id     string
-	bits   uint32
 }
 
-func loadEcdh(curve string) (h ecdhAlgorithm, err error) {
+func loadEcdh(curve string) (h ecdhAlgorithm, bits uint32, err error) {
 	var id string
-	var bits uint32
 	switch curve {
 	case "P-224", "X25519":
 		err = errUnsupportedCurve
@@ -43,12 +41,12 @@ func loadEcdh(curve string) (h ecdhAlgorithm, err error) {
 		return
 	}
 	v, err := loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
-		return ecdhAlgorithm{h, id, bits}, nil
+		return ecdhAlgorithm{h, id}, nil
 	})
 	if err != nil {
-		return ecdhAlgorithm{}, err
+		return ecdhAlgorithm{}, 0, err
 	}
-	return v.(ecdhAlgorithm), nil
+	return v.(ecdhAlgorithm), bits, nil
 }
 
 type PublicKeyECDH struct {
@@ -105,12 +103,12 @@ func ECDH(priv *PrivateKeyECDH, pub *PublicKeyECDH) ([]byte, error) {
 }
 
 func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
-	h, err := loadEcdh(curve)
+	h, bits, err := loadEcdh(curve)
 	if err != nil {
 		return nil, nil, err
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err = bcrypt.GenerateKeyPair(h.handle, &hkey, h.bits, 0)
+	err = bcrypt.GenerateKeyPair(h.handle, &hkey, bits, 0)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -137,17 +135,17 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 }
 
 func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
-	h, err := loadEcdh(curve)
+	h, bits, err := loadEcdh(curve)
 	if err != nil {
 		return nil, err
 	}
-	keySize := int(h.bits+7) / 8
+	keySize := int(bits+7) / 8
 	if len(key) != keySize {
 		return nil, errInvalidPrivateKey
 	}
 	// zero has enough size to fit P-521 curves.
 	var zero [66]byte
-	hkey, err := importECCKey(h.handle, h.id, h.bits, zero[:keySize], zero[:keySize], key[:keySize])
+	hkey, err := importECCKey(h.handle, h.id, bits, zero[:keySize], zero[:keySize], key[:keySize])
 	if err != nil {
 		return nil, err
 	}
@@ -163,18 +161,18 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 	if len(bytes) == 0 || bytes[0] != ecdhUncompressedPrefix {
 		return nil, errInvalidPublicKey
 	}
-	h, err := loadEcdh(curve)
+	h, bits, err := loadEcdh(curve)
 	if err != nil {
 		return nil, err
 	}
 	// Remove the encoding byte, BCrypt doesn't want it
 	// and it only support uncompressed points anyway.
 	keyWithoutEncoding := bytes[1:]
-	keySize := int(h.bits+7) / 8
+	keySize := int(bits+7) / 8
 	if len(keyWithoutEncoding) != keySize*2 {
 		return nil, errInvalidPublicKey
 	}
-	hkey, err := importECCKey(h.handle, h.id, h.bits, keyWithoutEncoding[:keySize], keyWithoutEncoding[keySize:], nil)
+	hkey, err := importECCKey(h.handle, h.id, bits, keyWithoutEncoding[:keySize], keyWithoutEncoding[keySize:], nil)
 	if err != nil {
 		return nil, err
 	}
