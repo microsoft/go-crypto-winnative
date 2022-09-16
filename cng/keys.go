@@ -98,7 +98,7 @@ func encodeECCKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 	var hdr bcrypt.ECCKEY_BLOB
 	hdr.KeySize = (bits + 7) / 8
 	if len(X) > int(hdr.KeySize) || len(Y) > int(hdr.KeySize) || len(D) > int(hdr.KeySize) {
-		return nil, errors.New("crypto/ecdsa: invalid parameters")
+		return nil, errors.New("cng: invalid parameters")
 	}
 	switch id {
 	case bcrypt.ECDSA_P256_ALGORITHM, bcrypt.ECDSA_P384_ALGORITHM, bcrypt.ECDSA_P521_ALGORITHM:
