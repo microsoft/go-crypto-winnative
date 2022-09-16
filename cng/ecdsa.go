@@ -9,7 +9,6 @@ package cng
 import (
 	"errors"
 	"runtime"
-	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
@@ -19,11 +18,30 @@ var errUnsupportedCurve = errors.New("cng: unsupported elliptic curve")
 
 type ecdsaAlgorithm struct {
 	handle bcrypt.ALG_HANDLE
+	id     string
+	bits   uint32
 }
 
-func loadEcdsa(id string) (h ecdsaAlgorithm, err error) {
+func loadEcdsa(curve string) (h ecdsaAlgorithm, err error) {
+	var id string
+	var bits uint32
+	switch curve {
+	case "P-224":
+		err = errUnsupportedCurve
+	case "P-256":
+		id, bits = bcrypt.ECDSA_P256_ALGORITHM, 256
+	case "P-384":
+		id, bits = bcrypt.ECDSA_P384_ALGORITHM, 384
+	case "P-521":
+		id, bits = bcrypt.ECDSA_P521_ALGORITHM, 521
+	default:
+		err = errUnknownCurve
+	}
+	if err != nil {
+		return
+	}
 	v, err := loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
-		return ecdsaAlgorithm{h}, nil
+		return ecdsaAlgorithm{h, id, bits}, nil
 	})
 	if err != nil {
 		return ecdsaAlgorithm{}, err
@@ -31,22 +49,14 @@ func loadEcdsa(id string) (h ecdsaAlgorithm, err error) {
 	return v.(ecdsaAlgorithm), nil
 }
 
-const sizeOfECCBlobHeader = uint32(unsafe.Sizeof(bcrypt.ECCKEY_BLOB{}))
-
 func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
-	var id string
-	var bits uint32
-	id, bits, err = curveToEcdsaID(curve)
-	if err != nil {
-		return
-	}
 	var h ecdsaAlgorithm
-	h, err = loadEcdsa(id)
+	h, err = loadEcdsa(curve)
 	if err != nil {
 		return
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err = bcrypt.GenerateKeyPair(h.handle, &hkey, bits, 0)
+	err = bcrypt.GenerateKeyPair(h.handle, &hkey, h.bits, 0)
 	if err != nil {
 		return
 	}
@@ -56,22 +66,10 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	if err != nil {
 		return
 	}
-	var size uint32
-	err = bcrypt.ExportKey(hkey, 0, utf16PtrFromString(bcrypt.ECCPRIVATE_BLOB), nil, &size, 0)
+	hdr, data, err := exportCCKey(hkey, true)
 	if err != nil {
 		return
 	}
-	blob := make([]byte, size)
-	err = bcrypt.ExportKey(hkey, 0, utf16PtrFromString(bcrypt.ECCPRIVATE_BLOB), blob, &size, 0)
-	if err != nil {
-		return
-	}
-	hdr := (*(*bcrypt.ECCKEY_BLOB)(unsafe.Pointer(&blob[0])))
-	if hdr.KeySize != (bits+7)/8 {
-		err = errors.New("crypto/ecdsa: exported key is corrupted")
-		return
-	}
-	data := blob[sizeOfECCBlobHeader:]
 	consumeBigInt := func(size uint32) BigInt {
 		b := data[:size]
 		data = data[size:]
@@ -83,151 +81,54 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	return
 }
 
-func curveToEcdsaID(curve string) (string, uint32, error) {
-	switch curve {
-	case "P-224":
-		return "", 0, errUnsupportedCurve
-	case "P-256":
-		return bcrypt.ECDSA_P256_ALGORITHM, 256, nil
-	case "P-384":
-		return bcrypt.ECDSA_P384_ALGORITHM, 384, nil
-	case "P-521":
-		return bcrypt.ECDSA_P521_ALGORITHM, 521, nil
-	}
-	return "", 0, errUnknownCurve
-}
-
 type PublicKeyECDSA struct {
-	pkey bcrypt.KEY_HANDLE
+	hkey bcrypt.KEY_HANDLE
 	size int
 }
 
 func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
-	id, bits, err := curveToEcdsaID(curve)
+	h, err := loadEcdsa(curve)
 	if err != nil {
 		return nil, err
 	}
-	h, err := loadEcdsa(id)
-	if err != nil {
-		return nil, err
-	}
-	blob, err := encodeECCKey(id, bits, X, Y, nil)
+	hkey, err := importECCKey(h.handle, h.id, h.bits, X, Y, nil)
 	if err != nil {
 		return nil, err
 	}
 	k := new(PublicKeyECDSA)
-	err = bcrypt.ImportKeyPair(h.handle, 0, utf16PtrFromString(bcrypt.ECCPUBLIC_BLOB), &k.pkey, blob, 0)
-	if err != nil {
-		return nil, err
-	}
-	k.size = (int(bits) + 7) / 8
+	k.hkey = hkey
+	k.size = (int(h.bits) + 7) / 8
 	runtime.SetFinalizer(k, (*PublicKeyECDSA).finalize)
 	return k, nil
 }
 
 func (k *PublicKeyECDSA) finalize() {
-	bcrypt.DestroyKey(k.pkey)
+	bcrypt.DestroyKey(k.hkey)
 }
 
 type PrivateKeyECDSA struct {
-	pkey bcrypt.KEY_HANDLE
+	hkey bcrypt.KEY_HANDLE
 	size int
 }
 
 func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) {
-	id, bits, err := curveToEcdsaID(curve)
+	h, err := loadEcdsa(curve)
 	if err != nil {
 		return nil, err
 	}
-	h, err := loadEcdsa(id)
-	if err != nil {
-		return nil, err
-	}
-	blob, err := encodeECCKey(id, bits, X, Y, D)
+	hkey, err := importECCKey(h.handle, h.id, h.bits, X, Y, D)
 	if err != nil {
 		return nil, err
 	}
 	k := new(PrivateKeyECDSA)
-	err = bcrypt.ImportKeyPair(h.handle, 0, utf16PtrFromString(bcrypt.ECCPRIVATE_BLOB), &k.pkey, blob, 0)
-	if err != nil {
-		return nil, err
-	}
-	k.size = (int(bits) + 7) / 8
+	k.hkey = hkey
+	k.size = (int(h.bits) + 7) / 8
 	runtime.SetFinalizer(k, (*PrivateKeyECDSA).finalize)
 	return k, nil
 }
 
 func (k *PrivateKeyECDSA) finalize() {
-	bcrypt.DestroyKey(k.pkey)
-}
-
-func encodeECCKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
-	var magic bcrypt.KeyBlobMagicNumber
-	switch id {
-	case bcrypt.ECDSA_P256_ALGORITHM:
-		if D != nil {
-			magic = bcrypt.ECDSA_PRIVATE_P256_MAGIC
-		} else {
-			magic = bcrypt.ECDSA_PUBLIC_P256_MAGIC
-		}
-	case bcrypt.ECDSA_P384_ALGORITHM:
-		if D != nil {
-			magic = bcrypt.ECDSA_PRIVATE_P384_MAGIC
-		} else {
-			magic = bcrypt.ECDSA_PUBLIC_P384_MAGIC
-		}
-	case bcrypt.ECDSA_P521_ALGORITHM:
-		if D != nil {
-			magic = bcrypt.ECDSA_PRIVATE_P521_MAGIC
-		} else {
-			magic = bcrypt.ECDSA_PUBLIC_P521_MAGIC
-		}
-	case bcrypt.ECDH_P256_ALGORITHM:
-		if D != nil {
-			magic = bcrypt.ECDH_PRIVATE_P256_MAGIC
-		} else {
-			magic = bcrypt.ECDH_PUBLIC_P256_MAGIC
-		}
-	case bcrypt.ECDH_P384_ALGORITHM:
-		if D != nil {
-			magic = bcrypt.ECDH_PRIVATE_P384_MAGIC
-		} else {
-			magic = bcrypt.ECDH_PUBLIC_P384_MAGIC
-		}
-	case bcrypt.ECDH_P521_ALGORITHM:
-		if D != nil {
-			magic = bcrypt.ECDH_PRIVATE_P521_MAGIC
-		} else {
-			magic = bcrypt.ECDH_PUBLIC_P521_MAGIC
-		}
-	}
-	hdr := bcrypt.ECCKEY_BLOB{
-		Magic:   magic,
-		KeySize: (bits + 7) / 8,
-	}
-	if len(X) > int(hdr.KeySize) || len(Y) > int(hdr.KeySize) || len(D) > int(hdr.KeySize) {
-		return nil, errors.New("crypto/ecdsa: invalid parameters")
-	}
-	var blob []byte
-	if D == nil {
-		blob = make([]byte, sizeOfECCBlobHeader+hdr.KeySize*2)
-	} else {
-		blob = make([]byte, sizeOfECCBlobHeader+hdr.KeySize*3)
-	}
-	copy(blob, (*(*[sizeOfECCBlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
-	data := blob[sizeOfECCBlobHeader:]
-	encode := func(b BigInt, size uint32) {
-		// b might be shorter than size if the original big number contained leading zeros.
-		leadingZeros := int(size) - len(b)
-		copy(data[leadingZeros:], b)
-		data = data[size:]
-	}
-	encode(X, hdr.KeySize)
-	encode(Y, hdr.KeySize)
-	if D != nil {
-		encode(D, hdr.KeySize)
-	}
-	return blob, nil
+	bcrypt.DestroyKey(k.hkey)
 }
 
 // SignECDSA signs a hash (which should be the result of hashing a larger message),
@@ -238,7 +139,7 @@ func encodeECCKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 // so we would have to transform P1363 to ASN.1 using encoding/asn1, which we can't import here,
 // only to be decoded into raw big.Int by the caller.
 func SignECDSA(priv *PrivateKeyECDSA, hash []byte) (r, s BigInt, err error) {
-	sig, err := keySign(priv.pkey, nil, hash, bcrypt.PAD_UNDEFINED)
+	sig, err := keySign(priv.hkey, nil, hash, bcrypt.PAD_UNDEFINED)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -269,5 +170,5 @@ func VerifyECDSA(pub *PublicKeyECDSA, hash []byte, r, s BigInt) bool {
 	prependZeros(len(s))
 	sig = append(sig, s...)
 	defer runtime.KeepAlive(pub)
-	return keyVerify(pub.pkey, nil, hash, sig, bcrypt.PAD_UNDEFINED) == nil
+	return keyVerify(pub.hkey, nil, hash, sig, bcrypt.PAD_UNDEFINED) == nil
 }
