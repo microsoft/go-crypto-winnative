@@ -44,7 +44,7 @@ func loadEcdsa(curve string) (h ecdsaAlgorithm, bits uint32, err error) {
 	if err != nil {
 		return ecdsaAlgorithm{}, 0, err
 	}
-	return v.(ecdsaAlgorithm), 0, nil
+	return v.(ecdsaAlgorithm), bits, nil
 }
 
 func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
