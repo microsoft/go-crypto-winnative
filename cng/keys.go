@@ -107,7 +107,7 @@ func encodeECCKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 		} else {
 			hdr.Magic = bcrypt.ECDSA_PRIVATE_GENERIC_MAGIC
 		}
-	case bcrypt.ECDH_P256_ALGORITHM, bcrypt.ECDH_P384_ALGORITHM, bcrypt.ECDH_P521_ALGORITHM:
+	case bcrypt.ECDH_ALGORITHM:
 		if D == nil {
 			hdr.Magic = bcrypt.ECDH_PUBLIC_GENERIC_MAGIC
 		} else {

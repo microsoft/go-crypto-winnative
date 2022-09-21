@@ -20,7 +20,6 @@ var errInvalidPrivateKey = errors.New("cng: invalid private key")
 
 type ecdhAlgorithm struct {
 	handle bcrypt.ALG_HANDLE
-	id     string
 }
 
 func loadEcdh(curve string) (h ecdhAlgorithm, bits uint32, err error) {
@@ -29,19 +28,23 @@ func loadEcdh(curve string) (h ecdhAlgorithm, bits uint32, err error) {
 	case "P-224", "X25519":
 		err = errUnsupportedCurve
 	case "P-256":
-		id, bits = bcrypt.ECDH_P256_ALGORITHM, 256
+		id, bits = bcrypt.ECC_CURVE_NISTP256, 256
 	case "P-384":
-		id, bits = bcrypt.ECDH_P384_ALGORITHM, 384
+		id, bits = bcrypt.ECC_CURVE_NISTP384, 384
 	case "P-521":
-		id, bits = bcrypt.ECDH_P521_ALGORITHM, 521
+		id, bits = bcrypt.ECC_CURVE_NISTP521, 521
 	default:
 		err = errUnknownCurve
 	}
 	if err != nil {
 		return
 	}
-	v, err := loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
-		return ecdhAlgorithm{h, id}, nil
+	v, err := loadOrStoreAlg(bcrypt.ECDH_ALGORITHM, bcrypt.ALG_NONE_FLAG, id, func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+		err := setString(bcrypt.HANDLE(h), bcrypt.ECC_CURVE_NAME, id)
+		if err != nil {
+			return nil, err
+		}
+		return ecdhAlgorithm{h}, nil
 	})
 	if err != nil {
 		return ecdhAlgorithm{}, 0, err
@@ -145,7 +148,7 @@ func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
 	}
 	// zero has enough size to fit P-521 curves.
 	var zero [66]byte
-	hkey, err := importECCKey(h.handle, h.id, bits, zero[:keySize], zero[:keySize], key[:keySize])
+	hkey, err := importECCKey(h.handle, bcrypt.ECDH_ALGORITHM, bits, zero[:keySize], zero[:keySize], key)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +175,7 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 	if len(keyWithoutEncoding) != keySize*2 {
 		return nil, errInvalidPublicKey
 	}
-	hkey, err := importECCKey(h.handle, h.id, bits, keyWithoutEncoding[:keySize], keyWithoutEncoding[keySize:], nil)
+	hkey, err := importECCKey(h.handle, bcrypt.ECDH_ALGORITHM, bits, keyWithoutEncoding[:keySize], keyWithoutEncoding[keySize:], nil)
 	if err != nil {
 		return nil, err
 	}

@@ -92,7 +92,7 @@ func utf16FromString(s string) []uint16 {
 func setString(h bcrypt.HANDLE, name, val string) error {
 	str := utf16FromString(val)
 	defer runtime.KeepAlive(str)
-	in := make([]byte, len(val)+1)
+	in := make([]byte, (len(val)+1)*2)
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&in))
 	sh.Data = uintptr(unsafe.Pointer(&str[0]))
 	return bcrypt.SetProperty(h, utf16PtrFromString(name), in, 0)
