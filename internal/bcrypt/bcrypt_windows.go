@@ -25,6 +25,7 @@ const (
 )
 
 const (
+	ECC_CURVE_25519    = "curve25519"
 	ECC_CURVE_NISTP256 = "nistP256"
 	ECC_CURVE_NISTP384 = "nistP384"
 	ECC_CURVE_NISTP521 = "nistP521"

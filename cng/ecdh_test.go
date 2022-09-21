@@ -18,8 +18,7 @@ import (
 // https://github.com/golang/go/blob/master/src/crypto/ecdh/ecdh_test.go.
 
 func TestECDH(t *testing.T) {
-	var tests = []string{"P-256", "P-384", "P-521"}
-	for _, tt := range tests {
+	for _, tt := range []string{"P-256", "P-384", "P-521", "X25519"} {
 		t.Run(tt, func(t *testing.T) {
 			name := tt
 			aliceKey, aliceBytes, err := cng.GenerateKeyECDH(name)
@@ -100,6 +99,14 @@ var ecdhvectors = []struct {
 		PeerPublicKey: "0400685a48e86c79f0f0875f7bc18d25eb5fc8c0b07e5da4f4370f3a9490340854334b1e1b87fa395464c60626124a4e70d0f785601d37c09870ebf176666877a2046d" +
 			"01ba52c56fc8776d9e8f5db4f0cc27636d0b741bbe05400697942e80b739884a83bde99e0f6716939e632bc8986fa18dccd443a348b6c3e522497955a4f3c302f676",
 		SharedSecret: "005fc70477c3e63bc3954bd0df3ea0d1f41ee21746ed95fc5e1fdf90930d5e136672d72cc770742d1711c3c3a4c334a0ad9759436a4d3c5bf6e74b9578fac148c831",
+	},
+	// X25519 test vector from RFC 7748, Section 6.1.
+	{
+		Name:          "X25519",
+		PrivateKey:    "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+		PublicKey:     "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+		PeerPublicKey: "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+		SharedSecret:  "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
 	},
 }
 
