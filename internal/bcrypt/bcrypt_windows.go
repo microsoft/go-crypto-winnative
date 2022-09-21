@@ -218,4 +218,4 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 //sys   VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags PadMode) (s error) = bcrypt.BCryptVerifySignature
 //sys   SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SECRET_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptSecretAgreement
 //sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *byte, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDeriveKey
-//sys   DestroySecret (hSecret SECRET_HANDLE) (s error) = bcrypt.BCryptDestroySecret
+//sys   DestroySecret(hSecret SECRET_HANDLE) (s error) = bcrypt.BCryptDestroySecret
