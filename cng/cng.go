@@ -9,7 +9,6 @@ package cng
 import (
 	"errors"
 	"math"
-	"reflect"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -92,9 +91,9 @@ func utf16FromString(s string) []uint16 {
 func setString(h bcrypt.HANDLE, name, val string) error {
 	str := utf16FromString(val)
 	defer runtime.KeepAlive(str)
-	in := make([]byte, (len(val)+1)*2)
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&in))
-	sh.Data = uintptr(unsafe.Pointer(&str[0]))
+	// str is a []uint16, which takes 2 bytes per element.
+	n := len(str) * 2
+	in := unsafe.Slice((*byte)(unsafe.Pointer(&str[0])), n)
 	return bcrypt.SetProperty(h, utf16PtrFromString(name), in, 0)
 }
 
@@ -104,9 +103,12 @@ func getUint32(h bcrypt.HANDLE, name string) (uint32, error) {
 	return prop, err
 }
 
+const sizeOfKEY_LENGTHS_STRUCT = unsafe.Sizeof(bcrypt.KEY_LENGTHS_STRUCT{})
+
 func getKeyLengths(h bcrypt.HANDLE) (lengths bcrypt.KEY_LENGTHS_STRUCT, err error) {
 	var discard uint32
-	err = bcrypt.GetProperty(bcrypt.HANDLE(h), utf16PtrFromString(bcrypt.KEY_LENGTHS), (*[unsafe.Sizeof(lengths)]byte)(unsafe.Pointer(&lengths))[:], &discard, 0)
+	ptr := (*[sizeOfKEY_LENGTHS_STRUCT]byte)(unsafe.Pointer(&lengths))
+	err = bcrypt.GetProperty(bcrypt.HANDLE(h), utf16PtrFromString(bcrypt.KEY_LENGTHS), ptr[:], &discard, 0)
 	if err != nil {
 		return
 	}
