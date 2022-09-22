@@ -124,16 +124,38 @@ func encodeECCKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 	}
 	copy(blob, (*(*[sizeOfECCBlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfECCBlobHeader:]
-	encode := func(b BigInt, size uint32) {
-		// b might be shorter than size if the original big number contained leading zeros.
-		leadingZeros := int(size) - len(b)
-		copy(data[leadingZeros:], b)
-		data = data[size:]
-	}
-	encode(X, hdr.KeySize)
-	encode(Y, hdr.KeySize)
-	if D != nil {
-		encode(D, hdr.KeySize)
+	err := encodeBigInt(data, []sizedBigInt{
+		{X, hdr.KeySize}, {Y, hdr.KeySize},
+		{D, hdr.KeySize},
+	})
+	if err != nil {
+		return nil, err
 	}
 	return blob, nil
+}
+
+// sizedBigInt defines a big integer with
+// a size that can be different from the
+// one provided by len(b).
+type sizedBigInt struct {
+	b    BigInt
+	size uint32
+}
+
+// encodeBigInt encodes ints into data.
+// It stops iterating over ints when it finds one nil element.
+func encodeBigInt(data []byte, ints []sizedBigInt) error {
+	for _, v := range ints {
+		if v.b == nil {
+			return nil
+		}
+		// b might be shorter than size if the original big number contained leading zeros.
+		leadingZeros := int(v.size) - len(v.b)
+		if leadingZeros < 0 {
+			return errors.New("cng: invalid parameters")
+		}
+		copy(data[leadingZeros:], v.b)
+		data = data[v.size:]
+	}
+	return nil
 }

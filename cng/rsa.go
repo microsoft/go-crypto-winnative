@@ -168,30 +168,12 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) ([]byte, error) {
 	}
 	copy(blob, (*(*[sizeOfRSABlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfRSABlobHeader:]
-	var err error
-	encode := func(b BigInt, size uint32) {
-		if err != nil {
-			return
-		}
-		// b might be shorter than size if the original big number contained leading zeros.
-		leadingZeros := int(size) - len(b)
-		if leadingZeros < 0 {
-			err = errors.New("crypto/rsa: invalid parameters")
-			return
-		}
-		copy(data[leadingZeros:], b)
-		data = data[size:]
-	}
-	encode(E, hdr.PublicExpSize)
-	encode(N, hdr.ModulusSize)
-	if D != nil {
-		encode(P, hdr.Prime1Size)
-		encode(Q, hdr.Prime2Size)
-		encode(Dp, hdr.Prime1Size)
-		encode(Dq, hdr.Prime2Size)
-		encode(Qinv, hdr.Prime1Size)
-		encode(D, hdr.ModulusSize)
-	}
+	err := encodeBigInt(data, []sizedBigInt{
+		{E, hdr.PublicExpSize}, {N, hdr.ModulusSize},
+		{P, hdr.Prime1Size}, {Q, hdr.Prime2Size},
+		{Dp, hdr.Prime1Size}, {Dq, hdr.Prime2Size},
+		{Qinv, hdr.Prime1Size}, {D, hdr.ModulusSize},
+	})
 	if err != nil {
 		return nil, err
 	}
