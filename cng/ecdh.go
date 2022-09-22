@@ -131,9 +131,7 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 		bcrypt.DestroyKey(hkey)
 		return nil, nil, err
 	}
-	k := new(PrivateKeyECDH)
-	k.hkey = hkey
-	k.isNIST = isNIST(curve)
+	k := &PrivateKeyECDH{hkey, isNIST(curve)}
 	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
 	var bytes []byte
 	if k.isNIST {
@@ -177,9 +175,7 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 	if err != nil {
 		return nil, err
 	}
-	k := new(PublicKeyECDH)
-	k.hkey = hkey
-	k.bytes = append([]byte(nil), bytes...)
+	k := &PublicKeyECDH{hkey, append([]byte(nil), bytes...)}
 	runtime.SetFinalizer(k, (*PublicKeyECDH).finalize)
 	return k, nil
 }
@@ -208,9 +204,7 @@ func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
 	if err != nil {
 		return nil, err
 	}
-	k := new(PrivateKeyECDH)
-	k.hkey = hkey
-	k.isNIST = nist
+	k := &PrivateKeyECDH{hkey, nist}
 	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
 	return k, nil
 }

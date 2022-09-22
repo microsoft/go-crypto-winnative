@@ -97,8 +97,7 @@ func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	k := new(PublicKeyRSA)
-	k.hkey = hkey
+	k := &PublicKeyRSA{hkey}
 	runtime.SetFinalizer(k, (*PublicKeyRSA).finalize)
 	return k, nil
 }
@@ -127,8 +126,7 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 	if err != nil {
 		return nil, err
 	}
-	k := new(PrivateKeyRSA)
-	k.hkey = hkey
+	k := &PrivateKeyRSA{hkey}
 	runtime.SetFinalizer(k, (*PrivateKeyRSA).finalize)
 	return k, nil
 }

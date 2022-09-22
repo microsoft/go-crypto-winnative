@@ -93,8 +93,7 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	k := new(PublicKeyECDSA)
-	k.hkey = hkey
+	k := &PublicKeyECDSA{hkey}
 	runtime.SetFinalizer(k, (*PublicKeyECDSA).finalize)
 	return k, nil
 }
@@ -116,8 +115,7 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 	if err != nil {
 		return nil, err
 	}
-	k := new(PrivateKeyECDSA)
-	k.hkey = hkey
+	k := &PrivateKeyECDSA{hkey}
 	runtime.SetFinalizer(k, (*PrivateKeyECDSA).finalize)
 	return k, nil
 }
