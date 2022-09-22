@@ -21,7 +21,7 @@ type ecdsaAlgorithm struct {
 	id     string
 }
 
-func loadEcdsa(curve string) (h ecdsaAlgorithm, bits uint32, err error) {
+func loadECDSA(curve string) (h ecdsaAlgorithm, bits uint32, err error) {
 	var id string
 	switch curve {
 	case "P-224":
@@ -50,7 +50,7 @@ func loadEcdsa(curve string) (h ecdsaAlgorithm, bits uint32, err error) {
 func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	var h ecdsaAlgorithm
 	var bits uint32
-	h, bits, err = loadEcdsa(curve)
+	h, bits, err = loadECDSA(curve)
 	if err != nil {
 		return
 	}
@@ -65,7 +65,7 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	if err != nil {
 		return
 	}
-	hdr, data, err := exportCCKey(hkey, true)
+	hdr, data, err := exportECCKey(hkey, true)
 	if err != nil {
 		return
 	}
@@ -85,7 +85,7 @@ type PublicKeyECDSA struct {
 }
 
 func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
-	h, bits, err := loadEcdsa(curve)
+	h, bits, err := loadECDSA(curve)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ type PrivateKeyECDSA struct {
 }
 
 func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) {
-	h, bits, err := loadEcdsa(curve)
+	h, bits, err := loadECDSA(curve)
 	if err != nil {
 		return nil, err
 	}

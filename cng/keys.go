@@ -19,7 +19,7 @@ const (
 )
 
 // exportRSAKey exports hkey into a bcrypt.ECCKEY_BLOB header and data.
-func exportCCKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.ECCKEY_BLOB, []byte, error) {
+func exportECCKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.ECCKEY_BLOB, []byte, error) {
 	var magic string
 	if private {
 		magic = bcrypt.ECCPRIVATE_BLOB
@@ -73,7 +73,7 @@ func exportKey(hkey bcrypt.KEY_HANDLE, magic string) ([]byte, error) {
 }
 
 // importECCKey imports a public/private key pair from the given parameters.
-// Id D is nil only the public components will be populates.
+// If D is nil, only the public components will be populated.
 func importECCKey(h bcrypt.ALG_HANDLE, id string, bits uint32, X, Y, D BigInt) (bcrypt.KEY_HANDLE, error) {
 	blob, err := encodeECCKey(id, bits, X, Y, D)
 	if err != nil {

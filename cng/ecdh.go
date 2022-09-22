@@ -22,7 +22,7 @@ type ecdhAlgorithm struct {
 	handle bcrypt.ALG_HANDLE
 }
 
-func loadEcdh(curve string) (h ecdhAlgorithm, bits uint32, err error) {
+func loadECDH(curve string) (h ecdhAlgorithm, bits uint32, err error) {
 	var id string
 	switch curve {
 	case "P-256":
@@ -107,7 +107,7 @@ func ECDH(priv *PrivateKeyECDH, pub *PublicKeyECDH) ([]byte, error) {
 }
 
 func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
-	h, bits, err := loadEcdh(curve)
+	h, bits, err := loadECDH(curve)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -126,7 +126,7 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	// GenerateKeyECDH returns the public key as as byte slice.
 	// To get it we need to export the raw CNG key blob
 	// and prepend the encoding prefix.
-	hdr, blob, err := exportCCKey(hkey, false)
+	hdr, blob, err := exportECCKey(hkey, false)
 	if err != nil {
 		bcrypt.DestroyKey(hkey)
 		return nil, nil, err
@@ -154,7 +154,7 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 	if len(bytes) == 0 || (nist && bytes[0] != ecdhUncompressedPrefix) {
 		return nil, errInvalidPublicKey
 	}
-	h, bits, err := loadEcdh(curve)
+	h, bits, err := loadECDH(curve)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 func (k *PublicKeyECDH) Bytes() []byte { return k.bytes }
 
 func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
-	h, bits, err := loadEcdh(curve)
+	h, bits, err := loadECDH(curve)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
 	// in which case those will be generated from D.
 	// To trigger this behavior we pass a zeroed X/Y with keySize length.
 	// zero is big enough to fit P-521 curves, the largest we handle, in the stack.
-	var zero [521 / 8]byte
+	var zero [(521 + 7) / 8]byte
 	hkey, err := importECCKey(h.handle, bcrypt.ECDH_ALGORITHM, bits, zero[:keySize], zero[:keySize], key)
 	if err != nil {
 		return nil, err
@@ -217,7 +217,7 @@ func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
 
 func (k *PrivateKeyECDH) PublicKey() (*PublicKeyECDH, error) {
 	defer runtime.KeepAlive(k)
-	hdr, data, err := exportCCKey(k.hkey, false)
+	hdr, data, err := exportECCKey(k.hkey, false)
 	if err != nil {
 		return nil, err
 	}
@@ -249,10 +249,10 @@ func convertX25519PrivKey(key []byte) []byte {
 	copy(e[:], key[:])
 
 	// Convert to DivHTimesH format by
-	// by clearing the last three bits of the least significant byte,
+	// clearing the last three bits of the least significant byte,
 	// which is the same as applying h*(s/(h mod GOrd)) where
-	// h = 8, s = key, GOrd (cbSubgroupOrder) = 32.
-	// Values taken from
+	// s = key, h = 0x08, GOrd (cbSubgroupOrder) = 0x20.
+	// h and GOrd values taken from
 	// https://github.com/microsoft/SymCrypt/blob/e875f1f957dcb1308f8e712e9f4a8edc6f4f6207/lib/ec_internal_curves.c#L496.
 	e[0] &= 248 // 0b1111_1000
 
