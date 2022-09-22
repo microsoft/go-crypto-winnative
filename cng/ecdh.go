@@ -147,32 +147,6 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	return k, bytes, nil
 }
 
-func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
-	h, bits, err := loadEcdh(curve)
-	if err != nil {
-		return nil, err
-	}
-	keySize := int(bits+7) / 8
-	if len(key) != keySize {
-		return nil, errInvalidPrivateKey
-	}
-	nist := isNIST(curve)
-	if !nist {
-		key = convertX25519PrivKey(key)
-	}
-	// zero has enough size to fit P-521 curves.
-	var zero [66]byte
-	hkey, err := importECCKey(h.handle, bcrypt.ECDH_ALGORITHM, bits, zero[:keySize], zero[:keySize], key)
-	if err != nil {
-		return nil, err
-	}
-	k := new(PrivateKeyECDH)
-	k.hkey = hkey
-	k.isNIST = nist
-	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
-	return k, nil
-}
-
 func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 	// Reject the point at infinity and compressed encodings.
 	// The first byte is always the key encoding.
@@ -211,6 +185,35 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 }
 
 func (k *PublicKeyECDH) Bytes() []byte { return k.bytes }
+
+func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
+	h, bits, err := loadEcdh(curve)
+	if err != nil {
+		return nil, err
+	}
+	keySize := int(bits+7) / 8
+	if len(key) != keySize {
+		return nil, errInvalidPrivateKey
+	}
+	nist := isNIST(curve)
+	if !nist {
+		key = convertX25519PrivKey(key)
+	}
+	// CNG allows to import private ECC keys without defining X/Y,
+	// in which case those will be generated from D.
+	// To trigger this behavior we pass a zeroed X/Y with keySize length.
+	// zero is big enough to fit P-521 curves, the largest we handle, in the stack.
+	var zero [521 / 8]byte
+	hkey, err := importECCKey(h.handle, bcrypt.ECDH_ALGORITHM, bits, zero[:keySize], zero[:keySize], key)
+	if err != nil {
+		return nil, err
+	}
+	k := new(PrivateKeyECDH)
+	k.hkey = hkey
+	k.isNIST = nist
+	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
+	return k, nil
+}
 
 func (k *PrivateKeyECDH) PublicKey() (*PublicKeyECDH, error) {
 	defer runtime.KeepAlive(k)
