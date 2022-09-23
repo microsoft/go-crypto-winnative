@@ -161,6 +161,11 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) ([]byte, error) {
 		hdr.Magic = bcrypt.RSAPUBLIC_MAGIC
 		blob = make([]byte, sizeOfRSABlobHeader+hdr.PublicExpSize+hdr.ModulusSize)
 	} else {
+		if P == nil || Q == nil || Dp == nil || Dq == nil || Qinv == nil {
+			// This case can happen when the key has been generated with more than 2 primes.
+			// CNG only supports 2-prime keys.
+			return nil, errors.New("crypto/rsa: unsupported private key")
+		}
 		hdr.Magic = bcrypt.RSAFULLPRIVATE_MAGIC
 		hdr.Prime1Size = uint32(len(P))
 		hdr.Prime2Size = uint32(len(Q))
