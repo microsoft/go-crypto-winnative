@@ -265,4 +265,8 @@ func TestSignWithPSSSaltLengthAuto(t *testing.T) {
 	if len(signature) == 0 {
 		t.Fatal("empty signature returned")
 	}
+	err = rsa.VerifyPSS(&privGo.PublicKey, crypto.SHA256, digest[:], signature, &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthAuto})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
