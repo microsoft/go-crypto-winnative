@@ -83,6 +83,7 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 
 type PublicKeyRSA struct {
 	hkey bcrypt.KEY_HANDLE
+	bits uint32
 }
 
 func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
@@ -97,7 +98,7 @@ func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	k := &PublicKeyRSA{hkey}
+	k := &PublicKeyRSA{hkey, uint32(N.bitLen())}
 	runtime.SetFinalizer(k, (*PublicKeyRSA).finalize)
 	return k, nil
 }
@@ -108,6 +109,7 @@ func (k *PublicKeyRSA) finalize() {
 
 type PrivateKeyRSA struct {
 	hkey bcrypt.KEY_HANDLE
+	bits uint32
 }
 
 func (k *PrivateKeyRSA) finalize() {
@@ -126,7 +128,7 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 	if err != nil {
 		return nil, err
 	}
-	k := &PrivateKeyRSA{hkey}
+	k := &PrivateKeyRSA{hkey, uint32(N.bitLen())}
 	runtime.SetFinalizer(k, (*PrivateKeyRSA).finalize)
 	return k, nil
 }
@@ -161,7 +163,7 @@ func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) ([]byte, error) {
 		hdr.Magic = bcrypt.RSAPUBLIC_MAGIC
 		blob = make([]byte, sizeOfRSABlobHeader+hdr.PublicExpSize+hdr.ModulusSize)
 	} else {
-		if P == nil || Q == nil || Dp == nil || Dq == nil || Qinv == nil {
+		if P == nil || Q == nil {
 			// This case can happen when the key has been generated with more than 2 primes.
 			// CNG only supports 2-prime keys.
 			return nil, errors.New("crypto/rsa: unsupported private key")
@@ -218,7 +220,7 @@ func EncryptRSANoPadding(pub *PublicKeyRSA, msg []byte) ([]byte, error) {
 
 func SignRSAPSS(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte, saltLen int) ([]byte, error) {
 	defer runtime.KeepAlive(priv)
-	info, err := newPSS_PADDING_INFO(priv.hkey, h, saltLen, true)
+	info, err := newPSS_PADDING_INFO(h, priv.bits, saltLen, true)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +229,7 @@ func SignRSAPSS(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte, saltLen int) 
 
 func VerifyRSAPSS(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte, saltLen int) error {
 	defer runtime.KeepAlive(pub)
-	info, err := newPSS_PADDING_INFO(pub.hkey, h, saltLen, false)
+	info, err := newPSS_PADDING_INFO(h, pub.bits, saltLen, false)
 	if err != nil {
 		return err
 	}
@@ -308,7 +310,7 @@ func keyVerify(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, hashed, sig []byte, 
 	return bcrypt.VerifySignature(pkey, info, hashed, sig, flags)
 }
 
-func newPSS_PADDING_INFO(pkey bcrypt.KEY_HANDLE, h crypto.Hash, saltLen int, sign bool) (info bcrypt.PSS_PADDING_INFO, err error) {
+func newPSS_PADDING_INFO(h crypto.Hash, sizeBits uint32, saltLen int, sign bool) (info bcrypt.PSS_PADDING_INFO, err error) {
 	hashID := cryptoHashToID(h)
 	if hashID == "" {
 		return info, errors.New("crypto/rsa: unsupported hash function")
@@ -326,11 +328,6 @@ func newPSS_PADDING_INFO(pkey bcrypt.KEY_HANDLE, h crypto.Hash, saltLen int, sig
 		info.Salt = uint32(h.Size())
 	case 0: // rsa.PSSSaltLengthAuto
 		if sign {
-			// Go sets the salt as large as possible when signing.
-			sizeBits, err := getUint32(bcrypt.HANDLE(pkey), bcrypt.KEY_LENGTH)
-			if err != nil {
-				return info, errors.New("crypto/rsa: key length can't be retrieved " + err.Error())
-			}
 			// Algorithm taken from RFC 3447 Section 9.1.1, which is also implemented by Go at
 			// https://github.com/golang/go/blob/54182ff54a687272dd7632c3a963e036ce03cb7c/src/crypto/rsa/pss.go#L288.
 			emLen := (sizeBits - 1 + 7) / 8

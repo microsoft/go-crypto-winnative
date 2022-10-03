@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/rsa"
+	"crypto/sha256"
 	"math/big"
 	"strconv"
 	"testing"
@@ -244,5 +245,28 @@ func BenchmarkGenerateKeyRSA(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+func TestSignWithPSSSaltLengthAuto(t *testing.T) {
+	privGo, _ := rsa.GenerateKey(cng.RandReader, 513)
+	priv, err := cng.NewPrivateKeyRSA(
+		bbig.Enc(privGo.N), bbig.Enc(big.NewInt(int64(privGo.E))), bbig.Enc(privGo.D),
+		bbig.Enc(privGo.Primes[0]), bbig.Enc(privGo.Primes[1]), nil, nil, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256([]byte("message"))
+	signature, err := cng.SignRSAPSS(priv, crypto.SHA256, digest[:], rsa.PSSSaltLengthAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(signature) == 0 {
+		t.Fatal("empty signature returned")
+	}
+	err = rsa.VerifyPSS(&privGo.PublicKey, crypto.SHA256, digest[:], signature, &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthAuto})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
