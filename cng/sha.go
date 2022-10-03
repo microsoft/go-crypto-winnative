@@ -140,6 +140,7 @@ func (h *shaXHash) Clone() (hash.Hash, error) {
 	if err != nil {
 		return nil, err
 	}
+	runtime.SetFinalizer(h2, (*shaXHash).finalize)
 	runtime.KeepAlive(h)
 	return h2, nil
 }
