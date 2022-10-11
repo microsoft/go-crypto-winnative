@@ -101,7 +101,7 @@ func encodeECCKey(id string, bits uint32, X, Y, D BigInt) ([]byte, error) {
 		return nil, errors.New("cng: invalid parameters")
 	}
 	switch id {
-	case bcrypt.ECDSA_P256_ALGORITHM, bcrypt.ECDSA_P384_ALGORITHM, bcrypt.ECDSA_P521_ALGORITHM:
+	case bcrypt.ECDSA_ALGORITHM:
 		if D == nil {
 			hdr.Magic = bcrypt.ECDSA_PUBLIC_GENERIC_MAGIC
 		} else {

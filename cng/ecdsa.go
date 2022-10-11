@@ -14,32 +14,34 @@ import (
 )
 
 var errUnknownCurve = errors.New("cng: unknown elliptic curve")
-var errUnsupportedCurve = errors.New("cng: unsupported elliptic curve")
 
 type ecdsaAlgorithm struct {
 	handle bcrypt.ALG_HANDLE
-	id     string
 }
 
 func loadECDSA(curve string) (h ecdsaAlgorithm, bits uint32, err error) {
 	var id string
 	switch curve {
 	case "P-224":
-		err = errUnsupportedCurve
+		id, bits = bcrypt.ECC_CURVE_NISTP224, 224
 	case "P-256":
-		id, bits = bcrypt.ECDSA_P256_ALGORITHM, 256
+		id, bits = bcrypt.ECC_CURVE_NISTP256, 256
 	case "P-384":
-		id, bits = bcrypt.ECDSA_P384_ALGORITHM, 384
+		id, bits = bcrypt.ECC_CURVE_NISTP384, 384
 	case "P-521":
-		id, bits = bcrypt.ECDSA_P521_ALGORITHM, 521
+		id, bits = bcrypt.ECC_CURVE_NISTP521, 521
 	default:
 		err = errUnknownCurve
 	}
 	if err != nil {
 		return
 	}
-	v, err := loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
-		return ecdsaAlgorithm{h, id}, nil
+	v, err := loadOrStoreAlg(bcrypt.ECDSA_ALGORITHM, bcrypt.ALG_NONE_FLAG, id, func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+		err := setString(bcrypt.HANDLE(h), bcrypt.ECC_CURVE_NAME, id)
+		if err != nil {
+			return nil, err
+		}
+		return ecdsaAlgorithm{h}, nil
 	})
 	if err != nil {
 		return ecdsaAlgorithm{}, 0, err
@@ -89,7 +91,7 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	hkey, err := importECCKey(h.handle, h.id, bits, X, Y, nil)
+	hkey, err := importECCKey(h.handle, bcrypt.ECDSA_ALGORITHM, bits, X, Y, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +113,7 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 	if err != nil {
 		return nil, err
 	}
-	hkey, err := importECCKey(h.handle, h.id, bits, X, Y, D)
+	hkey, err := importECCKey(h.handle, bcrypt.ECDSA_ALGORITHM, bits, X, Y, D)
 	if err != nil {
 		return nil, err
 	}
