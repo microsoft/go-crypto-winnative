@@ -25,11 +25,11 @@ func FIPS() (bool, error) {
 	return enabled, nil
 }
 
-// lenU32 clamps s length so it can fit into a Win32 ULONG,
-// which is a 32-bit unsigned integer, without overflowing.
-func lenU32(s []byte) int {
-	if len(s) > math.MaxUint32 {
-		return math.MaxUint32
+// len32 clamps s length so it can fit into a Win32 LONG,
+// which is a 32-bit signed integer, without overflowing.
+func len32(s []byte) int {
+	if len(s) > math.MaxInt32 {
+		return math.MaxInt32
 	}
 	return len(s)
 }

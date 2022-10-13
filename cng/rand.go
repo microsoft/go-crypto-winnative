@@ -16,7 +16,7 @@ func (randReader) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	n := lenU32(b)
+	n := len32(b)
 	const flags = bcrypt.USE_SYSTEM_PREFERRED_RNG
 	err := bcrypt.GenRandom(0, b[:n], flags)
 	if err != nil {
