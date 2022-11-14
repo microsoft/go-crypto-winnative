@@ -126,22 +126,13 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	// GenerateKeyECDH returns the public key as as byte slice.
 	// To get it we need to export the raw CNG key blob
 	// and prepend the encoding prefix.
-	hdr, blob, err := exportECCKey(hkey, false)
+	_, bytes, err := exportECCKey(hkey, true)
 	if err != nil {
 		bcrypt.DestroyKey(hkey)
 		return nil, nil, err
 	}
 	k := &PrivateKeyECDH{hkey, isNIST(curve)}
 	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
-	var bytes []byte
-	if k.isNIST {
-		bytes = append([]byte{ecdhUncompressedPrefix}, blob...)
-	} else {
-		// X25519 bytes must only contain the X coordinate,
-		// but BCrypt might export X and Y.
-		// Slice blob so it only contains X.
-		bytes = blob[:hdr.KeySize]
-	}
 	return k, bytes, nil
 }
 

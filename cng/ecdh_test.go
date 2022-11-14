@@ -21,28 +21,29 @@ func TestECDH(t *testing.T) {
 	for _, tt := range []string{"P-256", "P-384", "P-521", "X25519"} {
 		t.Run(tt, func(t *testing.T) {
 			name := tt
-			aliceKey, aliceBytes, err := cng.GenerateKeyECDH(name)
+			aliceKey, _, err := cng.GenerateKeyECDH(name)
 			if err != nil {
 				t.Fatal(err)
 			}
-			bobKey, bobBytes, err := cng.GenerateKeyECDH(name)
+			bobKey, _, err := cng.GenerateKeyECDH(name)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			alicePubKey, err := cng.NewPublicKeyECDH(name, aliceBytes)
-			if err != nil {
-				t.Error(err)
-			}
 			alicePubKeyFromPriv, err := aliceKey.PublicKey()
 			if err != nil {
 				t.Error(err)
 			}
-			if !bytes.Equal(alicePubKeyFromPriv.Bytes(), alicePubKey.Bytes()) {
-				t.Error("encoded and decoded public keys are different")
+			alicePubKey, err := cng.NewPublicKeyECDH(name, alicePubKeyFromPriv.Bytes())
+			if err != nil {
+				t.Error(err)
 			}
 
-			bobPubKey, err := cng.NewPublicKeyECDH(name, bobBytes)
+			blobPubKeyFromPriv, err := bobKey.PublicKey()
+			if err != nil {
+				t.Error(err)
+			}
+			bobPubKey, err := cng.NewPublicKeyECDH(name, blobPubKeyFromPriv.Bytes())
 			if err != nil {
 				t.Error(err)
 			}
