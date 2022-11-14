@@ -21,7 +21,7 @@ func TestECDH(t *testing.T) {
 	for _, tt := range []string{"P-256", "P-384", "P-521", "X25519"} {
 		t.Run(tt, func(t *testing.T) {
 			name := tt
-			aliceKey, _, err := cng.GenerateKeyECDH(name)
+			aliceKey, alicPrivBytes, err := cng.GenerateKeyECDH(name)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32,18 +32,29 @@ func TestECDH(t *testing.T) {
 
 			alicePubKeyFromPriv, err := aliceKey.PublicKey()
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
-			alicePubKey, err := cng.NewPublicKeyECDH(name, alicePubKeyFromPriv.Bytes())
+			alicePubBytes := alicePubKeyFromPriv.Bytes()
+			want := len(alicPrivBytes)
+			var got int
+			if tt == "X25519" {
+				got = len(alicePubBytes)
+			} else {
+				got = (len(alicePubBytes) - 1) / 2 // subtract encoding prefix and divide by the number of components
+			}
+			if want != got {
+				t.Fatalf("public key size mismatch: want: %v, got: %v", want, got)
+			}
+			alicePubKey, err := cng.NewPublicKeyECDH(name, alicePubBytes)
 			if err != nil {
 				t.Error(err)
 			}
 
-			blobPubKeyFromPriv, err := bobKey.PublicKey()
+			bobPubKeyFromPriv, err := bobKey.PublicKey()
 			if err != nil {
 				t.Error(err)
 			}
-			bobPubKey, err := cng.NewPublicKeyECDH(name, blobPubKeyFromPriv.Bytes())
+			bobPubKey, err := cng.NewPublicKeyECDH(name, bobPubKeyFromPriv.Bytes())
 			if err != nil {
 				t.Error(err)
 			}

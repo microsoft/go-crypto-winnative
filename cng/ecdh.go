@@ -126,11 +126,15 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	// GenerateKeyECDH returns the public key as as byte slice.
 	// To get it we need to export the raw CNG key blob
 	// and prepend the encoding prefix.
-	_, bytes, err := exportECCKey(hkey, true)
+	hdr, bytes, err := exportECCKey(hkey, true)
 	if err != nil {
 		bcrypt.DestroyKey(hkey)
 		return nil, nil, err
 	}
+	// Only take the private component of the key,
+	// which is the last of the three equally-sized chunks.
+	bytes = bytes[hdr.KeySize*2:]
+
 	k := &PrivateKeyECDH{hkey, isNIST(curve)}
 	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
 	return k, bytes, nil
