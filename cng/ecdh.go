@@ -123,9 +123,8 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 		return nil, nil, err
 	}
 
-	// GenerateKeyECDH returns the public key as as byte slice.
-	// To get it we need to export the raw CNG key blob
-	// and prepend the encoding prefix.
+	// GenerateKeyECDH returns the private key as a byte slice.
+	// To get it we need to export the raw CNG key bytes.
 	hdr, bytes, err := exportECCKey(hkey, true)
 	if err != nil {
 		bcrypt.DestroyKey(hkey)
