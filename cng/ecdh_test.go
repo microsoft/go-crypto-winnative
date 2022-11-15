@@ -54,7 +54,7 @@ func TestECDH(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			bobPubKey, err := cng.NewPublicKeyECDH(name, bobPubKeyFromPriv.Bytes())
+			_, err = cng.NewPublicKeyECDH(name, bobPubKeyFromPriv.Bytes())
 			if err != nil {
 				t.Error(err)
 			}
@@ -63,7 +63,7 @@ func TestECDH(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			aliceSecret, err := cng.ECDH(aliceKey, bobPubKey)
+			aliceSecret, err := cng.ECDH(aliceKey, bobPubKeyFromPriv)
 			if err != nil {
 				t.Fatal(err)
 			}
