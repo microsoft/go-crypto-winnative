@@ -209,14 +209,15 @@ func (k *PrivateKeyECDH) PublicKey() (*PublicKeyECDH, error) {
 	if err != nil {
 		return nil, err
 	}
-	pub := new(PublicKeyECDH)
+	var bytes []byte
 	if k.isNIST {
 		// Include X and Y.
-		pub.bytes = append([]byte{ecdhUncompressedPrefix}, data...)
+		bytes = append([]byte{ecdhUncompressedPrefix}, data...)
 	} else {
 		// Only include X.
-		pub.bytes = data[:hdr.KeySize]
+		bytes = data[:hdr.KeySize]
 	}
+	pub := &PublicKeyECDH{k.hkey, bytes}
 	runtime.SetFinalizer(pub, (*PublicKeyECDH).finalize)
 	return pub, nil
 }
