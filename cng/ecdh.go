@@ -55,10 +55,18 @@ func loadECDH(curve string) (h ecdhAlgorithm, bits uint32, err error) {
 type PublicKeyECDH struct {
 	hkey  bcrypt.KEY_HANDLE
 	bytes []byte
+
+	// priv is only set when PublicKeyECDH is derived from a private key,
+	// in which case priv's finalizer is responsible for freeing hkey.
+	// This ensures priv is not finalized while the public key is alive,
+	// which could cause use-after-free and double-free behavior.
+	priv *PrivateKeyECDH
 }
 
 func (k *PublicKeyECDH) finalize() {
-	bcrypt.DestroyKey(k.hkey)
+	if k.priv == nil {
+		bcrypt.DestroyKey(k.hkey)
+	}
 }
 
 type PrivateKeyECDH struct {
@@ -169,7 +177,7 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 	if err != nil {
 		return nil, err
 	}
-	k := &PublicKeyECDH{hkey, append([]byte(nil), bytes...)}
+	k := &PublicKeyECDH{hkey, append([]byte(nil), bytes...), nil}
 	runtime.SetFinalizer(k, (*PublicKeyECDH).finalize)
 	return k, nil
 }
@@ -217,7 +225,7 @@ func (k *PrivateKeyECDH) PublicKey() (*PublicKeyECDH, error) {
 		// Only include X.
 		bytes = data[:hdr.KeySize]
 	}
-	pub := &PublicKeyECDH{k.hkey, bytes}
+	pub := &PublicKeyECDH{k.hkey, bytes, k}
 	runtime.SetFinalizer(pub, (*PublicKeyECDH).finalize)
 	return pub, nil
 }
