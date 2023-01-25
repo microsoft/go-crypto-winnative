@@ -23,6 +23,10 @@ func TestRand(t *testing.T) {
 }
 
 func TestRandBig(t *testing.T) {
+	if testing.Short() {
+		// This test can take ~20s to complete.
+		t.Skip("skipping test in short mode.")
+	}
 	b := make([]byte, 1<<32+60)
 	n, err := io.ReadFull(RandReader, b)
 	if err != nil {
