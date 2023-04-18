@@ -183,8 +183,12 @@ func (h *shaXHash) WriteString(s string) (int, error) {
 }
 
 func (h *shaXHash) WriteByte(c byte) error {
-	defer runtime.KeepAlive(h)
-	return bcrypt.HashDataRaw(h.ctx, &c, 1, 0)
+	if err := bcrypt.HashDataRaw(h.ctx, &c, 1, 0); err != nil {
+		// hash.Hash interface mandates Write should never return an error.
+		panic(err)
+	}
+	runtime.KeepAlive(h)
+	return nil
 }
 
 func (h *shaXHash) Size() int {
