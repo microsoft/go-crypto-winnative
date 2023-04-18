@@ -183,6 +183,7 @@ func (h *shaXHash) WriteString(s string) (int, error) {
 }
 
 func (h *shaXHash) WriteByte(c byte) error {
+	defer runtime.KeepAlive(h)
 	return bcrypt.HashDataRaw(h.ctx, &c, 1, 0)
 }
 
