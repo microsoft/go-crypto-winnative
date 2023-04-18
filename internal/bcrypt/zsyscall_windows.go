@@ -287,6 +287,14 @@ func Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byt
 	return
 }
 
+func HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (s error) {
+	r0, _, _ := syscall.Syscall6(procBCryptHashData.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
 func HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (s error) {
 	var _p0 *byte
 	if len(pbInput) > 0 {

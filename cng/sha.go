@@ -9,6 +9,7 @@ package cng
 import (
 	"hash"
 	"runtime"
+	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
@@ -169,6 +170,20 @@ func (h *shaXHash) Write(p []byte) (n int, err error) {
 	}
 	runtime.KeepAlive(h)
 	return len(p), nil
+}
+
+func (h *shaXHash) WriteString(s string) (int, error) {
+	// TODO: use unsafe.StringData once we drop support
+	// for go1.19 and earlier.
+	hdr := (*struct {
+		Data *byte
+		Len  int
+	})(unsafe.Pointer(&s))
+	return h.Write(unsafe.Slice(hdr.Data, len(s)))
+}
+
+func (h *shaXHash) WriteByte(c byte) error {
+	return bcrypt.HashDataRaw(h.ctx, &c, 1, 0)
 }
 
 func (h *shaXHash) Size() int {
