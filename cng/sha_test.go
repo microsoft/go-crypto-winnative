@@ -9,6 +9,7 @@ package cng_test
 import (
 	"bytes"
 	"hash"
+	"io"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
@@ -54,6 +55,23 @@ func TestSha(t *testing.T) {
 			if actual, actual2 := h.Sum(nil), h2.Sum(nil); !bytes.Equal(actual, actual2) {
 				t.Errorf("%s(%q) = 0x%x != cloned 0x%x", tt.name, msg, actual, actual2)
 			}
+			h.Reset()
+			sum = h.Sum(nil)
+			if !bytes.Equal(sum, initSum) {
+				t.Errorf("got:%x want:%x", sum, initSum)
+			}
+
+			bw := h.(io.ByteWriter)
+			for i := 0; i < len(msg); i++ {
+				bw.WriteByte(msg[i])
+			}
+			h.Reset()
+			sum = h.Sum(nil)
+			if !bytes.Equal(sum, initSum) {
+				t.Errorf("got:%x want:%x", sum, initSum)
+			}
+
+			h.(io.StringWriter).WriteString(string(msg))
 			h.Reset()
 			sum = h.Sum(nil)
 			if !bytes.Equal(sum, initSum) {
