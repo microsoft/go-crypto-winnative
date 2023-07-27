@@ -20,6 +20,7 @@ const (
 	MD5_ALGORITHM    = "MD5"
 	ECDSA_ALGORITHM  = "ECDSA"
 	ECDH_ALGORITHM   = "ECDH"
+	HKDF_ALGORITHM   = "HKDF"
 )
 
 const (
@@ -49,6 +50,37 @@ const (
 	ECCPUBLIC_BLOB      = "ECCPUBLICBLOB"
 	ECCPRIVATE_BLOB     = "ECCPRIVATEBLOB"
 )
+
+const (
+	KDF_HKDF_INFO          = 0x14
+	HKDF_HASH_ALGORITHM    = "HkdfHashAlgorithm"
+	HKDF_SALT_AND_FINALIZE = "HkdfSaltAndFinalize"
+	HKDF_PRK_AND_FINALIZE  = "HkdfPrkAndFinalize"
+)
+
+const (
+	KEY_DATA_BLOB          = "KeyDataBlob"
+	KEY_DATA_BLOB_MAGIC    = 0x4d42444b
+	KEY_DATA_BLOB_VERSION1 = 1
+)
+
+type KEY_DATA_BLOB_HEADER struct {
+	Magic   uint32
+	Version uint32
+	Length  uint32
+}
+
+type Buffer struct {
+	Length uint32
+	Type   uint32
+	Data   uintptr
+}
+
+type BufferDesc struct {
+	Version uint32
+	Count   uint32 // number of buffers
+	Buffers *Buffer
+}
 
 const (
 	USE_SYSTEM_PREFERRED_RNG = 0x00000002
@@ -218,5 +250,6 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 //sys   SignHash (hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) = bcrypt.BCryptSignHash
 //sys   VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags PadMode) (s error) = bcrypt.BCryptVerifySignature
 //sys   SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SECRET_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptSecretAgreement
-//sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *byte, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDeriveKey
+//sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDeriveKey
+//sys   KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptKeyDerivation
 //sys   DestroySecret(hSecret SECRET_HANDLE) (s error) = bcrypt.BCryptDestroySecret

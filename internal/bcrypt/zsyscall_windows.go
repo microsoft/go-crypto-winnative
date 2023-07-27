@@ -59,6 +59,7 @@ var (
 	procBCryptHash                   = modbcrypt.NewProc("BCryptHash")
 	procBCryptHashData               = modbcrypt.NewProc("BCryptHashData")
 	procBCryptImportKeyPair          = modbcrypt.NewProc("BCryptImportKeyPair")
+	procBCryptKeyDerivation          = modbcrypt.NewProc("BCryptKeyDerivation")
 	procBCryptOpenAlgorithmProvider  = modbcrypt.NewProc("BCryptOpenAlgorithmProvider")
 	procBCryptSecretAgreement        = modbcrypt.NewProc("BCryptSecretAgreement")
 	procBCryptSetProperty            = modbcrypt.NewProc("BCryptSetProperty")
@@ -110,7 +111,7 @@ func Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV 
 	return
 }
 
-func DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *byte, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) {
+func DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) {
 	var _p0 *byte
 	if len(pbDerivedKey) > 0 {
 		_p0 = &pbDerivedKey[0]
@@ -313,6 +314,18 @@ func ImportKeyPair(hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *ui
 		_p0 = &pbInput[0]
 	}
 	r0, _, _ := syscall.Syscall9(procBCryptImportKeyPair.Addr(), 7, uintptr(hAlgorithm), uintptr(hImportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags), 0, 0)
+	if r0 != 0 {
+		s = syscall.Errno(r0)
+	}
+	return
+}
+
+func KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) {
+	var _p0 *byte
+	if len(pbDerivedKey) > 0 {
+		_p0 = &pbDerivedKey[0]
+	}
+	r0, _, _ := syscall.Syscall6(procBCryptKeyDerivation.Addr(), 6, uintptr(hKey), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbDerivedKey)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
