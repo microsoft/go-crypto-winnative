@@ -17,6 +17,11 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
+func SupportsHKDF() bool {
+	_, err := loadHKDF()
+	return err == nil
+}
+
 func loadHKDF() (bcrypt.ALG_HANDLE, error) {
 	h, err := loadOrStoreAlg(bcrypt.HKDF_ALGORITHM, 0, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
 		return h, nil

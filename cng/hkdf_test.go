@@ -308,6 +308,9 @@ func newHKDF(hash func() hash.Hash, secret, salt, info []byte) io.Reader {
 }
 
 func TestHKDF(t *testing.T) {
+	if !cng.SupportsHKDF() {
+		t.Skip("HKDF is not supported")
+	}
 	for i, tt := range hkdfTests {
 		prk, err := cng.ExtractHKDF(tt.hash, tt.master, tt.salt)
 		if err != nil {
@@ -346,6 +349,9 @@ func TestHKDF(t *testing.T) {
 }
 
 func TestHKDFMultiRead(t *testing.T) {
+	if !cng.SupportsHKDF() {
+		t.Skip("HKDF is not supported")
+	}
 	for i, tt := range hkdfTests {
 		hkdf := newHKDF(tt.hash, tt.master, tt.salt, tt.info)
 		out := make([]byte, len(tt.out))
@@ -364,6 +370,9 @@ func TestHKDFMultiRead(t *testing.T) {
 }
 
 func TestHKDFLimit(t *testing.T) {
+	if !cng.SupportsHKDF() {
+		t.Skip("HKDF is not supported")
+	}
 	hash := cng.NewSHA1
 	master := []byte{0x00, 0x01, 0x02, 0x03}
 	info := []byte{}
