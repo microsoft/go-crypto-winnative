@@ -36,7 +36,8 @@ type hkdf struct {
 	hkey bcrypt.KEY_HANDLE
 	info []byte
 
-	buf []byte
+	hashLen int
+	buf     []byte
 }
 
 func (c *hkdf) finalize() {
@@ -61,19 +62,26 @@ func (c *hkdf) Read(p []byte) (int, error) {
 	// bytes and copy the last derived len(p) bytes to p.
 	// We use c.buf to know how many bytes we've already derived and
 	// to avoid allocating the whole output buffer on each call.
-	start := len(c.buf)
-	c.buf = append(c.buf, make([]byte, len(p))...)
+	prevLen := len(c.buf)
+	needLen := len(p)
+	remains := 255*c.hashLen - prevLen
+	// Check whether enough data can be generated.
+	if remains < needLen {
+		return 0, errors.New("hkdf: entropy limit reached")
+	}
+	c.buf = append(c.buf, make([]byte, needLen)...)
 	var size uint32
 	if err := bcrypt.KeyDerivation(c.hkey, params, c.buf, &size, 0); err != nil {
 		return 0, err
 	}
 	runtime.KeepAlive(params)
-	n := copy(p, c.buf[start:size])
+	n := copy(p, c.buf[prevLen:size])
 	return n, nil
 }
 
 func newHKDF(h func() hash.Hash, secret, salt []byte, info []byte) (*hkdf, error) {
-	hashID := hashToID(h())
+	ch := h()
+	hashID := hashToID(ch)
 	if hashID == "" {
 		return nil, errors.New("cng: unsupported hash function")
 	}
@@ -100,7 +108,7 @@ func newHKDF(h func() hash.Hash, secret, salt []byte, info []byte) (*hkdf, error
 		bcrypt.DestroyKey(kh)
 		return nil, err
 	}
-	k := &hkdf{kh, info, nil}
+	k := &hkdf{kh, info, ch.Size(), nil}
 	runtime.SetFinalizer(k, (*hkdf).finalize)
 	return k, nil
 }
