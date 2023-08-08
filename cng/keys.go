@@ -57,6 +57,7 @@ func exportRSAKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.RSAKEY_BLOB, []b
 	return hdr, blob[sizeOfRSABlobHeader:], nil
 }
 
+// exportKeyData exports hkey into a bcrypt.KEY_DATA_BLOB_HEADER header and data.
 func exportKeyData(hkey bcrypt.KEY_HANDLE) (bcrypt.KEY_DATA_BLOB_HEADER, []byte, error) {
 	blob, err := exportKey(hkey, bcrypt.KEY_DATA_BLOB)
 	if err != nil {
