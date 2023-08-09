@@ -15,7 +15,7 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-// SupportsHash returns true if h is supported.
+// SupportsHash returns true if a hash.Hash implementation is supported for h.
 func SupportsHash(h crypto.Hash) bool {
 	switch h {
 	case crypto.SHA1, crypto.SHA256, crypto.SHA384, crypto.SHA512:
