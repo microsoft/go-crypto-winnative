@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	sizeOfECCBlobHeader = uint32(unsafe.Sizeof(bcrypt.ECCKEY_BLOB{}))
-	sizeOfRSABlobHeader = uint32(unsafe.Sizeof(bcrypt.RSAKEY_BLOB{}))
+	sizeOfECCBlobHeader     = uint32(unsafe.Sizeof(bcrypt.ECCKEY_BLOB{}))
+	sizeOfRSABlobHeader     = uint32(unsafe.Sizeof(bcrypt.RSAKEY_BLOB{}))
+	sizeOfKeyDataBlobHeader = uint32(unsafe.Sizeof(bcrypt.KEY_DATA_BLOB_HEADER{}))
 )
 
 // exportRSAKey exports hkey into a bcrypt.ECCKEY_BLOB header and data.
@@ -54,6 +55,22 @@ func exportRSAKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.RSAKEY_BLOB, []b
 	}
 	hdr := (*(*bcrypt.RSAKEY_BLOB)(unsafe.Pointer(&blob[0])))
 	return hdr, blob[sizeOfRSABlobHeader:], nil
+}
+
+// exportKeyData exports hkey into a bcrypt.KEY_DATA_BLOB_HEADER header and data.
+func exportKeyData(hkey bcrypt.KEY_HANDLE) (bcrypt.KEY_DATA_BLOB_HEADER, []byte, error) {
+	blob, err := exportKey(hkey, bcrypt.KEY_DATA_BLOB)
+	if err != nil {
+		return bcrypt.KEY_DATA_BLOB_HEADER{}, nil, err
+	}
+	if len(blob) < int(sizeOfKeyDataBlobHeader) {
+		return bcrypt.KEY_DATA_BLOB_HEADER{}, nil, errors.New("cng: exported key is corrupted")
+	}
+	hdr := (*(*bcrypt.KEY_DATA_BLOB_HEADER)(unsafe.Pointer(&blob[0])))
+	if hdr.Magic != bcrypt.KEY_DATA_BLOB_MAGIC {
+		return bcrypt.KEY_DATA_BLOB_HEADER{}, nil, errors.New("cng: unknown key format")
+	}
+	return hdr, blob[sizeOfKeyDataBlobHeader : sizeOfKeyDataBlobHeader+hdr.Length], nil
 }
 
 // exportKey exports hkey to a memory blob.
