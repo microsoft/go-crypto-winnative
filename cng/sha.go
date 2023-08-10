@@ -7,12 +7,31 @@
 package cng
 
 import (
+	"crypto"
 	"hash"
 	"runtime"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
+
+// SupportsHash returns true if a hash.Hash implementation is supported for h.
+func SupportsHash(h crypto.Hash) bool {
+	switch h {
+	case crypto.SHA1, crypto.SHA256, crypto.SHA384, crypto.SHA512:
+		return true
+	case crypto.SHA3_256:
+		_, err := loadSha(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+		return err == nil
+	case crypto.SHA3_384:
+		_, err := loadSha(bcrypt.SHA3_384_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+		return err == nil
+	case crypto.SHA3_512:
+		_, err := loadSha(bcrypt.SHA3_512_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+		return err == nil
+	}
+	return false
+}
 
 func shaOneShot(id string, p, sum []byte) error {
 	h, err := loadSha(id, 0)
@@ -50,6 +69,27 @@ func SHA512(p []byte) (sum [64]byte) {
 	return
 }
 
+func SHA3_256(p []byte) (sum [32]byte) {
+	if err := shaOneShot(bcrypt.SHA3_256_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA3_256 failed")
+	}
+	return
+}
+
+func SHA3_384(p []byte) (sum [48]byte) {
+	if err := shaOneShot(bcrypt.SHA3_384_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA3_384 failed")
+	}
+	return
+}
+
+func SHA3_512(p []byte) (sum [64]byte) {
+	if err := shaOneShot(bcrypt.SHA3_512_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: SHA3_512 failed")
+	}
+	return
+}
+
 // NewSHA1 returns a new SHA1 hash.
 func NewSHA1() hash.Hash {
 	return newSHAX(bcrypt.SHA1_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
@@ -68,6 +108,21 @@ func NewSHA384() hash.Hash {
 // NewSHA512 returns a new SHA512 hash.
 func NewSHA512() hash.Hash {
 	return newSHAX(bcrypt.SHA512_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+}
+
+// NewSHA3_256 returns a new SHA256 hash.
+func NewSHA3_256() hash.Hash {
+	return newSHAX(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+}
+
+// NewSHA3_384 returns a new SHA384 hash.
+func NewSHA3_384() hash.Hash {
+	return newSHAX(bcrypt.SHA3_384_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+}
+
+// NewSHA3_512 returns a new SHA512 hash.
+func NewSHA3_512() hash.Hash {
+	return newSHAX(bcrypt.SHA3_512_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
 }
 
 type shaAlgorithm struct {

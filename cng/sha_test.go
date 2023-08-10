@@ -8,28 +8,53 @@ package cng_test
 
 import (
 	"bytes"
+	"crypto"
 	"hash"
 	"io"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
-	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
+
+func cryptoToHash(h crypto.Hash) func() hash.Hash {
+	switch h {
+	case crypto.SHA1:
+		return cng.NewSHA1
+	case crypto.SHA256:
+		return cng.NewSHA256
+	case crypto.SHA384:
+		return cng.NewSHA384
+	case crypto.SHA512:
+		return cng.NewSHA512
+	case crypto.SHA3_256:
+		return cng.NewSHA3_256
+	case crypto.SHA3_384:
+		return cng.NewSHA3_384
+	case crypto.SHA3_512:
+		return cng.NewSHA3_512
+	}
+	return nil
+}
 
 func TestSha(t *testing.T) {
 	msg := []byte("testing")
-	var tests = []struct {
-		name string
-		fn   func() hash.Hash
-	}{
-		{"sha1", cng.NewSHA1},
-		{"sha256", cng.NewSHA256},
-		{"sha384", cng.NewSHA384},
-		{"sha512", cng.NewSHA512},
+	var tests = []crypto.Hash{
+		crypto.SHA1,
+		crypto.SHA224,
+		crypto.SHA256,
+		crypto.SHA384,
+		crypto.SHA512,
+		crypto.SHA3_224,
+		crypto.SHA3_256,
+		crypto.SHA3_384,
+		crypto.SHA3_512,
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := tt.fn()
+		t.Run(tt.String(), func(t *testing.T) {
+			if !cng.SupportsHash(tt) {
+				t.Skip("skipping: not supported")
+			}
+			h := cryptoToHash(tt)()
 			initSum := h.Sum(nil)
 			n, err := h.Write(msg)
 			if err != nil {
@@ -53,7 +78,7 @@ func TestSha(t *testing.T) {
 			h.Write(msg)
 			h2.Write(msg)
 			if actual, actual2 := h.Sum(nil), h2.Sum(nil); !bytes.Equal(actual, actual2) {
-				t.Errorf("%s(%q) = 0x%x != cloned 0x%x", tt.name, msg, actual, actual2)
+				t.Errorf("%s(%q) = 0x%x != cloned 0x%x", tt.String(), msg, actual, actual2)
 			}
 			h.Reset()
 			sum = h.Sum(nil)
@@ -84,31 +109,45 @@ func TestSha(t *testing.T) {
 func TestSHA_OneShot(t *testing.T) {
 	msg := []byte("testing")
 	var tests = []struct {
-		id      string
-		want    func() hash.Hash
+		h       crypto.Hash
 		oneShot func([]byte) []byte
 	}{
-		{bcrypt.SHA1_ALGORITHM, cng.NewSHA1, func(p []byte) []byte {
+		{crypto.SHA1, func(p []byte) []byte {
 			b := cng.SHA1(p)
 			return b[:]
 		}},
-		{bcrypt.SHA256_ALGORITHM, cng.NewSHA256, func(p []byte) []byte {
+		{crypto.SHA256, func(p []byte) []byte {
 			b := cng.SHA256(p)
 			return b[:]
 		}},
-		{bcrypt.SHA384_ALGORITHM, cng.NewSHA384, func(p []byte) []byte {
+		{crypto.SHA384, func(p []byte) []byte {
 			b := cng.SHA384(p)
 			return b[:]
 		}},
-		{bcrypt.SHA512_ALGORITHM, cng.NewSHA512, func(p []byte) []byte {
+		{crypto.SHA512, func(p []byte) []byte {
 			b := cng.SHA512(p)
+			return b[:]
+		}},
+		{crypto.SHA3_256, func(p []byte) []byte {
+			b := cng.SHA3_256(p)
+			return b[:]
+		}},
+		{crypto.SHA3_384, func(p []byte) []byte {
+			b := cng.SHA3_384(p)
+			return b[:]
+		}},
+		{crypto.SHA3_512, func(p []byte) []byte {
+			b := cng.SHA3_512(p)
 			return b[:]
 		}},
 	}
 	for _, tt := range tests {
-		t.Run(tt.id, func(t *testing.T) {
+		t.Run(tt.h.String(), func(t *testing.T) {
+			if !cng.SupportsHash(tt.h) {
+				t.Skip("skipping: not supported")
+			}
 			got := tt.oneShot(msg)
-			h := tt.want()
+			h := cryptoToHash(tt.h)()
 			h.Write(msg)
 			want := h.Sum(nil)
 			if !bytes.Equal(got[:], want) {
