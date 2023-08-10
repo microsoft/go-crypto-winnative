@@ -21,6 +21,7 @@ const (
 	ECDSA_ALGORITHM  = "ECDSA"
 	ECDH_ALGORITHM   = "ECDH"
 	HKDF_ALGORITHM   = "HKDF"
+	PBKDF2_ALGORITHM = "PBKDF2"
 )
 
 const (
@@ -56,6 +57,12 @@ const (
 	HKDF_HASH_ALGORITHM    = "HkdfHashAlgorithm"
 	HKDF_SALT_AND_FINALIZE = "HkdfSaltAndFinalize"
 	HKDF_PRK_AND_FINALIZE  = "HkdfPrkAndFinalize"
+)
+
+const (
+	KDF_HASH_ALGORITHM  = 0x0
+	KDF_ITERATION_COUNT = 0x10
+	KDF_SALT            = 0xF
 )
 
 const (
