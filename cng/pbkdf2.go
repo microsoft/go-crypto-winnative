@@ -34,11 +34,6 @@ func PBKDF2(password, salt []byte, iter, keyLen int, h func() hash.Hash) ([]byte
 	if err != nil {
 		return nil, err
 	}
-	if len(password) == 0 {
-		// CNG doesn't support zero-length passwords.
-		password = make([]byte, 64) // 64 bytes is SHA512, the largest digest handled.
-	}
-
 	var kh bcrypt.KEY_HANDLE
 	if err := bcrypt.GenerateSymmetricKey(alg, &kh, nil, password, 0); err != nil {
 		return nil, err
