@@ -24,6 +24,7 @@ const (
 	ECDSA_ALGORITHM    = "ECDSA"
 	ECDH_ALGORITHM     = "ECDH"
 	HKDF_ALGORITHM     = "HKDF"
+	PBKDF2_ALGORITHM   = "PBKDF2"
 )
 
 const (
@@ -59,6 +60,12 @@ const (
 	HKDF_HASH_ALGORITHM    = "HkdfHashAlgorithm"
 	HKDF_SALT_AND_FINALIZE = "HkdfSaltAndFinalize"
 	HKDF_PRK_AND_FINALIZE  = "HkdfPrkAndFinalize"
+)
+
+const (
+	KDF_HASH_ALGORITHM  = 0x0
+	KDF_ITERATION_COUNT = 0x10
+	KDF_SALT            = 0xF
 )
 
 const (
@@ -242,7 +249,7 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 
 // Keys
 
-//sys   GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) (s error) = bcrypt.BCryptGenerateSymmetricKey
+//sys   generateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (s error) = bcrypt.BCryptGenerateSymmetricKey
 //sys   GenerateKeyPair(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, dwLength uint32, dwFlags uint32) (s error) = bcrypt.BCryptGenerateKeyPair
 //sys   FinalizeKeyPair(hKey KEY_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptFinalizeKeyPair
 //sys   ImportKeyPair (hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *uint16, phKey *KEY_HANDLE, pbInput []byte, dwFlags uint32) (s error) = bcrypt.BCryptImportKeyPair
@@ -256,3 +263,13 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 //sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDeriveKey
 //sys   KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptKeyDerivation
 //sys   DestroySecret(hSecret SECRET_HANDLE) (s error) = bcrypt.BCryptDestroySecret
+
+func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) error {
+	cbLen := uint32(len(pbSecret))
+	if cbLen == 0 {
+		// BCryptGenerateSymmetricKey does not support nil pbSecret,
+		// stack-allocate a zero byte here just to make CNG happy.
+		pbSecret = make([]byte, 1)
+	}
+	return generateSymmetricKey(hAlgorithm, phKey, pbKeyObject, &pbSecret[0], cbLen, dwFlags)
+}

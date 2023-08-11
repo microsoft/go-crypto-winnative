@@ -227,16 +227,12 @@ func GenerateKeyPair(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, dwLength uint32, 
 	return
 }
 
-func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) (s error) {
+func generateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (s error) {
 	var _p0 *byte
 	if len(pbKeyObject) > 0 {
 		_p0 = &pbKeyObject[0]
 	}
-	var _p1 *byte
-	if len(pbSecret) > 0 {
-		_p1 = &pbSecret[0]
-	}
-	r0, _, _ := syscall.Syscall9(procBCryptGenerateSymmetricKey.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbKeyObject)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.Syscall9(procBCryptGenerateSymmetricKey.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbKeyObject)), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags), 0, 0)
 	if r0 != 0 {
 		s = syscall.Errno(r0)
 	}
