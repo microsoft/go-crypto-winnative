@@ -18,6 +18,10 @@ import (
 
 func cryptoToHash(h crypto.Hash) func() hash.Hash {
 	switch h {
+	case crypto.MD4:
+		return cng.NewMD4
+	case crypto.MD5:
+		return cng.NewMD5
 	case crypto.SHA1:
 		return cng.NewSHA1
 	case crypto.SHA256:
@@ -39,6 +43,8 @@ func cryptoToHash(h crypto.Hash) func() hash.Hash {
 func TestSha(t *testing.T) {
 	msg := []byte("testing")
 	var tests = []crypto.Hash{
+		crypto.MD4,
+		crypto.MD5,
 		crypto.SHA1,
 		crypto.SHA224,
 		crypto.SHA256,
@@ -112,6 +118,14 @@ func TestSHA_OneShot(t *testing.T) {
 		h       crypto.Hash
 		oneShot func([]byte) []byte
 	}{
+		{crypto.MD4, func(p []byte) []byte {
+			b := cng.MD4(p)
+			return b[:]
+		}},
+		{crypto.MD5, func(p []byte) []byte {
+			b := cng.MD5(p)
+			return b[:]
+		}},
 		{crypto.SHA1, func(p []byte) []byte {
 			b := cng.SHA1(p)
 			return b[:]

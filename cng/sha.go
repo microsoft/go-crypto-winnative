@@ -18,7 +18,7 @@ import (
 // SupportsHash returns true if a hash.Hash implementation is supported for h.
 func SupportsHash(h crypto.Hash) bool {
 	switch h {
-	case crypto.SHA1, crypto.SHA256, crypto.SHA384, crypto.SHA512:
+	case crypto.MD4, crypto.MD5, crypto.SHA1, crypto.SHA256, crypto.SHA384, crypto.SHA512:
 		return true
 	case crypto.SHA3_256:
 		_, err := loadSha(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG)
@@ -39,6 +39,20 @@ func shaOneShot(id string, p, sum []byte) error {
 		return err
 	}
 	return bcrypt.Hash(h.handle, nil, p, sum)
+}
+
+func MD4(p []byte) (sum [16]byte) {
+	if err := shaOneShot(bcrypt.MD4_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: MD4 failed")
+	}
+	return
+}
+
+func MD5(p []byte) (sum [16]byte) {
+	if err := shaOneShot(bcrypt.MD5_ALGORITHM, p, sum[:]); err != nil {
+		panic("bcrypt: MD5 failed")
+	}
+	return
 }
 
 func SHA1(p []byte) (sum [20]byte) {
@@ -88,6 +102,16 @@ func SHA3_512(p []byte) (sum [64]byte) {
 		panic("bcrypt: SHA3_512 failed")
 	}
 	return
+}
+
+// NewMD4 returns a new MD4 hash.
+func NewMD4() hash.Hash {
+	return newSHAX(bcrypt.MD4_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+}
+
+// NewMD5 returns a new MD5 hash.
+func NewMD5() hash.Hash {
+	return newSHAX(bcrypt.MD5_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
 }
 
 // NewSHA1 returns a new SHA1 hash.
