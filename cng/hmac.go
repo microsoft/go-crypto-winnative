@@ -15,7 +15,7 @@ import (
 // hashToID converts a hash.Hash implementation from this package
 // to a CNG hash ID
 func hashToID(h hash.Hash) string {
-	if _, ok := h.(*shaXHash); !ok {
+	if _, ok := h.(*hashX); !ok {
 		return ""
 	}
 	var id string
@@ -51,5 +51,5 @@ func NewHMAC(h func() hash.Hash, key []byte) hash.Hash {
 		ch.Write(key)
 		key = ch.Sum(nil)
 	}
-	return newSHAX(id, bcrypt.ALG_HANDLE_HMAC_FLAG, key)
+	return newHashX(id, bcrypt.ALG_HANDLE_HMAC_FLAG, key)
 }
