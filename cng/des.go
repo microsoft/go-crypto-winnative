@@ -8,7 +8,6 @@ package cng
 
 import (
 	"crypto/cipher"
-	"errors"
 	"runtime"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -17,56 +16,26 @@ import (
 
 const desBlockSize = 8
 
-type desAlgorithm struct {
-	handle            bcrypt.ALG_HANDLE
-	allowedKeyLengths bcrypt.KEY_LENGTHS_STRUCT
-}
-
-func loadDES(want3DES bool) (desAlgorithm, error) {
-	id := bcrypt.DES_ALGORITHM
-	if want3DES {
-		id = bcrypt.DES3_ALGORITHM
-	}
-	v, err := loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
-		lengths, err := getKeyLengths(bcrypt.HANDLE(h))
-		if err != nil {
-			return nil, err
-		}
-		return desAlgorithm{h, lengths}, nil
-	})
-	if err != nil {
-		return desAlgorithm{}, nil
-	}
-	return v.(desAlgorithm), nil
-}
-
 type desCipher struct {
-	kh  bcrypt.KEY_HANDLE
-	key []byte
+	kh bcrypt.KEY_HANDLE
 }
 
 func NewDESCipher(key []byte) (cipher.Block, error) {
-	return newDESCipher(key, false)
+	kh, err := newCipherHandle(bcrypt.DES_ALGORITHM, "", key)
+	if err != nil {
+		return nil, err
+	}
+	c := &desCipher{kh: kh}
+	runtime.SetFinalizer(c, (*desCipher).finalize)
+	return c, nil
 }
 
 func NewTripleDESCipher(key []byte) (cipher.Block, error) {
-	return newDESCipher(key, true)
-}
-
-func newDESCipher(key []byte, want3DES bool) (cipher.Block, error) {
-	h, err := loadDES(want3DES)
+	kh, err := newCipherHandle(bcrypt.DES3_ALGORITHM, "", key)
 	if err != nil {
 		return nil, err
 	}
-	if !keyIsAllowed(h.allowedKeyLengths, uint32(len(key)*8)) {
-		return nil, errors.New("crypto/des: invalid key size")
-	}
-	c := &desCipher{key: make([]byte, len(key))}
-	copy(c.key, key)
-	err = bcrypt.GenerateSymmetricKey(h.handle, &c.kh, nil, c.key, 0)
-	if err != nil {
-		return nil, err
-	}
+	c := &desCipher{kh: kh}
 	runtime.SetFinalizer(c, (*desCipher).finalize)
 	return c, nil
 }
