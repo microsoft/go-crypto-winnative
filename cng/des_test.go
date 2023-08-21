@@ -1265,7 +1265,7 @@ var tableA4Tests = []CryptTest{
 		[]byte{0x63, 0xfa, 0xc0, 0xd0, 0x34, 0xd9, 0xf7, 0x93}},
 }
 
-func newCipher(key []byte) cipher.Block {
+func newDESCipher(key []byte) cipher.Block {
 	c, err := cng.NewDESCipher(key)
 	if err != nil {
 		panic("NewCipher failed: " + err.Error())
@@ -1274,10 +1274,10 @@ func newCipher(key []byte) cipher.Block {
 }
 
 // Use the known weak keys to test DES implementation
-func TestWeakKeys(t *testing.T) {
+func TestDESWeakKeys(t *testing.T) {
 	for i, tt := range weakKeyTests {
 		var encrypt = func(in []byte) (out []byte) {
-			c := newCipher(tt.key)
+			c := newDESCipher(tt.key)
 			out = make([]byte, len(in))
 			c.Encrypt(out, in)
 			return
@@ -1295,10 +1295,10 @@ func TestWeakKeys(t *testing.T) {
 }
 
 // Use the known semi-weak key pairs to test DES implementation
-func TestSemiWeakKeyPairs(t *testing.T) {
+func TestDESSemiWeakKeyPairs(t *testing.T) {
 	for i, tt := range semiWeakKeyTests {
 		var encrypt = func(key, in []byte) (out []byte) {
-			c := newCipher(key)
+			c := newDESCipher(key)
 			out = make([]byte, len(in))
 			c.Encrypt(out, in)
 			return
@@ -1318,7 +1318,7 @@ func TestSemiWeakKeyPairs(t *testing.T) {
 
 func TestDESEncryptBlock(t *testing.T) {
 	for i, tt := range encryptDESTests {
-		c := newCipher(tt.key)
+		c := newDESCipher(tt.key)
 		out := make([]byte, len(tt.in))
 		c.Encrypt(out, tt.in)
 
@@ -1330,7 +1330,7 @@ func TestDESEncryptBlock(t *testing.T) {
 
 func TestDESDecryptBlock(t *testing.T) {
 	for i, tt := range encryptDESTests {
-		c := newCipher(tt.key)
+		c := newDESCipher(tt.key)
 		plain := make([]byte, len(tt.in))
 		c.Decrypt(plain, tt.out)
 
@@ -1340,7 +1340,7 @@ func TestDESDecryptBlock(t *testing.T) {
 	}
 }
 
-func TestEncryptTripleDES(t *testing.T) {
+func TestDESEncryptTripleDES(t *testing.T) {
 	for i, tt := range encryptTripleDESTests {
 		c, _ := cng.NewTripleDESCipher(tt.key)
 		out := make([]byte, len(tt.in))
@@ -1352,7 +1352,7 @@ func TestEncryptTripleDES(t *testing.T) {
 	}
 }
 
-func TestDecryptTripleDES(t *testing.T) {
+func TestDESDecryptTripleDES(t *testing.T) {
 	for i, tt := range encryptTripleDESTests {
 		c, _ := cng.NewTripleDESCipher(tt.key)
 
@@ -1366,7 +1366,7 @@ func TestDecryptTripleDES(t *testing.T) {
 }
 
 // Defined in Pub 800-20
-func TestVariablePlaintextKnownAnswer(t *testing.T) {
+func TestDESVariablePlaintextKnownAnswer(t *testing.T) {
 	for i, tt := range tableA1Tests {
 		c, _ := cng.NewTripleDESCipher(tableA1Key)
 
@@ -1380,7 +1380,7 @@ func TestVariablePlaintextKnownAnswer(t *testing.T) {
 }
 
 // Defined in Pub 800-20
-func TestVariableCiphertextKnownAnswer(t *testing.T) {
+func TestDESVariableCiphertextKnownAnswer(t *testing.T) {
 	for i, tt := range tableA1Tests {
 		c, _ := cng.NewTripleDESCipher(tableA1Key)
 
@@ -1396,7 +1396,7 @@ func TestVariableCiphertextKnownAnswer(t *testing.T) {
 // Defined in Pub 800-20
 // Encrypting the Table A.1 ciphertext with the
 // 0x01... key produces the original plaintext
-func TestInversePermutationKnownAnswer(t *testing.T) {
+func TestDESInversePermutationKnownAnswer(t *testing.T) {
 	for i, tt := range tableA1Tests {
 		c, _ := cng.NewTripleDESCipher(tableA1Key)
 
@@ -1412,7 +1412,7 @@ func TestInversePermutationKnownAnswer(t *testing.T) {
 // Defined in Pub 800-20
 // Decrypting the Table A.1 plaintext with the
 // 0x01... key produces the corresponding ciphertext
-func TestInitialPermutationKnownAnswer(t *testing.T) {
+func TestDESInitialPermutationKnownAnswer(t *testing.T) {
 	for i, tt := range tableA1Tests {
 		c, _ := cng.NewTripleDESCipher(tableA1Key)
 
@@ -1426,7 +1426,7 @@ func TestInitialPermutationKnownAnswer(t *testing.T) {
 }
 
 // Defined in Pub 800-20
-func TestVariableKeyKnownAnswerEncrypt(t *testing.T) {
+func TestDESVariableKeyKnownAnswerEncrypt(t *testing.T) {
 	for i, tt := range tableA2Tests {
 		c, _ := cng.NewTripleDESCipher(tt.key)
 
@@ -1440,7 +1440,7 @@ func TestVariableKeyKnownAnswerEncrypt(t *testing.T) {
 }
 
 // Defined in Pub 800-20
-func TestVariableKeyKnownAnswerDecrypt(t *testing.T) {
+func TestDESVariableKeyKnownAnswerDecrypt(t *testing.T) {
 	for i, tt := range tableA2Tests {
 		c, _ := cng.NewTripleDESCipher(tt.key)
 
@@ -1454,7 +1454,7 @@ func TestVariableKeyKnownAnswerDecrypt(t *testing.T) {
 }
 
 // Defined in Pub 800-20
-func TestPermutationOperationKnownAnswerEncrypt(t *testing.T) {
+func TestDESPermutationOperationKnownAnswerEncrypt(t *testing.T) {
 	for i, tt := range tableA3Tests {
 		c, _ := cng.NewTripleDESCipher(tt.key)
 
@@ -1468,7 +1468,7 @@ func TestPermutationOperationKnownAnswerEncrypt(t *testing.T) {
 }
 
 // Defined in Pub 800-20
-func TestPermutationOperationKnownAnswerDecrypt(t *testing.T) {
+func TestDESPermutationOperationKnownAnswerDecrypt(t *testing.T) {
 	for i, tt := range tableA3Tests {
 		c, _ := cng.NewTripleDESCipher(tt.key)
 
@@ -1482,7 +1482,7 @@ func TestPermutationOperationKnownAnswerDecrypt(t *testing.T) {
 }
 
 // Defined in Pub 800-20
-func TestSubstitutionTableKnownAnswerEncrypt(t *testing.T) {
+func TestDESSubstitutionTableKnownAnswerEncrypt(t *testing.T) {
 	for i, tt := range tableA4Tests {
 		c, _ := cng.NewTripleDESCipher(tt.key)
 
@@ -1496,7 +1496,7 @@ func TestSubstitutionTableKnownAnswerEncrypt(t *testing.T) {
 }
 
 // Defined in Pub 800-20
-func TestSubstitutionTableKnownAnswerDecrypt(t *testing.T) {
+func TestDESSubstitutionTableKnownAnswerDecrypt(t *testing.T) {
 	for i, tt := range tableA4Tests {
 		c, _ := cng.NewTripleDESCipher(tt.key)
 
@@ -1507,6 +1507,14 @@ func TestSubstitutionTableKnownAnswerDecrypt(t *testing.T) {
 			t.Errorf("#%d: result: %x want: %x", i, out, tt.in)
 		}
 	}
+}
+
+func TestDESSharedBufferWithoutLengthAdjustment(t *testing.T) {
+	c := newDESCipher(encryptDESTests[0].key)
+	srcPlusDst := make([]byte, c.BlockSize()*2)
+	src := srcPlusDst
+	dst := srcPlusDst[c.BlockSize():]
+	c.Encrypt(dst, src)
 }
 
 func BenchmarkEncrypt(b *testing.B) {

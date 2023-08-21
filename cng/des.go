@@ -53,6 +53,9 @@ func (c *desCipher) Encrypt(dst, src []byte) {
 	if len(dst) < desBlockSize {
 		panic("crypto/des: output not full block")
 	}
+	// cypher.Block.Encrypt() is documented to encrypt one full block
+	// at a time, so we truncate the input and output to the block size.
+	dst, src = dst[:desBlockSize], src[:desBlockSize]
 	if subtle.InexactOverlap(dst, src) {
 		panic("crypto/des: invalid buffer overlap")
 	}
@@ -74,10 +77,12 @@ func (c *desCipher) Decrypt(dst, src []byte) {
 	if len(dst) < desBlockSize {
 		panic("crypto/des: output not full block")
 	}
+	// cypher.Block.Decrypt() is documented to decrypt one full block
+	// at a time, so we truncate the input and output to the block size.
+	dst, src = dst[:desBlockSize], src[:desBlockSize]
 	if subtle.InexactOverlap(dst, src) {
 		panic("crypto/des: invalid buffer overlap")
 	}
-
 	var ret uint32
 	err := bcrypt.Decrypt(c.kh, src, nil, nil, dst, &ret, 0)
 	if err != nil {
