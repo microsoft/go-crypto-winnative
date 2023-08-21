@@ -84,11 +84,11 @@ func (c *aesCipher) Decrypt(dst, src []byte) {
 }
 
 func (c *aesCipher) NewCBCEncrypter(iv []byte) cipher.BlockMode {
-	return newCBC(true, c.key, iv)
+	return newCBC(true, bcrypt.AES_ALGORITHM, c.key, iv)
 }
 
 func (c *aesCipher) NewCBCDecrypter(iv []byte) cipher.BlockMode {
-	return newCBC(false, c.key, iv)
+	return newCBC(false, bcrypt.AES_ALGORITHM, c.key, iv)
 }
 
 type noGCM struct {
@@ -119,34 +119,45 @@ func (c *aesCipher) NewGCMTLS() (cipher.AEAD, error) {
 	return newGCM(c.key, true)
 }
 
-type aesCBC struct {
-	kh      bcrypt.KEY_HANDLE
-	iv      [aesBlockSize]byte
-	encrypt bool
+type cbcCipher struct {
+	kh bcrypt.KEY_HANDLE
+	// us aesBlockSize as the max block size for all ciphers
+	// to avoid allocations.
+	iv        [aesBlockSize]byte
+	blockSize int
+	encrypt   bool
 }
 
-func newCBC(encrypt bool, key, iv []byte) *aesCBC {
-	kh, err := newCipherHandle(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_CBC, key)
+func newCBC(encrypt bool, alg string, key, iv []byte) *cbcCipher {
+	kh, err := newCipherHandle(alg, bcrypt.CHAIN_MODE_CBC, key)
 	if err != nil {
 		panic(err)
 	}
-	x := &aesCBC{kh: kh, encrypt: encrypt}
+	x := &cbcCipher{kh: kh, encrypt: encrypt}
+	switch alg {
+	case bcrypt.AES_ALGORITHM:
+		x.blockSize = aesBlockSize
+	case bcrypt.DES_ALGORITHM:
+		x.blockSize = desBlockSize
+	default:
+		panic("invalid algorithm: " + alg)
+	}
 	x.SetIV(iv)
-	runtime.SetFinalizer(x, (*aesCBC).finalize)
+	runtime.SetFinalizer(x, (*cbcCipher).finalize)
 	return x
 }
 
-func (x *aesCBC) finalize() {
+func (x *cbcCipher) finalize() {
 	bcrypt.DestroyKey(x.kh)
 }
 
-func (x *aesCBC) BlockSize() int { return aesBlockSize }
+func (x *cbcCipher) BlockSize() int { return x.blockSize }
 
-func (x *aesCBC) CryptBlocks(dst, src []byte) {
+func (x *cbcCipher) CryptBlocks(dst, src []byte) {
 	if subtle.InexactOverlap(dst, src) {
 		panic("crypto/cipher: invalid buffer overlap")
 	}
-	if len(src)%aesBlockSize != 0 {
+	if len(src)%x.blockSize != 0 {
 		panic("crypto/cipher: input not full blocks")
 	}
 	if len(dst) < len(src) {
@@ -158,9 +169,9 @@ func (x *aesCBC) CryptBlocks(dst, src []byte) {
 	var ret uint32
 	var err error
 	if x.encrypt {
-		err = bcrypt.Encrypt(x.kh, src, nil, x.iv[:], dst, &ret, 0)
+		err = bcrypt.Encrypt(x.kh, src, nil, x.iv[:x.blockSize], dst, &ret, 0)
 	} else {
-		err = bcrypt.Decrypt(x.kh, src, nil, x.iv[:], dst, &ret, 0)
+		err = bcrypt.Decrypt(x.kh, src, nil, x.iv[:x.blockSize], dst, &ret, 0)
 	}
 	if err != nil {
 		panic(err)
@@ -171,8 +182,8 @@ func (x *aesCBC) CryptBlocks(dst, src []byte) {
 	runtime.KeepAlive(x)
 }
 
-func (x *aesCBC) SetIV(iv []byte) {
-	if len(iv) != aesBlockSize {
+func (x *cbcCipher) SetIV(iv []byte) {
+	if len(iv) != x.blockSize {
 		panic("cipher: incorrect length IV")
 	}
 	copy(x.iv[:], iv)

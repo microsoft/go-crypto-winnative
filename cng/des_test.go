@@ -1517,6 +1517,103 @@ func TestDESSharedBufferWithoutLengthAdjustment(t *testing.T) {
 	c.Encrypt(dst, src)
 }
 
+func TestCBCBlobEncryptBasicBlockEncryption(t *testing.T) {
+	key := []byte{0x24, 0xcd, 0x8b, 0x13, 0x37, 0xc5, 0xc1, 0xb1}
+	iv := []byte{0x91, 0xc7, 0xa7, 0x54, 0x52, 0xef, 0x10, 0xdb}
+
+	block, err := cng.NewDESCipher(key)
+	if err != nil {
+		t.Fatalf("expected no error for aes.NewCipher, got: %s", err)
+	}
+
+	blockSize := block.BlockSize()
+	if blockSize != 8 {
+		t.Fatalf("unexpected block size, expected 8 got: %d", blockSize)
+	}
+	encryptor := cipher.NewCBCEncrypter(block, iv)
+	encrypted := make([]byte, 16)
+
+	// First block. 8 bytes.
+	srcBlock1 := bytes.Repeat([]byte{0x01}, 8)
+	encryptor.CryptBlocks(encrypted, srcBlock1)
+	if !bytes.Equal([]byte{
+		0x7a, 0xe7, 0x20, 0x13, 0xc7, 0x7a, 0x5b, 0xb3,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}, encrypted) {
+		t.Error("unexpected CryptBlocks result for first block")
+	}
+
+	// Second block. 8 bytes.
+	srcBlock2 := bytes.Repeat([]byte{0x02}, 8)
+	encryptor.CryptBlocks(encrypted[8:], srcBlock2)
+	if !bytes.Equal([]byte{
+		0x7a, 0xe7, 0x20, 0x13, 0xc7, 0x7a, 0x5b, 0xb3,
+		0xd9, 0x22, 0xa2, 0x22, 0x3f, 0x22, 0x7b, 0x42,
+	}, encrypted) {
+		t.Error("unexpected CryptBlocks result for second block")
+	}
+
+	decrypter := cipher.NewCBCDecrypter(block, iv)
+	plainText := append(srcBlock1, srcBlock2...)
+	decrypted := make([]byte, len(plainText))
+	decrypter.CryptBlocks(decrypted, encrypted[:8])
+	decrypter.CryptBlocks(decrypted[8:], encrypted[8:])
+	if !bytes.Equal(decrypted, plainText) {
+		t.Errorf("unexpected decrypted result\ngot: %#v\nexp: %#v", decrypted, plainText)
+	}
+}
+
+func TestCBCDecryptSimple(t *testing.T) {
+	key := []byte{0x24, 0xcd, 0x8b, 0x13, 0x37, 0xc5, 0xc1, 0xb1}
+
+	block, err := cng.NewDESCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	iv := []byte{0x91, 0xc7, 0xa7, 0x54, 0x52, 0xef, 0x10, 0xdb}
+
+	encrypter := cipher.NewCBCEncrypter(block, iv)
+	decrypter := cipher.NewCBCDecrypter(block, iv)
+
+	plainText := []byte{
+		0x54, 0x68, 0x65, 0x72, 0x65, 0x20, 0x69, 0x73,
+		0x20, 0x6f, 0x6e, 0x6c, 0x79, 0x20, 0x6f, 0x6e,
+		0x65, 0x20, 0x4c, 0x6f, 0x72, 0x64, 0x20, 0x6f,
+		0x66, 0x20, 0x74, 0x68, 0x65, 0x20, 0x52, 0x69,
+		0x6e, 0x67, 0x2c, 0x20, 0x6f, 0x6e, 0x6c, 0x79,
+	}
+	cipherText := make([]byte, len(plainText))
+
+	encrypter.CryptBlocks(cipherText, plainText[:40])
+	encrypter.CryptBlocks(cipherText[40:], plainText[40:])
+
+	expectedCipherText := []byte{
+		0xbf, 0x7b, 0x02, 0x01, 0xa3, 0xde, 0xd0, 0xcd,
+		0x00, 0xa4, 0x03, 0xdc, 0x05, 0x6f, 0xc4, 0xb4,
+		0xe0, 0x35, 0x30, 0x03, 0x12, 0xef, 0x51, 0xd7,
+		0x38, 0x98, 0x91, 0xba, 0x80, 0xd6, 0x08, 0xbd,
+		0x1c, 0xdc, 0x1e, 0xcd, 0x6f, 0xd7, 0xcb, 0x81,
+	}
+
+	if !bytes.Equal(expectedCipherText, cipherText) {
+		t.Fail()
+	}
+
+	decrypted := make([]byte, len(plainText))
+
+	decrypter.CryptBlocks(decrypted, cipherText[:40])
+	decrypter.CryptBlocks(decrypted[40:], cipherText[40:])
+
+	if len(decrypted) != len(plainText) {
+		t.Fail()
+	}
+
+	if !bytes.Equal(plainText, decrypted) {
+		t.Errorf("decryption incorrect\nexp %v, got %v\n", plainText, decrypted)
+	}
+}
+
 func BenchmarkEncrypt(b *testing.B) {
 	tt := encryptDESTests[0]
 	c, err := cng.NewDESCipher(tt.key)

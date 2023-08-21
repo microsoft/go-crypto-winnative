@@ -17,7 +17,8 @@ import (
 const desBlockSize = 8
 
 type desCipher struct {
-	kh bcrypt.KEY_HANDLE
+	kh  bcrypt.KEY_HANDLE
+	key []byte
 }
 
 func NewDESCipher(key []byte) (cipher.Block, error) {
@@ -25,7 +26,8 @@ func NewDESCipher(key []byte) (cipher.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &desCipher{kh: kh}
+	c := &desCipher{kh: kh, key: make([]byte, len(key))}
+	copy(c.key, key)
 	runtime.SetFinalizer(c, (*desCipher).finalize)
 	return c, nil
 }
@@ -35,7 +37,8 @@ func NewTripleDESCipher(key []byte) (cipher.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &desCipher{kh: kh}
+	c := &desCipher{kh: kh, key: make([]byte, len(key))}
+	copy(c.key, key)
 	runtime.SetFinalizer(c, (*desCipher).finalize)
 	return c, nil
 }
@@ -92,4 +95,12 @@ func (c *desCipher) Decrypt(dst, src []byte) {
 		panic("crypto/des: plaintext not fully decrypted")
 	}
 	runtime.KeepAlive(c)
+}
+
+func (c *desCipher) NewCBCEncrypter(iv []byte) cipher.BlockMode {
+	return newCBC(true, bcrypt.DES_ALGORITHM, c.key, iv)
+}
+
+func (c *desCipher) NewCBCDecrypter(iv []byte) cipher.BlockMode {
+	return newCBC(false, bcrypt.DES_ALGORITHM, c.key, iv)
 }
