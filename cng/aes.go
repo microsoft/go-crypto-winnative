@@ -129,21 +129,22 @@ type cbcCipher struct {
 }
 
 func newCBC(encrypt bool, alg string, key, iv []byte) *cbcCipher {
+	var blockSize int
+	switch alg {
+	case bcrypt.AES_ALGORITHM:
+		blockSize = aesBlockSize
+	case bcrypt.DES_ALGORITHM:
+		blockSize = desBlockSize
+	default:
+		panic("invalid algorithm: " + alg)
+	}
 	kh, err := newCipherHandle(alg, bcrypt.CHAIN_MODE_CBC, key)
 	if err != nil {
 		panic(err)
 	}
-	x := &cbcCipher{kh: kh, encrypt: encrypt}
-	switch alg {
-	case bcrypt.AES_ALGORITHM:
-		x.blockSize = aesBlockSize
-	case bcrypt.DES_ALGORITHM:
-		x.blockSize = desBlockSize
-	default:
-		panic("invalid algorithm: " + alg)
-	}
-	x.SetIV(iv)
+	x := &cbcCipher{kh: kh, encrypt: encrypt, blockSize: blockSize}
 	runtime.SetFinalizer(x, (*cbcCipher).finalize)
+	x.SetIV(iv)
 	return x
 }
 
