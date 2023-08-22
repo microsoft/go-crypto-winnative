@@ -121,8 +121,8 @@ func (c *aesCipher) NewGCMTLS() (cipher.AEAD, error) {
 
 type cbcCipher struct {
 	kh bcrypt.KEY_HANDLE
-	// us aesBlockSize as the max block size for all ciphers
-	// to avoid allocations.
+	// Use aesBlockSize, the max of all supported cipher block sizes.
+	// The array avoids allocations (vs. a slice).
 	iv        [aesBlockSize]byte
 	blockSize int
 	encrypt   bool
