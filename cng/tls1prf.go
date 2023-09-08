@@ -24,7 +24,7 @@ func loadTLS1PRF(id string) (bcrypt.ALG_HANDLE, error) {
 	return h.(bcrypt.ALG_HANDLE), nil
 }
 
-// TLS1PRF implements the TLS 1.0/1.1 pseudo-random function if h is nil or crypto.MD5SHA1,
+// TLS1PRF implements the TLS 1.0/1.1 pseudo-random function if h is nil,
 // else it implements the TLS 1.2 pseudo-random function.
 // The pseudo-random number will be written to result and will be of length len(result).
 func TLS1PRF(result, secret, label, seed []byte, h func() hash.Hash) error {
@@ -81,8 +81,10 @@ func TLS1PRF(result, secret, label, seed []byte, h func() hash.Hash) error {
 	if err != nil {
 		return err
 	}
+	// The Go standard library expects TLS1PRF to return the requested number of bytes,
+	// fail if it doesn't.
 	if size != uint32(len(result)) {
-		return errors.New("tls1-prf: entropy limit reached")
+		return errors.New("tls1-prf: derived less bytes than requested")
 	}
 	return nil
 }
