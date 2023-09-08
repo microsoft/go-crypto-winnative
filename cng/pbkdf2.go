@@ -40,22 +40,25 @@ func PBKDF2(password, salt []byte, iter, keyLen int, h func() hash.Hash) ([]byte
 	}
 	defer bcrypt.DestroyKey(kh)
 	u16HashID := utf16FromString(hashID)
-	buffers := [...]bcrypt.Buffer{
-		{
+	buffers := make([]bcrypt.Buffer, 0, 3)
+	buffers = append(buffers,
+		bcrypt.Buffer{
 			Type:   bcrypt.KDF_ITERATION_COUNT,
 			Data:   uintptr(unsafe.Pointer(&iter)),
 			Length: 8,
 		},
-		{
-			Type:   bcrypt.KDF_SALT,
-			Data:   uintptr(unsafe.Pointer(&salt[0])),
-			Length: uint32(len(salt)),
-		},
-		{
+		bcrypt.Buffer{
 			Type:   bcrypt.KDF_HASH_ALGORITHM,
 			Data:   uintptr(unsafe.Pointer(&u16HashID[0])),
 			Length: uint32(len(u16HashID) * 2),
-		},
+		})
+	if len(salt) > 0 {
+		// The salt is optional.
+		buffers = append(buffers, bcrypt.Buffer{
+			Type:   bcrypt.KDF_SALT,
+			Data:   uintptr(unsafe.Pointer(&salt[0])),
+			Length: uint32(len(salt)),
+		})
 	}
 	params := &bcrypt.BufferDesc{
 		Count:   uint32(len(buffers)),

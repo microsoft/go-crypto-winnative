@@ -164,6 +164,21 @@ func TestWithHMACSHA256(t *testing.T) {
 	testHash(t, cng.NewSHA256, "SHA256", sha256TestVectors)
 }
 
+func TestPBKDF2NoSalt(t *testing.T) {
+	vectors := []testVector{
+		{
+			"pass\000word",
+			"",
+			4096,
+			[]byte{
+				0x65, 0x6b, 0xbf, 0xf8, 0xdb, 0x07, 0x95, 0x8b,
+				0x1c, 0xfe, 0x17, 0x80, 0x16, 0xa0, 0x4d, 0x62,
+			},
+		},
+	}
+	testHash(t, cng.NewSHA256, "SHA256", vectors)
+}
+
 var sink uint8
 
 func benchmark(b *testing.B, h func() hash.Hash) {
