@@ -18,50 +18,18 @@ import (
 
 const aesBlockSize = 16
 
-type aesAlgorithm struct {
-	handle            bcrypt.ALG_HANDLE
-	allowedKeyLengths bcrypt.KEY_LENGTHS_STRUCT
-}
-
-func loadAes(mode string) (aesAlgorithm, error) {
-	v, err := loadOrStoreAlg(bcrypt.AES_ALGORITHM, bcrypt.ALG_NONE_FLAG, mode, func(h bcrypt.ALG_HANDLE) (interface{}, error) {
-		// Windows 8 added support to set the CipherMode value on a key,
-		// but Windows 7 requires that it be set on the algorithm before key creation.
-		err := setString(bcrypt.HANDLE(h), bcrypt.CHAINING_MODE, mode)
-		if err != nil {
-			return nil, err
-		}
-		lengths, err := getKeyLengths(bcrypt.HANDLE(h))
-		if err != nil {
-			return nil, err
-		}
-		return aesAlgorithm{h, lengths}, nil
-	})
-	if err != nil {
-		return aesAlgorithm{}, nil
-	}
-	return v.(aesAlgorithm), nil
-}
-
 type aesCipher struct {
 	kh  bcrypt.KEY_HANDLE
 	key []byte
 }
 
 func NewAESCipher(key []byte) (cipher.Block, error) {
-	h, err := loadAes(bcrypt.CHAIN_MODE_ECB)
+	kh, err := newCipherHandle(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_ECB, key)
 	if err != nil {
 		return nil, err
 	}
-	if !keyIsAllowed(h.allowedKeyLengths, uint32(len(key)*8)) {
-		return nil, errors.New("crypto/cipher: invalid key size")
-	}
-	c := &aesCipher{key: make([]byte, len(key))}
+	c := &aesCipher{kh: kh, key: make([]byte, len(key))}
 	copy(c.key, key)
-	err = bcrypt.GenerateSymmetricKey(h.handle, &c.kh, nil, c.key, 0)
-	if err != nil {
-		return nil, err
-	}
 	runtime.SetFinalizer(c, (*aesCipher).finalize)
 	return c, nil
 }
@@ -116,11 +84,11 @@ func (c *aesCipher) Decrypt(dst, src []byte) {
 }
 
 func (c *aesCipher) NewCBCEncrypter(iv []byte) cipher.BlockMode {
-	return newCBC(true, c.key, iv)
+	return newCBC(true, bcrypt.AES_ALGORITHM, c.key, iv)
 }
 
 func (c *aesCipher) NewCBCDecrypter(iv []byte) cipher.BlockMode {
-	return newCBC(false, c.key, iv)
+	return newCBC(false, bcrypt.AES_ALGORITHM, c.key, iv)
 }
 
 type noGCM struct {
@@ -151,38 +119,46 @@ func (c *aesCipher) NewGCMTLS() (cipher.AEAD, error) {
 	return newGCM(c.key, true)
 }
 
-type aesCBC struct {
-	kh      bcrypt.KEY_HANDLE
-	iv      [aesBlockSize]byte
-	encrypt bool
+type cbcCipher struct {
+	kh bcrypt.KEY_HANDLE
+	// Use aesBlockSize, the max of all supported cipher block sizes.
+	// The array avoids allocations (vs. a slice).
+	iv        [aesBlockSize]byte
+	blockSize int
+	encrypt   bool
 }
 
-func newCBC(encrypt bool, key, iv []byte) *aesCBC {
-	h, err := loadAes(bcrypt.CHAIN_MODE_CBC)
+func newCBC(encrypt bool, alg string, key, iv []byte) *cbcCipher {
+	var blockSize int
+	switch alg {
+	case bcrypt.AES_ALGORITHM:
+		blockSize = aesBlockSize
+	case bcrypt.DES_ALGORITHM:
+		blockSize = desBlockSize
+	default:
+		panic("invalid algorithm: " + alg)
+	}
+	kh, err := newCipherHandle(alg, bcrypt.CHAIN_MODE_CBC, key)
 	if err != nil {
 		panic(err)
 	}
-	x := &aesCBC{encrypt: encrypt}
+	x := &cbcCipher{kh: kh, encrypt: encrypt, blockSize: blockSize}
+	runtime.SetFinalizer(x, (*cbcCipher).finalize)
 	x.SetIV(iv)
-	err = bcrypt.GenerateSymmetricKey(h.handle, &x.kh, nil, key, 0)
-	if err != nil {
-		panic(err)
-	}
-	runtime.SetFinalizer(x, (*aesCBC).finalize)
 	return x
 }
 
-func (x *aesCBC) finalize() {
+func (x *cbcCipher) finalize() {
 	bcrypt.DestroyKey(x.kh)
 }
 
-func (x *aesCBC) BlockSize() int { return aesBlockSize }
+func (x *cbcCipher) BlockSize() int { return x.blockSize }
 
-func (x *aesCBC) CryptBlocks(dst, src []byte) {
+func (x *cbcCipher) CryptBlocks(dst, src []byte) {
 	if subtle.InexactOverlap(dst, src) {
 		panic("crypto/cipher: invalid buffer overlap")
 	}
-	if len(src)%aesBlockSize != 0 {
+	if len(src)%x.blockSize != 0 {
 		panic("crypto/cipher: input not full blocks")
 	}
 	if len(dst) < len(src) {
@@ -194,9 +170,9 @@ func (x *aesCBC) CryptBlocks(dst, src []byte) {
 	var ret uint32
 	var err error
 	if x.encrypt {
-		err = bcrypt.Encrypt(x.kh, src, nil, x.iv[:], dst, &ret, 0)
+		err = bcrypt.Encrypt(x.kh, src, nil, x.iv[:x.blockSize], dst, &ret, 0)
 	} else {
-		err = bcrypt.Decrypt(x.kh, src, nil, x.iv[:], dst, &ret, 0)
+		err = bcrypt.Decrypt(x.kh, src, nil, x.iv[:x.blockSize], dst, &ret, 0)
 	}
 	if err != nil {
 		panic(err)
@@ -207,8 +183,8 @@ func (x *aesCBC) CryptBlocks(dst, src []byte) {
 	runtime.KeepAlive(x)
 }
 
-func (x *aesCBC) SetIV(iv []byte) {
-	if len(iv) != aesBlockSize {
+func (x *cbcCipher) SetIV(iv []byte) {
+	if len(iv) != x.blockSize {
 		panic("cipher: incorrect length IV")
 	}
 	copy(x.iv[:], iv)
@@ -232,15 +208,11 @@ func (g *aesGCM) finalize() {
 }
 
 func newGCM(key []byte, tls bool) (*aesGCM, error) {
-	h, err := loadAes(bcrypt.CHAIN_MODE_GCM)
+	kh, err := newCipherHandle(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_GCM, key)
 	if err != nil {
 		return nil, err
 	}
-	g := &aesGCM{tls: tls}
-	err = bcrypt.GenerateSymmetricKey(h.handle, &g.kh, nil, key, 0)
-	if err != nil {
-		return nil, err
-	}
+	g := &aesGCM{kh: kh, tls: tls}
 	runtime.SetFinalizer(g, (*aesGCM).finalize)
 	return g, nil
 }
