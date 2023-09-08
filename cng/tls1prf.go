@@ -25,12 +25,12 @@ func loadTLS1PRF(id string) (bcrypt.ALG_HANDLE, error) {
 }
 
 func TLS1PRF(secret, label, seed []byte, keyLen int, h func() hash.Hash) ([]byte, error) {
+	// TLS 1.0/1.1 PRF uses MD5SHA1.
 	algID := bcrypt.TLS1_1_KDF_ALGORITHM
 	var hashID string
 	if h != nil {
-		// TLS 1.0/1.1 PRF doesn't allow to specify the hash function,
-		// it always uses MD5SHA1. If h is nil, then assume
-		// that the caller wants to use TLS 1.1 PRF.
+		// If h is specified, assume the caller wants to use TLS 1.2 PRF.
+		// TLS 1.0/1.1 PRF doesn't allow specifying the hash function.
 		if hashID = hashToID(h()); hashID == "" {
 			return nil, errors.New("cng: unsupported hash function")
 		}
