@@ -78,16 +78,6 @@ var golden = []rc4Test{
 	},
 }
 
-func testEncrypt(t *testing.T, desc string, c *cng.RC4Cipher, src, expect []byte) {
-	dst := make([]byte, len(src))
-	c.XORKeyStream(dst, src)
-	for i, v := range dst {
-		if v != expect[i] {
-			t.Fatalf("%s: mismatch at byte %d:\nhave %x\nwant %x", desc, i, dst, expect)
-		}
-	}
-}
-
 func TestRC4Golden(t *testing.T) {
 	for gi, g := range golden {
 		data := make([]byte, len(g.keystream))
