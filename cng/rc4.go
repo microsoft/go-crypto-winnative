@@ -55,7 +55,7 @@ func (c *RC4Cipher) XORKeyStream(dst, src []byte) {
 		panic("crypto/rc4: encryption failed: " + err.Error())
 	}
 	if int(outLen) != len(src) {
-		panic("crypto/rc4: plaintext not fully encrypted")
+		panic("crypto/rc4: src not fully XORed")
 	}
 	runtime.KeepAlive(c)
 }
