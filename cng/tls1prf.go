@@ -24,7 +24,10 @@ func loadTLS1PRF(id string) (bcrypt.ALG_HANDLE, error) {
 	return h.(bcrypt.ALG_HANDLE), nil
 }
 
-func TLS1PRF(secret, label, seed []byte, keyLen int, h func() hash.Hash) ([]byte, error) {
+// TLS1PRF implements the TLS 1.0/1.1 pseudo-random function if h is nil,
+// else it implements the TLS 1.2 pseudo-random function.
+// The pseudo-random number will be written to result and will be of length len(result).
+func TLS1PRF(result, secret, label, seed []byte, h func() hash.Hash) error {
 	// TLS 1.0/1.1 PRF uses MD5SHA1.
 	algID := bcrypt.TLS1_1_KDF_ALGORITHM
 	var hashID string
@@ -32,18 +35,18 @@ func TLS1PRF(secret, label, seed []byte, keyLen int, h func() hash.Hash) ([]byte
 		// If h is specified, assume the caller wants to use TLS 1.2 PRF.
 		// TLS 1.0/1.1 PRF doesn't allow specifying the hash function.
 		if hashID = hashToID(h()); hashID == "" {
-			return nil, errors.New("cng: unsupported hash function")
+			return errors.New("cng: unsupported hash function")
 		}
 		algID = bcrypt.TLS1_2_KDF_ALGORITHM
 	}
 
 	alg, err := loadTLS1PRF(algID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	var kh bcrypt.KEY_HANDLE
 	if err := bcrypt.GenerateSymmetricKey(alg, &kh, nil, secret, 0); err != nil {
-		return nil, err
+		return err
 	}
 
 	buffers := make([]bcrypt.Buffer, 0, 3)
@@ -73,11 +76,17 @@ func TLS1PRF(secret, label, seed []byte, keyLen int, h func() hash.Hash) ([]byte
 		Count:   uint32(len(buffers)),
 		Buffers: &buffers[0],
 	}
-	out := make([]byte, keyLen)
 	var size uint32
-	err = bcrypt.KeyDerivation(kh, params, out, &size, 0)
+	err = bcrypt.KeyDerivation(kh, params, result, &size, 0)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return out[:size], nil
+	// The Go standard library expects TLS1PRF to return the requested number of bytes,
+	// fail if it doesn't. While there is no known situation where this will happen,
+	// BCryptKeyDerivation handles multiple algorithms and there could be a subtle mismatch
+	// after more code changes in the future.
+	if size != uint32(len(result)) {
+		return errors.New("tls1-prf: derived less bytes than requested")
+	}
+	return nil
 }
