@@ -18,6 +18,7 @@ const desBlockSize = 8
 
 type desCipher struct {
 	kh  bcrypt.KEY_HANDLE
+	alg string
 	key []byte
 }
 
@@ -26,7 +27,7 @@ func NewDESCipher(key []byte) (cipher.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &desCipher{kh: kh, key: make([]byte, len(key))}
+	c := &desCipher{kh: kh, alg: bcrypt.DES_ALGORITHM, key: make([]byte, len(key))}
 	copy(c.key, key)
 	runtime.SetFinalizer(c, (*desCipher).finalize)
 	return c, nil
@@ -37,7 +38,7 @@ func NewTripleDESCipher(key []byte) (cipher.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &desCipher{kh: kh, key: make([]byte, len(key))}
+	c := &desCipher{kh: kh, alg: bcrypt.DES3_ALGORITHM, key: make([]byte, len(key))}
 	copy(c.key, key)
 	runtime.SetFinalizer(c, (*desCipher).finalize)
 	return c, nil
@@ -98,9 +99,9 @@ func (c *desCipher) Decrypt(dst, src []byte) {
 }
 
 func (c *desCipher) NewCBCEncrypter(iv []byte) cipher.BlockMode {
-	return newCBC(true, bcrypt.DES_ALGORITHM, c.key, iv)
+	return newCBC(true, c.alg, c.key, iv)
 }
 
 func (c *desCipher) NewCBCDecrypter(iv []byte) cipher.BlockMode {
-	return newCBC(false, bcrypt.DES_ALGORITHM, c.key, iv)
+	return newCBC(false, c.alg, c.key, iv)
 }

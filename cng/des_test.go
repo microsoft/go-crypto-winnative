@@ -1517,7 +1517,7 @@ func TestDESSharedBufferWithoutLengthAdjustment(t *testing.T) {
 	c.Encrypt(dst, src)
 }
 
-func TestCBCBlobEncryptBasicBlockEncryption(t *testing.T) {
+func TestDESCBCBlobEncryptBasicBlockEncryption(t *testing.T) {
 	key := []byte{0x24, 0xcd, 0x8b, 0x13, 0x37, 0xc5, 0xc1, 0xb1}
 	iv := []byte{0x91, 0xc7, 0xa7, 0x54, 0x52, 0xef, 0x10, 0xdb}
 
@@ -1563,7 +1563,7 @@ func TestCBCBlobEncryptBasicBlockEncryption(t *testing.T) {
 	}
 }
 
-func TestCBCDecryptSimple(t *testing.T) {
+func TestDESCBCDecryptSimple(t *testing.T) {
 	key := []byte{0x24, 0xcd, 0x8b, 0x13, 0x37, 0xc5, 0xc1, 0xb1}
 
 	block, err := cng.NewDESCipher(key)
@@ -1614,6 +1614,61 @@ func TestCBCDecryptSimple(t *testing.T) {
 	}
 }
 
+func TestTripleDESCBCDecryptSimple(t *testing.T) {
+	key := []byte{
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
+
+	block, err := cng.NewTripleDESCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	iv := []byte{0x91, 0xc7, 0xa7, 0x54, 0x52, 0xef, 0x10, 0xdb}
+
+	encrypter := cipher.NewCBCEncrypter(block, iv)
+	decrypter := cipher.NewCBCDecrypter(block, iv)
+
+	plainText := []byte{
+		0x54, 0x68, 0x65, 0x72, 0x65, 0x20, 0x69, 0x73,
+		0x20, 0x6f, 0x6e, 0x6c, 0x79, 0x20, 0x6f, 0x6e,
+		0x65, 0x20, 0x4c, 0x6f, 0x72, 0x64, 0x20, 0x6f,
+		0x66, 0x20, 0x74, 0x68, 0x65, 0x20, 0x52, 0x69,
+		0x6e, 0x67, 0x2c, 0x20, 0x6f, 0x6e, 0x6c, 0x79,
+	}
+	cipherText := make([]byte, len(plainText))
+
+	encrypter.CryptBlocks(cipherText, plainText[:40])
+	encrypter.CryptBlocks(cipherText[40:], plainText[40:])
+
+	expectedCipherText := []byte{
+		0x44, 0x23, 0xc4, 0xf9, 0x5c, 0x7b, 0x1d, 0xd4,
+		0x46, 0xeb, 0x7d, 0xfe, 0x32, 0xd8, 0x14, 0x7c,
+		0x4f, 0xa9, 0x8f, 0x99, 0x55, 0xd4, 0x4a, 0xf9,
+		0x57, 0xee, 0x1e, 0x5b, 0x5c, 0x49, 0x9e, 0xea,
+		0x93, 0xd5, 0x4d, 0x54, 0x94, 0xf9, 0x9a, 0x22,
+	}
+
+	if !bytes.Equal(expectedCipherText, cipherText) {
+		t.Fail()
+	}
+
+	decrypted := make([]byte, len(plainText))
+
+	decrypter.CryptBlocks(decrypted, cipherText[:40])
+	decrypter.CryptBlocks(decrypted[40:], cipherText[40:])
+
+	if len(decrypted) != len(plainText) {
+		t.Fail()
+	}
+
+	if !bytes.Equal(plainText, decrypted) {
+		t.Errorf("decryption incorrect\nexp %v, got %v\n", plainText, decrypted)
+	}
+}
+
 func BenchmarkEncrypt(b *testing.B) {
 	tt := encryptDESTests[0]
 	c, err := cng.NewDESCipher(tt.key)
@@ -1642,7 +1697,7 @@ func BenchmarkDecrypt(b *testing.B) {
 	}
 }
 
-func BenchmarkTDESEncrypt(b *testing.B) {
+func BenchmarkTripleDESEncrypt(b *testing.B) {
 	tt := encryptTripleDESTests[0]
 	c, err := cng.NewTripleDESCipher(tt.key)
 	if err != nil {
@@ -1656,7 +1711,7 @@ func BenchmarkTDESEncrypt(b *testing.B) {
 	}
 }
 
-func BenchmarkTDESDecrypt(b *testing.B) {
+func BenchmarkTripleDESDecrypt(b *testing.B) {
 	tt := encryptTripleDESTests[0]
 	c, err := cng.NewTripleDESCipher(tt.key)
 	if err != nil {
