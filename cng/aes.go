@@ -133,7 +133,7 @@ func newCBC(encrypt bool, alg string, key, iv []byte) *cbcCipher {
 	switch alg {
 	case bcrypt.AES_ALGORITHM:
 		blockSize = aesBlockSize
-	case bcrypt.DES_ALGORITHM:
+	case bcrypt.DES_ALGORITHM, bcrypt.DES3_ALGORITHM:
 		blockSize = desBlockSize
 	default:
 		panic("invalid algorithm: " + alg)
