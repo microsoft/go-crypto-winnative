@@ -37,8 +37,11 @@ type hkdf struct {
 	info []byte
 
 	hashLen int
-	buf     []byte
-	n       int
+	n       int // count of bytes requested from Read
+	// buf contains the derived data.
+	// len(buf) can be larger than n, as Read may derive
+	// more data than requested and cache it in buf.
+	buf []byte
 }
 
 func (c *hkdf) finalize() {
