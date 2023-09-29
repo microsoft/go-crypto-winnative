@@ -8,8 +8,6 @@ package cng_test
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"crypto/sha256"
 	"hash"
 	"testing"
 
@@ -181,7 +179,7 @@ func TestPBKDF2NoSalt(t *testing.T) {
 
 var sink uint8
 
-func benchmark(b *testing.B, h func() hash.Hash) {
+func benchmarkPBKDF2(b *testing.B, h func() hash.Hash) {
 	password := make([]byte, h().Size())
 	salt := make([]byte, 8)
 	var err error
@@ -194,10 +192,10 @@ func benchmark(b *testing.B, h func() hash.Hash) {
 	sink += password[0]
 }
 
-func BenchmarkHMACSHA1(b *testing.B) {
-	benchmark(b, sha1.New)
+func BenchmarkPBKDF2HMACSHA1(b *testing.B) {
+	benchmarkPBKDF2(b, cng.NewSHA1)
 }
 
-func BenchmarkHMACSHA256(b *testing.B) {
-	benchmark(b, sha256.New)
+func BenchmarkPBKDF2HMACSHA256(b *testing.B) {
+	benchmarkPBKDF2(b, cng.NewSHA256)
 }
