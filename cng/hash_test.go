@@ -171,7 +171,7 @@ func TestHash_OneShot(t *testing.T) {
 	}
 }
 
-func BenchmarkHash8Bytes(b *testing.B) {
+func BenchmarkSHA256_8Bytes(b *testing.B) {
 	b.StopTimer()
 	h := cng.NewSHA256()
 	sum := make([]byte, h.Size())
@@ -188,7 +188,7 @@ func BenchmarkHash8Bytes(b *testing.B) {
 	}
 }
 
-func BenchmarkSHA256(b *testing.B) {
+func BenchmarkSHA256_OneShot(b *testing.B) {
 	b.StopTimer()
 	size := 8
 	buf := make([]byte, size)
