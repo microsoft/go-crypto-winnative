@@ -79,13 +79,13 @@ func (c *hkdf) Read(p []byte) (int, error) {
 	if bytesNeeded := totalDerived - len(c.buf); bytesNeeded > 0 {
 		// It is common to derive multiple equally sized keys from the same HKDF instance.
 		// Optimize this case by allocating a buffer large enough to hold
-		// at least 5 of such keys each time there is not enough data.
+		// at least 3 of such keys each time there is not enough data.
 		blocks := bytesNeeded / c.hashLen
 		if bytesNeeded%c.hashLen != 0 {
 			// Round up to the next multiple of hashLen.
 			blocks += 1
 		}
-		const minBlocks = 5
+		const minBlocks = 3
 		if blocks < minBlocks {
 			blocks = minBlocks
 		}
@@ -101,7 +101,7 @@ func (c *hkdf) Read(p []byte) (int, error) {
 			return 0, err
 		}
 		// Adjust totalDerived to the actual number of bytes derived.
-		totalDerived = c.n + n
+		totalDerived = n
 	}
 	n := copy(p, c.buf[c.n:totalDerived])
 	c.n += n
