@@ -140,7 +140,7 @@ func newHKDF(h func() hash.Hash, secret, salt []byte, info []byte) (*hkdf, error
 		bcrypt.DestroyKey(kh)
 		return nil, err
 	}
-	k := &hkdf{kh, info, ch.Size(), nil, 0}
+	k := &hkdf{kh, info, ch.Size(), 0, nil}
 	runtime.SetFinalizer(k, (*hkdf).finalize)
 	return k, nil
 }
