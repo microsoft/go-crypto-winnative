@@ -83,11 +83,8 @@ func (c *hkdf) Read(p []byte) (int, error) {
 		// It is common to derive multiple equally sized keys from the same HKDF instance.
 		// Optimize this case by allocating a buffer large enough to hold
 		// at least 3 of such keys each time there is not enough data.
-		blocks := bytesNeeded / c.hashLen
-		if bytesNeeded%c.hashLen != 0 {
-			// Round up to the next multiple of hashLen.
-			blocks += 1
-		}
+		// Round up to the next multiple of hashLen.
+		blocks := (bytesNeeded-1)/c.hashLen + 1
 		const minBlocks = 3
 		if blocks < minBlocks {
 			blocks = minBlocks
