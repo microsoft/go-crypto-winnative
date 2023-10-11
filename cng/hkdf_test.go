@@ -394,15 +394,15 @@ func TestHKDFLimit(t *testing.T) {
 	}
 }
 
-func Benchmark32ByteSHA256Single(b *testing.B) {
+func BenchmarkHKDF32ByteSHA256Single(b *testing.B) {
 	benchmarkHKDFSingle(cng.NewSHA256, 32, b)
 }
 
-func Benchmark8ByteSHA256Stream(b *testing.B) {
+func BenchmarkHKDF8ByteSHA256Stream(b *testing.B) {
 	benchmarkHKDFStream(cng.NewSHA256, 8, b)
 }
 
-func Benchmark32ByteSHA256Stream(b *testing.B) {
+func BenchmarkHKDF32ByteSHA256Stream(b *testing.B) {
 	benchmarkHKDFStream(cng.NewSHA256, 32, b)
 }
 
