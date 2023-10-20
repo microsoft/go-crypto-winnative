@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"encoding/binary"
 	"errors"
 	"math"
 	"runtime"
@@ -101,6 +102,12 @@ func getUint32(h bcrypt.HANDLE, name string) (uint32, error) {
 	var prop, discard uint32
 	err := bcrypt.GetProperty(h, utf16PtrFromString(name), (*[4]byte)(unsafe.Pointer(&prop))[:], &discard, 0)
 	return prop, err
+}
+
+func setUint32(h bcrypt.HANDLE, name string, val uint32) error {
+	var p [4]byte
+	binary.LittleEndian.PutUint32(p[:], val)
+	return bcrypt.SetProperty(h, utf16PtrFromString(name), p[:], 0)
 }
 
 const sizeOfKEY_LENGTHS_STRUCT = unsafe.Sizeof(bcrypt.KEY_LENGTHS_STRUCT{})

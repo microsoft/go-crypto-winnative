@@ -31,6 +31,7 @@ const (
 	DES3_ALGORITHM       = "3DES" // 3DES_ALGORITHM
 	TLS1_1_KDF_ALGORITHM = "TLS1_1_KDF"
 	TLS1_2_KDF_ALGORITHM = "TLS1_2_KDF"
+	DSA_ALGORITHM        = "DSA"
 )
 
 const (
@@ -50,6 +51,7 @@ const (
 	CHAIN_MODE_GCM    = "ChainingModeGCM"
 	KEY_LENGTH        = "KeyLength"
 	KEY_LENGTHS       = "KeyLengths"
+	SIGNATURE_LENGTH  = "SignatureLength"
 	BLOCK_LENGTH      = "BlockLength"
 	ECC_CURVE_NAME    = "ECCCurveName"
 )
@@ -59,6 +61,8 @@ const (
 	RSAFULLPRIVATE_BLOB = "RSAFULLPRIVATEBLOB"
 	ECCPUBLIC_BLOB      = "ECCPUBLICBLOB"
 	ECCPRIVATE_BLOB     = "ECCPRIVATEBLOB"
+	DSA_PUBLIC_BLOB     = "DSAPUBLICBLOB"
+	DSA_PRIVATE_BLOB    = "DSAPRIVATEBLOB"
 )
 
 const (
@@ -109,6 +113,45 @@ const (
 	KDF_RAW_SECRET = "TRUNCATE"
 )
 
+const (
+	DSA_PARAMETERS = "DSAParameters"
+)
+
+type HASHALGORITHM_ENUM uint32
+
+const (
+	DSA_HASH_ALGORITHM_SHA1 HASHALGORITHM_ENUM = iota
+	DSA_HASH_ALGORITHM_SHA256
+	DSA_HASH_ALGORITHM_SHA512
+)
+
+type DSAFIPSVERSION_ENUM uint32
+
+const (
+	DSA_FIPS186_2 DSAFIPSVERSION_ENUM = iota
+	DSA_FIPS186_3
+)
+
+type DSA_PARAMETER_HEADER struct {
+	Length  uint32
+	Magic   KeyBlobMagicNumber
+	KeySize uint32
+	Count   [4]uint8
+	Seed    [20]uint8
+	Q       [20]uint8
+}
+
+type DSA_PARAMETER_HEADER_V2 struct {
+	Length          uint32
+	Magic           KeyBlobMagicNumber
+	KeySize         uint32
+	HashAlgorithm   HASHALGORITHM_ENUM
+	StandardVersion DSAFIPSVERSION_ENUM
+	SeedLength      uint32
+	GroupSize       uint32
+	Count           [4]uint8
+}
+
 type PadMode uint32
 
 const (
@@ -137,6 +180,14 @@ const (
 
 	ECDH_PUBLIC_GENERIC_MAGIC  KeyBlobMagicNumber = 0x504B4345
 	ECDH_PRIVATE_GENERIC_MAGIC KeyBlobMagicNumber = 0x564B4345
+
+	DSA_PARAMETERS_MAGIC KeyBlobMagicNumber = 0x4d505344
+	DSA_PUBLIC_MAGIC     KeyBlobMagicNumber = 0x42505344
+	DSA_PRIVATE_MAGIC    KeyBlobMagicNumber = 0x56505344
+
+	DSA_PARAMETERS_MAGIC_V2 KeyBlobMagicNumber = 0x324d5044
+	DSA_PUBLIC_MAGIC_V2     KeyBlobMagicNumber = 0x32425044
+	DSA_PRIVATE_MAGIC_V2    KeyBlobMagicNumber = 0x32565044
 )
 
 type (
@@ -221,6 +272,26 @@ type RSAKEY_BLOB struct {
 type ECCKEY_BLOB struct {
 	Magic   KeyBlobMagicNumber
 	KeySize uint32
+}
+
+// https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_dsa_key_blob
+type DSA_KEY_BLOB struct {
+	Magic   KeyBlobMagicNumber
+	KeySize uint32
+	Count   [4]uint8
+	Seed    [20]uint8
+	Q       [20]uint8
+}
+
+// https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_dsa_key_blob_v2
+type DSA_KEY_BLOB_V2 struct {
+	Magic           KeyBlobMagicNumber
+	KeySize         uint32
+	HashAlgorithm   HASHALGORITHM_ENUM
+	StandardVersion DSAFIPSVERSION_ENUM
+	SeedLength      uint32
+	GroupSize       uint32
+	Count           [4]uint8
 }
 
 func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) {
