@@ -106,7 +106,7 @@ func (c *aesCipher) NewGCM(nonceSize, tagSize int) (cipher.AEAD, error) {
 	if tagSize != gcmTagSize {
 		return cipher.NewGCMWithTagSize(&noGCM{c}, tagSize)
 	}
-	return newGCM(c.key, false)
+	return newGCM(c.key, cipherGCMTLSNone)
 }
 
 // NewGCMTLS returns a GCM cipher specific to TLS
@@ -116,7 +116,17 @@ func NewGCMTLS(c cipher.Block) (cipher.AEAD, error) {
 }
 
 func (c *aesCipher) NewGCMTLS() (cipher.AEAD, error) {
-	return newGCM(c.key, true)
+	return newGCM(c.key, cipherGCMTLS12)
+}
+
+// NewGCMTLS13 returns a GCM cipher specific to TLS 1.3 and should not be used
+// for non-TLS purposes.
+func NewGCMTLS13(c cipher.Block) (cipher.AEAD, error) {
+	return c.(*aesCipher).NewGCMTLS13()
+}
+
+func (c *aesCipher) NewGCMTLS13() (cipher.AEAD, error) {
+	return newGCM(c.key, cipherGCMTLS13)
 }
 
 type cbcCipher struct {
@@ -197,17 +207,32 @@ const (
 	gcmTlsFixedNonceSize = 4
 )
 
+type cipherGCMTLS uint8
+
+const (
+	cipherGCMTLSNone cipherGCMTLS = iota
+	cipherGCMTLS12
+	cipherGCMTLS13
+)
+
 type aesGCM struct {
-	kh           bcrypt.KEY_HANDLE
-	tls          bool
+	kh  bcrypt.KEY_HANDLE
+	tls cipherGCMTLS
+	// minNextNonce is the minimum value that the next nonce can be, enforced by
+	// all TLS modes.
 	minNextNonce uint64
+	// mask is the nonce mask used in TLS 1.3 mode.
+	mask uint64
+	// maskInitialized is true if mask has been initialized. This happens during
+	// the first Seal. The initialized mask may be 0. Used by TLS 1.3 mode.
+	maskInitialized bool
 }
 
 func (g *aesGCM) finalize() {
 	bcrypt.DestroyKey(g.kh)
 }
 
-func newGCM(key []byte, tls bool) (*aesGCM, error) {
+func newGCM(key []byte, tls cipherGCMTLS) (*aesGCM, error) {
 	kh, err := newCipherHandle(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_GCM, key)
 	if err != nil {
 		return nil, err
@@ -235,15 +260,39 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 	if len(dst)+len(plaintext)+gcmTagSize < len(dst) {
 		panic("cipher: message too large for buffer")
 	}
-	if g.tls {
+	if g.tls != cipherGCMTLSNone {
 		if len(additionalData) != gcmTlsAddSize {
 			panic("cipher: incorrect additional data length given to GCM TLS")
+		}
+		counter := bigUint64(nonce[gcmTlsFixedNonceSize:])
+		if g.tls == cipherGCMTLS13 {
+			// In TLS 1.3, the counter in the nonce has a mask and requires
+			// further decoding.
+			if !g.maskInitialized {
+				// According to TLS 1.3 nonce construction details at
+				// https://tools.ietf.org/html/rfc8446#section-5.3:
+				//
+				//   the first record transmitted under a particular traffic
+				//   key MUST use sequence number 0.
+				//
+				//   The padded sequence number is XORed with [a mask].
+				//
+				//   The resulting quantity (of length iv_length) is used as
+				//   the per-record nonce.
+				//
+				// We need to convert from the given nonce to sequence numbers
+				// to keep track of minNextNonce and enforce the counter
+				// maximum. On the first call, we know counter^mask is 0^mask,
+				// so we can simply store it as the mask.
+				g.mask = counter
+				g.maskInitialized = true
+			}
+			counter ^= g.mask
 		}
 		// BoringCrypto enforces strictly monotonically increasing explicit nonces
 		// and to fail after 2^64 - 1 keys as per FIPS 140-2 IG A.5,
 		// but BCrypt does not perform this check, so it is implemented here.
 		const maxUint64 = 1<<64 - 1
-		counter := bigUint64(nonce[gcmTlsFixedNonceSize:])
 		if counter == maxUint64 {
 			panic("cipher: nonce counter must be less than 2^64 - 1")
 		}
