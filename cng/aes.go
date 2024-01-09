@@ -203,7 +203,14 @@ func (x *cbcCipher) SetIV(iv []byte) {
 const (
 	gcmTagSize           = 16
 	gcmStandardNonceSize = 12
-	gcmTlsAddSize        = 13
+	// TLS 1.2 additional data is constructed as:
+	//
+	//     additional_data = seq_num(8) + TLSCompressed.type(1) + TLSCompressed.version(2) + TLSCompressed.length(2);
+	gcmTls12AddSize = 13
+	// TLS 1.3 additional data is constructed as:
+	//
+	//     additional_data = TLSCiphertext.opaque_type(1) || TLSCiphertext.legacy_record_version(2) || TLSCiphertext.length(2)
+	gcmTls13AddSize      = 5
 	gcmTlsFixedNonceSize = 4
 )
 
@@ -261,8 +268,10 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 		panic("cipher: message too large for buffer")
 	}
 	if g.tls != cipherGCMTLSNone {
-		if len(additionalData) != gcmTlsAddSize {
-			panic("cipher: incorrect additional data length given to GCM TLS")
+		if g.tls == cipherGCMTLS12 && len(additionalData) != gcmTls12AddSize {
+			panic("cipher: incorrect additional data length given to GCM TLS 1.2")
+		} else if g.tls == cipherGCMTLS13 && len(additionalData) != gcmTls13AddSize {
+			panic("cipher: incorrect additional data length given to GCM TLS 1.3")
 		}
 		counter := bigUint64(nonce[gcmTlsFixedNonceSize:])
 		if g.tls == cipherGCMTLS13 {
