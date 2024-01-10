@@ -73,12 +73,12 @@ func TestSealAndOpen(t *testing.T) {
 func TestSealAndOpenTLS(t *testing.T) {
 	tests := []struct {
 		name string
-		new  func(c cipher.Block) (cipher.AEAD, error)
+		tls  string
 		mask func(n *[12]byte)
 	}{
-		{"1.2", NewGCMTLS, nil},
-		{"1.3", NewGCMTLS13, nil},
-		{"1.3_masked", NewGCMTLS13, func(n *[12]byte) {
+		{"1.2", "1.2", nil},
+		{"1.3", "1.3", nil},
+		{"1.3_masked", "1.3", func(n *[12]byte) {
 			// Arbitrary mask in the high bits.
 			n[9] ^= 0x42
 			// Mask the very first bit. This makes sure that if Seal doesn't
@@ -93,7 +93,13 @@ func TestSealAndOpenTLS(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			gcm, err := tt.new(ci)
+			var gcm cipher.AEAD
+			switch tt.tls {
+			case "1.2":
+				gcm, err = NewGCMTLS(ci)
+			case "1.3":
+				gcm, err = NewGCMTLS13(ci)
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -108,9 +114,15 @@ func TestSealAndOpenTLS(t *testing.T) {
 				}
 			}
 			plainText := []byte{0x01, 0x02, 0x03}
-			additionalData := make([]byte, 13)
-			additionalData[11] = byte(len(plainText) >> 8)
-			additionalData[12] = byte(len(plainText))
+			var additionalData []byte
+			switch tt.tls {
+			case "1.2":
+				additionalData = make([]byte, 13)
+			case "1.3":
+				additionalData = []byte{23, 3, 3, 0, 0}
+			}
+			additionalData[len(additionalData)-2] = byte(len(plainText) >> 8)
+			additionalData[len(additionalData)-1] = byte(len(plainText))
 			sealed := gcm.Seal(nil, nonce[:], plainText, additionalData)
 			assertPanic(t, func() {
 				gcm.Seal(nil, nonce[:], plainText, additionalData)
