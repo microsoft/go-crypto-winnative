@@ -84,7 +84,6 @@ func testDSASignAndVerify(t *testing.T, i int, priv *cng.PrivateKeyDSA) {
 	}
 
 	// Test compatibility with crypto/dsa.
-	// TODO: This fails, sometimes...
 	priv1 := dsa.PrivateKey{
 		PublicKey: dsa.PublicKey{
 			Parameters: dsa.Parameters{
