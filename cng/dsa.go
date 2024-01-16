@@ -329,7 +329,7 @@ func decodeDSAKey(hkey bcrypt.KEY_HANDLE, private bool) (params DSAParameters, X
 	}
 	if L <= 1024 {
 		var hdr bcrypt.DSA_KEY_BLOB
-		hdr, data, err = exporDSAKey(hkey, private)
+		hdr, data, err = exportDSAKey(hkey, private)
 		if err != nil {
 			return
 		}

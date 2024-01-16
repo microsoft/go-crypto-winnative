@@ -23,8 +23,8 @@ const (
 	sizeOfDSAParamsV2Header = uint32(unsafe.Sizeof(bcrypt.DSA_PARAMETER_HEADER_V2{}))
 )
 
-// exporDSAKey exports hkey into a bcrypt.DSA_KEY_BLOB header and data.
-func exporDSAKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.DSA_KEY_BLOB, []byte, error) {
+// exportDSAKey exports hkey into a bcrypt.DSA_KEY_BLOB header and data.
+func exportDSAKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.DSA_KEY_BLOB, []byte, error) {
 	var magic string
 	if private {
 		magic = bcrypt.DSA_PRIVATE_BLOB
