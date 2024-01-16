@@ -18,7 +18,7 @@ import (
 // As of FIPS 186-4 the maximum Q size is 32 bytes.
 //
 // See also: cbGroupSize at
-// https://docs.microsoft.com/en-us/windows/desktop/api/bcrypt/ns-bcrypt-_bcrypt_dsa_key_blob_v2
+// https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_dsa_key_blob_v2
 const maxGroupSize = 32
 
 // crypto/dsa doesn't support passing the seed around, but CNG expects it.
