@@ -17,7 +17,49 @@ const (
 	sizeOfECCBlobHeader     = uint32(unsafe.Sizeof(bcrypt.ECCKEY_BLOB{}))
 	sizeOfRSABlobHeader     = uint32(unsafe.Sizeof(bcrypt.RSAKEY_BLOB{}))
 	sizeOfKeyDataBlobHeader = uint32(unsafe.Sizeof(bcrypt.KEY_DATA_BLOB_HEADER{}))
+	sizeOfDSABlobHeader     = uint32(unsafe.Sizeof(bcrypt.DSA_KEY_BLOB{}))
+	sizeOfDSAV2BlobHeader   = uint32(unsafe.Sizeof(bcrypt.DSA_KEY_BLOB_V2{}))
+	sizeOfDSAParamsHeader   = uint32(unsafe.Sizeof(bcrypt.DSA_PARAMETER_HEADER{}))
+	sizeOfDSAParamsV2Header = uint32(unsafe.Sizeof(bcrypt.DSA_PARAMETER_HEADER_V2{}))
 )
+
+// exportDSAKey exports hkey into a bcrypt.DSA_KEY_BLOB header and data.
+func exportDSAKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.DSA_KEY_BLOB, []byte, error) {
+	var magic string
+	if private {
+		magic = bcrypt.DSA_PRIVATE_BLOB
+	} else {
+		magic = bcrypt.DSA_PUBLIC_BLOB
+	}
+	blob, err := exportKey(hkey, magic)
+	if err != nil {
+		return bcrypt.DSA_KEY_BLOB{}, nil, err
+	}
+	if len(blob) < int(sizeOfDSABlobHeader) {
+		return bcrypt.DSA_KEY_BLOB{}, nil, errors.New("cng: exported key is corrupted")
+	}
+	hdr := (*(*bcrypt.DSA_KEY_BLOB)(unsafe.Pointer(&blob[0])))
+	return hdr, blob[sizeOfDSABlobHeader:], nil
+}
+
+// exporDSAV2Key exports hkey into a bcrypt.DSA_KEY_BLOB_V2 header and data.
+func exporDSAV2Key(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.DSA_KEY_BLOB_V2, []byte, error) {
+	var magic string
+	if private {
+		magic = bcrypt.DSA_PRIVATE_BLOB
+	} else {
+		magic = bcrypt.DSA_PUBLIC_BLOB
+	}
+	blob, err := exportKey(hkey, magic)
+	if err != nil {
+		return bcrypt.DSA_KEY_BLOB_V2{}, nil, err
+	}
+	if len(blob) < int(sizeOfDSAV2BlobHeader) {
+		return bcrypt.DSA_KEY_BLOB_V2{}, nil, errors.New("cng: exported key is corrupted")
+	}
+	hdr := (*(*bcrypt.DSA_KEY_BLOB_V2)(unsafe.Pointer(&blob[0])))
+	return hdr, blob[sizeOfDSAV2BlobHeader:], nil
+}
 
 // exportRSAKey exports hkey into a bcrypt.ECCKEY_BLOB header and data.
 func exportECCKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.ECCKEY_BLOB, []byte, error) {
