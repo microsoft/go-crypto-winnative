@@ -94,6 +94,9 @@ func GenerateDSAParameters(L int) (params DSAParameters, err error) {
 
 // PrivateKeyDSA represents a DSA private key.
 type PrivateKeyDSA struct {
+	DSAParameters
+	X, Y BigInt
+
 	hkey bcrypt.KEY_HANDLE
 }
 
@@ -101,24 +104,16 @@ func (k *PrivateKeyDSA) finalize() {
 	bcrypt.DestroyKey(k.hkey)
 }
 
-func (k *PrivateKeyDSA) Data() (params DSAParameters, X, Y BigInt, err error) {
-	defer runtime.KeepAlive(k)
-	return decodeDSAKey(k.hkey, true)
-}
-
 // PublicKeyDSA represents a DSA public key.
 type PublicKeyDSA struct {
+	DSAParameters
+	Y BigInt
+
 	hkey bcrypt.KEY_HANDLE
 }
 
 func (k *PublicKeyDSA) finalize() {
 	bcrypt.DestroyKey(k.hkey)
-}
-
-func (k *PublicKeyDSA) Data() (params DSAParameters, Y BigInt, err error) {
-	defer runtime.KeepAlive(k)
-	params, _, Y, err = decodeDSAKey(k.hkey, false)
-	return
 }
 
 // GenerateKeyDSA generates a new private DSA key using the given parameters.
@@ -143,7 +138,12 @@ func GenerateKeyDSA(params DSAParameters) (*PrivateKeyDSA, error) {
 		bcrypt.DestroyKey(hkey)
 		return nil, err
 	}
-	k := &PrivateKeyDSA{hkey}
+	_, x, y, err := decodeDSAKey(hkey, true)
+	if err != nil {
+		bcrypt.DestroyKey(hkey)
+		return nil, err
+	}
+	k := &PrivateKeyDSA{params, x, y, hkey}
 	runtime.SetFinalizer(k, (*PrivateKeyDSA).finalize)
 	return k, nil
 }
@@ -162,7 +162,7 @@ func NewPrivateKeyDSA(params DSAParameters, X, Y BigInt) (*PrivateKeyDSA, error)
 	if err != nil {
 		return nil, err
 	}
-	k := &PrivateKeyDSA{hkey}
+	k := &PrivateKeyDSA{params, X, Y, hkey}
 	runtime.SetFinalizer(k, (*PrivateKeyDSA).finalize)
 	return k, nil
 }
@@ -181,7 +181,7 @@ func NewPublicKeyDSA(params DSAParameters, Y BigInt) (*PublicKeyDSA, error) {
 	if err != nil {
 		return nil, err
 	}
-	k := &PublicKeyDSA{hkey}
+	k := &PublicKeyDSA{params, Y, hkey}
 	runtime.SetFinalizer(k, (*PublicKeyDSA).finalize)
 	return k, nil
 }

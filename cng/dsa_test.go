@@ -68,12 +68,7 @@ func testDSASignAndVerify(t *testing.T, i int, priv *cng.PrivateKeyDSA) {
 		t.Errorf("%d: error signing: %s", i, err)
 		return
 	}
-	params, X, Y, err := priv.Data()
-	if err != nil {
-		t.Errorf("%d: error exporting key: %s", i, err)
-		return
-	}
-	pub, err := cng.NewPublicKeyDSA(params, Y)
+	pub, err := cng.NewPublicKeyDSA(priv.DSAParameters, priv.Y)
 	if err != nil {
 		t.Errorf("%d: error getting public key: %s", i, err)
 		return
@@ -87,13 +82,13 @@ func testDSASignAndVerify(t *testing.T, i int, priv *cng.PrivateKeyDSA) {
 	priv1 := dsa.PrivateKey{
 		PublicKey: dsa.PublicKey{
 			Parameters: dsa.Parameters{
-				P: bbig.Dec(params.P),
-				Q: bbig.Dec(params.Q),
-				G: bbig.Dec(params.G),
+				P: bbig.Dec(priv.P),
+				Q: bbig.Dec(priv.Q),
+				G: bbig.Dec(priv.G),
 			},
-			Y: bbig.Dec(Y),
+			Y: bbig.Dec(priv.Y),
 		},
-		X: bbig.Dec(X),
+		X: bbig.Dec(priv.X),
 	}
 	if !dsa.Verify(&priv1.PublicKey, hashed[:], bbig.Dec(r), bbig.Dec(s)) {
 		t.Errorf("%d: compat: crypto/dsa can't verify CNG signature", i)
