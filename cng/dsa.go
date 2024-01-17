@@ -451,11 +451,11 @@ func dsaAdjustHashSize(hkey bcrypt.KEY_HANDLE, hashed []byte, buf []byte) ([]byt
 	if groupSize < len(hashed) {
 		return hashed[:groupSize], nil
 	}
-	zeroByteCount := groupSize - len(hashed)
-	for i := 0; i < zeroByteCount; i++ {
-		buf[i] = 0
+	if err := encodeBigInt(buf, []sizedBigInt{
+		{hashed, uint32(groupSize)},
+	}); err != nil {
+		return nil, err
 	}
-	copy(buf[zeroByteCount:], hashed)
 	return buf[:groupSize], nil
 }
 
