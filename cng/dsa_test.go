@@ -15,7 +15,7 @@ import (
 	"github.com/microsoft/go-crypto-winnative/cng/bbig"
 )
 
-func TestGenerateDSAParameters(t *testing.T) {
+func TestDSAGenerateParameters(t *testing.T) {
 	testGenerateDSAParameters(t, 1024, 160)
 	testGenerateDSAParameters(t, 2048, 256)
 	testGenerateDSAParameters(t, 3072, 256)
@@ -133,7 +133,7 @@ func TestDSASignAndVerify(t *testing.T) {
 	testDSASignAndVerify(t, 0, priv)
 }
 
-func TestNewPublicKeyDSAWithBadPublicKey(t *testing.T) {
+func TestDSANewPublicKeyWithBadPublicKey(t *testing.T) {
 	params := cng.DSAParameters{
 		P: bbig.Enc(fromHex("A9B5B793FB4785793D246BAE77E8FF63CA52F442DA763C440259919FE1BC1D6065A9350637A04F75A2F039401D49F08E066C4D275A5A65DA5684BC563C14289D7AB8A67163BFBF79D85972619AD2CFF55AB0EE77A9002B0EF96293BDD0F42685EBB2C66C327079F6C98000FBCB79AACDE1BC6F9D5C7B1A97E3D9D54ED7951FEF")),
 		Q: bbig.Enc(fromHex("FA")),
@@ -147,7 +147,7 @@ func TestNewPublicKeyDSAWithBadPublicKey(t *testing.T) {
 	}
 }
 
-func TestNewPrivateKeyDSAWithDegenerateKeys(t *testing.T) {
+func TestDSANewPrivateKeyWithDegenerateKeys(t *testing.T) {
 	// Signing with degenerate private keys should not cause an infinite
 	// loop.
 	badKeys := []struct {
