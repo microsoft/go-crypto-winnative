@@ -3,6 +3,10 @@
 
 //go:generate go run github.com/microsoft/go-crypto-winnative/cmd/mksyscall -output zsyscall_windows.go bcrypt_windows.go
 
+// Package bcrypt implements interop with bcrypt.dll, a component of Windows CNG.
+// See https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/
+//
+// Note: this package is not related to the bcrypt password hashing algorithm.
 package bcrypt
 
 import (
