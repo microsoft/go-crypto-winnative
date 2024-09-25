@@ -23,7 +23,7 @@ type desCipher struct {
 }
 
 func NewDESCipher(key []byte) (cipher.Block, error) {
-	kh, err := newCipherHandle(bcrypt.DES_ALGORITHM, "", key)
+	kh, err := newCipherHandle(bcrypt.DES_ALGORITHM, bcrypt.CHAIN_MODE_ECB, key)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func NewDESCipher(key []byte) (cipher.Block, error) {
 }
 
 func NewTripleDESCipher(key []byte) (cipher.Block, error) {
-	kh, err := newCipherHandle(bcrypt.DES3_ALGORITHM, "", key)
+	kh, err := newCipherHandle(bcrypt.DES3_ALGORITHM, bcrypt.CHAIN_MODE_ECB, key)
 	if err != nil {
 		return nil, err
 	}
