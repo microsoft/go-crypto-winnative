@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
+	"github.com/microsoft/go-crypto-winnative/internal/cryptotest"
 )
 
 type CryptTest struct {
@@ -1667,6 +1668,17 @@ func TestTripleDESCBCDecryptSimple(t *testing.T) {
 	if !bytes.Equal(plainText, decrypted) {
 		t.Errorf("decryption incorrect\nexp %v, got %v\n", plainText, decrypted)
 	}
+}
+
+// Test DES against the general cipher.Block interface tester.
+func TestDESBlock(t *testing.T) {
+	t.Run("DES", func(t *testing.T) {
+		cryptotest.TestBlock(t, 8, cng.NewDESCipher)
+	})
+
+	t.Run("TripleDES", func(t *testing.T) {
+		cryptotest.TestBlock(t, 24, cng.NewTripleDESCipher)
+	})
 }
 
 func BenchmarkEncrypt(b *testing.B) {
