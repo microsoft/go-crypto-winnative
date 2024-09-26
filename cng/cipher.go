@@ -34,7 +34,7 @@ func loadCipher(id, mode string) (cipherAlgorithm, error) {
 		return cipherAlgorithm{h, lengths}, nil
 	})
 	if err != nil {
-		return cipherAlgorithm{}, nil
+		return cipherAlgorithm{}, err
 	}
 	return v.(cipherAlgorithm), nil
 }
