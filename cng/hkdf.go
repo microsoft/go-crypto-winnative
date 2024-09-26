@@ -23,13 +23,9 @@ func SupportsHKDF() bool {
 }
 
 func loadHKDF() (bcrypt.ALG_HANDLE, error) {
-	h, err := loadOrStoreAlg(bcrypt.HKDF_ALGORITHM, 0, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+	return loadOrStoreAlg(bcrypt.HKDF_ALGORITHM, 0, "", func(h bcrypt.ALG_HANDLE) (bcrypt.ALG_HANDLE, error) {
 		return h, nil
 	})
-	if err != nil {
-		return 0, err
-	}
-	return h.(bcrypt.ALG_HANDLE), nil
 }
 
 type hkdf struct {

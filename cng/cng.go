@@ -36,9 +36,10 @@ func len32(s []byte) int {
 
 var algCache sync.Map
 
-type newAlgEntryFn func(h bcrypt.ALG_HANDLE) (interface{}, error)
-
-func loadOrStoreAlg(id string, flags bcrypt.AlgorithmProviderFlags, mode string, fn newAlgEntryFn) (interface{}, error) {
+// loadOrStoreAlg loads an algorithm with the given id, flags, and mode from the cache.
+// If the algorithm is not in the cache, a new one is created and then initialized using fn.
+// The returned algorithm handle should not be closed by the caller.
+func loadOrStoreAlg[T any](id string, flags bcrypt.AlgorithmProviderFlags, mode string, fn func(h bcrypt.ALG_HANDLE) (T, error)) (T, error) {
 	var entryKey = struct {
 		id    string
 		flags bcrypt.AlgorithmProviderFlags
@@ -46,22 +47,24 @@ func loadOrStoreAlg(id string, flags bcrypt.AlgorithmProviderFlags, mode string,
 	}{id, flags, mode}
 
 	if v, ok := algCache.Load(entryKey); ok {
-		return v, nil
+		return v.(T), nil
 	}
 	var h bcrypt.ALG_HANDLE
 	err := bcrypt.OpenAlgorithmProvider(&h, utf16PtrFromString(id), nil, flags)
 	if err != nil {
-		return nil, err
+		var t T
+		return t, err
 	}
 	v, err := fn(h)
 	if err != nil {
 		bcrypt.CloseAlgorithmProvider(h, 0)
-		return nil, err
+		var t T
+		return t, err
 	}
 	if existing, loaded := algCache.LoadOrStore(entryKey, v); loaded {
 		// We can safely use a provider that has already been cached in another concurrent goroutine.
 		bcrypt.CloseAlgorithmProvider(h, 0)
-		v = existing
+		v = existing.(T)
 	}
 	return v, nil
 }
