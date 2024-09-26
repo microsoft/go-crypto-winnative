@@ -10,8 +10,6 @@ import (
 	"testing"
 )
 
-// This file is a copy of https://github.com/golang/go/blob/9e9b1f57c26a6d13fdaebef67136718b8042cdba/src/crypto/internal/cryptotest/block.go.
-
 type MakeBlock func(key []byte) (cipher.Block, error)
 
 // TestBlock performs a set of tests on cipher.Block implementations, checking
