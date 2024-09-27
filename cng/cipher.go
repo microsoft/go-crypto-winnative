@@ -18,25 +18,21 @@ type cipherAlgorithm struct {
 }
 
 func loadCipher(id, mode string) (cipherAlgorithm, error) {
-	v, err := loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, mode, func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+	return loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, mode, func(h bcrypt.ALG_HANDLE) (cipherAlgorithm, error) {
 		if mode != "" {
 			// Windows 8 added support to set the CipherMode value on a key,
 			// but Windows 7 requires that it be set on the algorithm before key creation.
 			err := setString(bcrypt.HANDLE(h), bcrypt.CHAINING_MODE, mode)
 			if err != nil {
-				return nil, err
+				return cipherAlgorithm{}, err
 			}
 		}
 		lengths, err := getKeyLengths(bcrypt.HANDLE(h))
 		if err != nil {
-			return nil, err
+			return cipherAlgorithm{}, err
 		}
 		return cipherAlgorithm{h, lengths}, nil
 	})
-	if err != nil {
-		return cipherAlgorithm{}, err
-	}
-	return v.(cipherAlgorithm), nil
 }
 
 func newCipherHandle(id, mode string, key []byte) (bcrypt.KEY_HANDLE, error) {

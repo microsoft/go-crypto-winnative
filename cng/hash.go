@@ -157,7 +157,7 @@ type hashAlgorithm struct {
 }
 
 func loadHash(id string, flags bcrypt.AlgorithmProviderFlags) (*hashAlgorithm, error) {
-	v, err := loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+	return loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (*hashAlgorithm, error) {
 		size, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_LENGTH)
 		if err != nil {
 			return nil, err
@@ -168,10 +168,6 @@ func loadHash(id string, flags bcrypt.AlgorithmProviderFlags) (*hashAlgorithm, e
 		}
 		return &hashAlgorithm{h, id, size, blockSize}, nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return v.(*hashAlgorithm), nil
 }
 
 // hashToID converts a hash.Hash implementation from this package

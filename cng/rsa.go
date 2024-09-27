@@ -22,17 +22,13 @@ type rsaAlgorithm struct {
 }
 
 func loadRsa() (rsaAlgorithm, error) {
-	v, err := loadOrStoreAlg(bcrypt.RSA_ALGORITHM, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+	return loadOrStoreAlg(bcrypt.RSA_ALGORITHM, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (rsaAlgorithm, error) {
 		lengths, err := getKeyLengths(bcrypt.HANDLE(h))
 		if err != nil {
-			return nil, err
+			return rsaAlgorithm{}, err
 		}
 		return rsaAlgorithm{h, lengths}, nil
 	})
-	if err != nil {
-		return rsaAlgorithm{}, err
-	}
-	return v.(rsaAlgorithm), nil
 }
 
 func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {

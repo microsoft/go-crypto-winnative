@@ -39,17 +39,13 @@ type dsaAlgorithm struct {
 }
 
 func loadDSA() (h dsaAlgorithm, err error) {
-	v, err := loadOrStoreAlg(bcrypt.DSA_ALGORITHM, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+	return loadOrStoreAlg(bcrypt.DSA_ALGORITHM, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (dsaAlgorithm, error) {
 		lengths, err := getKeyLengths(bcrypt.HANDLE(h))
 		if err != nil {
-			return nil, err
+			return dsaAlgorithm{}, err
 		}
 		return dsaAlgorithm{h, lengths}, nil
 	})
-	if err != nil {
-		return dsaAlgorithm{}, err
-	}
-	return v.(dsaAlgorithm), nil
 }
 
 // DSAParameters contains the DSA parameters.

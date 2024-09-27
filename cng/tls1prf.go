@@ -15,13 +15,9 @@ import (
 )
 
 func loadTLS1PRF(id string) (bcrypt.ALG_HANDLE, error) {
-	h, err := loadOrStoreAlg(id, 0, "", func(h bcrypt.ALG_HANDLE) (interface{}, error) {
+	return loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (bcrypt.ALG_HANDLE, error) {
 		return h, nil
 	})
-	if err != nil {
-		return 0, err
-	}
-	return h.(bcrypt.ALG_HANDLE), nil
 }
 
 // TLS1PRF implements the TLS 1.0/1.1 pseudo-random function if h is nil,
