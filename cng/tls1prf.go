@@ -15,7 +15,7 @@ import (
 )
 
 func loadTLS1PRF(id string) (bcrypt.ALG_HANDLE, error) {
-	return loadOrStoreAlg(id, 0, "", func(h bcrypt.ALG_HANDLE) (bcrypt.ALG_HANDLE, error) {
+	return loadOrStoreAlg(id, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (bcrypt.ALG_HANDLE, error) {
 		return h, nil
 	})
 }

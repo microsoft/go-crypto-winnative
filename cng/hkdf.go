@@ -23,7 +23,7 @@ func SupportsHKDF() bool {
 }
 
 func loadHKDF() (bcrypt.ALG_HANDLE, error) {
-	return loadOrStoreAlg(bcrypt.HKDF_ALGORITHM, 0, "", func(h bcrypt.ALG_HANDLE) (bcrypt.ALG_HANDLE, error) {
+	return loadOrStoreAlg(bcrypt.HKDF_ALGORITHM, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (bcrypt.ALG_HANDLE, error) {
 		return h, nil
 	})
 }

@@ -15,7 +15,7 @@ import (
 )
 
 func loadPBKDF2() (bcrypt.ALG_HANDLE, error) {
-	return loadOrStoreAlg(bcrypt.PBKDF2_ALGORITHM, 0, "", func(h bcrypt.ALG_HANDLE) (bcrypt.ALG_HANDLE, error) {
+	return loadOrStoreAlg(bcrypt.PBKDF2_ALGORITHM, bcrypt.ALG_NONE_FLAG, "", func(h bcrypt.ALG_HANDLE) (bcrypt.ALG_HANDLE, error) {
 		return h, nil
 	})
 }
