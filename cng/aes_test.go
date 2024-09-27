@@ -401,7 +401,7 @@ func TestAESBlockMode(t *testing.T) {
 
 			block, err := NewAESCipher(key)
 			if err != nil {
-				panic(err)
+				t.Fatal(err)
 			}
 
 			cryptotest.TestBlockMode(t, block, cipher.NewCBCEncrypter, cipher.NewCBCDecrypter)
