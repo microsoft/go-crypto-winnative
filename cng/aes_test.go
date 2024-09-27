@@ -9,7 +9,10 @@ package cng
 import (
 	"bytes"
 	"crypto/cipher"
+	"fmt"
 	"testing"
+
+	"github.com/microsoft/go-crypto-winnative/internal/cryptotest"
 )
 
 var key = []byte("D249BF6DEC97B1EBD69BC4D6B3A3C49D")
@@ -373,5 +376,14 @@ func TestCBCDecryptSimple(t *testing.T) {
 
 	if !bytes.Equal(plainText, decrypted) {
 		t.Errorf("decryption incorrect\nexp %v, got %v\n", plainText, decrypted)
+	}
+}
+
+// Test AES against the general cipher.Block interface tester.
+func TestAESBlock(t *testing.T) {
+	for _, keylen := range []int{128, 192, 256} {
+		t.Run(fmt.Sprintf("AES-%d", keylen), func(t *testing.T) {
+			cryptotest.TestBlock(t, keylen/8, NewAESCipher)
+		})
 	}
 }

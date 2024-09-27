@@ -41,15 +41,20 @@ func (c *aesCipher) finalize() {
 func (c *aesCipher) BlockSize() int { return aesBlockSize }
 
 func (c *aesCipher) Encrypt(dst, src []byte) {
-	if subtle.InexactOverlap(dst, src) {
-		panic("crypto/cipher: invalid buffer overlap")
-	}
 	if len(src) < aesBlockSize {
 		panic("crypto/aes: input not full block")
 	}
 	if len(dst) < aesBlockSize {
 		panic("crypto/aes: output not full block")
 	}
+
+	// cypher.Block.Encrypt() is documented to encrypt one full block
+	// at a time, so we truncate the input and output to the block size.
+	dst, src = dst[:aesBlockSize], src[:aesBlockSize]
+	if subtle.InexactOverlap(dst, src) {
+		panic("crypto/cipher: invalid buffer overlap")
+	}
+
 	var ret uint32
 	err := bcrypt.Encrypt(c.kh, src, nil, nil, dst, &ret, 0)
 	if err != nil {
@@ -62,14 +67,18 @@ func (c *aesCipher) Encrypt(dst, src []byte) {
 }
 
 func (c *aesCipher) Decrypt(dst, src []byte) {
-	if subtle.InexactOverlap(dst, src) {
-		panic("crypto/cipher: invalid buffer overlap")
-	}
 	if len(src) < aesBlockSize {
 		panic("crypto/aes: input not full block")
 	}
 	if len(dst) < aesBlockSize {
 		panic("crypto/aes: output not full block")
+	}
+
+	// cypher.Block.Decrypt() is documented to decrypt one full block
+	// at a time, so we truncate the input and output to the block size.
+	dst, src = dst[:aesBlockSize], src[:aesBlockSize]
+	if subtle.InexactOverlap(dst, src) {
+		panic("crypto/cipher: invalid buffer overlap")
 	}
 
 	var ret uint32
