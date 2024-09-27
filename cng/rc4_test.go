@@ -8,10 +8,12 @@ package cng_test
 
 import (
 	"bytes"
+	"crypto/cipher"
 	"fmt"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
+	"github.com/microsoft/go-crypto-winnative/internal/cryptotest"
 )
 
 type rc4Test struct {
@@ -136,6 +138,13 @@ func TestRC4Block(t *testing.T) {
 	if !bytes.Equal(data1, data2) {
 		t.Fatalf("bad block")
 	}
+}
+
+func TestRC4Stream(t *testing.T) {
+	cryptotest.TestStream(t, func() cipher.Stream {
+		c, _ := cng.NewRC4Cipher(golden[0].key)
+		return c
+	})
 }
 
 func benchmarkRC4(b *testing.B, size int64) {
