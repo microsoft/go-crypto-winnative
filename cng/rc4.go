@@ -47,7 +47,7 @@ func (c *RC4Cipher) XORKeyStream(dst, src []byte) {
 	if c.kh == 0 || len(src) == 0 {
 		return
 	}
-	// rc4.Cipher.XORKeyStream throws an out of bond panic if
+	// rc4.Cipher.XORKeyStream throws an out of bounds panic if
 	// dst is smaller than src. Replicate the same behavior here.
 	_ = dst[len(src)-1]
 
