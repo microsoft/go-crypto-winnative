@@ -114,7 +114,7 @@ func TestHash(t *testing.T) {
 	}
 }
 
-func TestHashInterface(t *testing.T) {
+func TestHash_Interface(t *testing.T) {
 	for _, tt := range hashes {
 		t.Run(tt.String(), func(t *testing.T) {
 			if !cng.SupportsHash(tt) {
