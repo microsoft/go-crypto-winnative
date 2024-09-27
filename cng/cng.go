@@ -52,14 +52,12 @@ func loadOrStoreAlg[T any](id string, flags bcrypt.AlgorithmProviderFlags, mode 
 	var h bcrypt.ALG_HANDLE
 	err := bcrypt.OpenAlgorithmProvider(&h, utf16PtrFromString(id), nil, flags)
 	if err != nil {
-		var t T
-		return t, err
+		return *new(T), err
 	}
 	v, err := fn(h)
 	if err != nil {
 		bcrypt.CloseAlgorithmProvider(h, 0)
-		var t T
-		return t, err
+		return *new(T), err
 	}
 	if existing, loaded := algCache.LoadOrStore(entryKey, v); loaded {
 		// We can safely use a provider that has already been cached in another concurrent goroutine.
