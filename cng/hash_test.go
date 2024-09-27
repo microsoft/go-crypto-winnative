@@ -124,6 +124,7 @@ func TestHash_Interface(t *testing.T) {
 		})
 	}
 }
+
 func TestHash_OneShot(t *testing.T) {
 	msg := []byte("testing")
 	var tests = []struct {
