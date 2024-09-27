@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
+	"github.com/microsoft/go-crypto-winnative/internal/cryptotest"
 )
 
 func cryptoToHash(h crypto.Hash) func() hash.Hash {
@@ -40,22 +41,23 @@ func cryptoToHash(h crypto.Hash) func() hash.Hash {
 	return nil
 }
 
+var hashes = []crypto.Hash{
+	crypto.MD4,
+	crypto.MD5,
+	crypto.SHA1,
+	crypto.SHA224,
+	crypto.SHA256,
+	crypto.SHA384,
+	crypto.SHA512,
+	crypto.SHA3_224,
+	crypto.SHA3_256,
+	crypto.SHA3_384,
+	crypto.SHA3_512,
+}
+
 func TestHash(t *testing.T) {
 	msg := []byte("testing")
-	var tests = []crypto.Hash{
-		crypto.MD4,
-		crypto.MD5,
-		crypto.SHA1,
-		crypto.SHA224,
-		crypto.SHA256,
-		crypto.SHA384,
-		crypto.SHA512,
-		crypto.SHA3_224,
-		crypto.SHA3_256,
-		crypto.SHA3_384,
-		crypto.SHA3_512,
-	}
-	for _, tt := range tests {
+	for _, tt := range hashes {
 		t.Run(tt.String(), func(t *testing.T) {
 			if !cng.SupportsHash(tt) {
 				t.Skip("skipping: not supported")
@@ -112,6 +114,16 @@ func TestHash(t *testing.T) {
 	}
 }
 
+func TestHashInterface(t *testing.T) {
+	for _, tt := range hashes {
+		t.Run(tt.String(), func(t *testing.T) {
+			if !cng.SupportsHash(tt) {
+				t.Skip("skipping: not supported")
+			}
+			cryptotest.TestHash(t, cryptoToHash(tt))
+		})
+	}
+}
 func TestHash_OneShot(t *testing.T) {
 	msg := []byte("testing")
 	var tests = []struct {
