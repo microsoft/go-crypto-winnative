@@ -10,7 +10,10 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"fmt"
+	"io"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/microsoft/go-crypto-winnative/internal/cryptotest"
 )
@@ -386,4 +389,28 @@ func TestAESBlock(t *testing.T) {
 			cryptotest.TestBlock(t, keylen/8, NewAESCipher)
 		})
 	}
+}
+
+func TestAESBlockMode(t *testing.T) {
+	for _, keylen := range []int{128, 192, 256} {
+		t.Run(fmt.Sprintf("AES-%d", keylen), func(t *testing.T) {
+			rng := newRandReader(t)
+
+			key := make([]byte, keylen/8)
+			rng.Read(key)
+
+			block, err := NewAESCipher(key)
+			if err != nil {
+				panic(err)
+			}
+
+			cryptotest.TestBlockMode(t, block, cipher.NewCBCEncrypter, cipher.NewCBCDecrypter)
+		})
+	}
+}
+
+func newRandReader(t *testing.T) io.Reader {
+	seed := time.Now().UnixNano()
+	t.Logf("Deterministic RNG seed: 0x%x", seed)
+	return rand.New(rand.NewSource(seed))
 }
