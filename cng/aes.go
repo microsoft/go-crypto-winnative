@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"bytes"
 	"crypto/cipher"
 	"errors"
 	"runtime"
@@ -28,8 +29,7 @@ func NewAESCipher(key []byte) (cipher.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &aesCipher{kh: kh, key: make([]byte, len(key))}
-	copy(c.key, key)
+	c := &aesCipher{kh: kh, key: bytes.Clone(key)}
 	runtime.SetFinalizer(c, (*aesCipher).finalize)
 	return c, nil
 }

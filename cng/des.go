@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"bytes"
 	"crypto/cipher"
 	"runtime"
 
@@ -27,8 +28,7 @@ func NewDESCipher(key []byte) (cipher.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &desCipher{kh: kh, alg: bcrypt.DES_ALGORITHM, key: make([]byte, len(key))}
-	copy(c.key, key)
+	c := &desCipher{kh: kh, alg: bcrypt.DES_ALGORITHM, key: bytes.Clone(key)}
 	runtime.SetFinalizer(c, (*desCipher).finalize)
 	return c, nil
 }
@@ -38,8 +38,7 @@ func NewTripleDESCipher(key []byte) (cipher.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &desCipher{kh: kh, alg: bcrypt.DES3_ALGORITHM, key: make([]byte, len(key))}
-	copy(c.key, key)
+	c := &desCipher{kh: kh, alg: bcrypt.DES3_ALGORITHM, key: bytes.Clone(key)}
 	runtime.SetFinalizer(c, (*desCipher).finalize)
 	return c, nil
 }

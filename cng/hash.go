@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"bytes"
 	"crypto"
 	"hash"
 	"runtime"
@@ -197,8 +198,7 @@ func newHashX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *hashX 
 	h := new(hashX)
 	h.alg = alg
 	if len(key) > 0 {
-		h.key = make([]byte, len(key))
-		copy(h.key, key)
+		h.key = bytes.Clone(key)
 	}
 	// Don't allocate hx.buf nor call bcrypt.CreateHash yet,
 	// which would be wasteful if the caller only wants to know
@@ -231,8 +231,7 @@ func (h *hashX) Clone() (hash.Hash, error) {
 		alg: h.alg,
 	}
 	if h.key != nil {
-		h2.key = make([]byte, len(h.key))
-		copy(h2.key, h.key)
+		h2.key = bytes.Clone(h.key)
 	}
 	err := h.withCtx(func(ctx bcrypt.HASH_HANDLE) error {
 		return bcrypt.DuplicateHash(ctx, &h2._ctx, nil, 0)
