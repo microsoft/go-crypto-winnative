@@ -195,11 +195,7 @@ func newHashX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *hashX 
 	if err != nil {
 		panic(err)
 	}
-	h := new(hashX)
-	h.alg = alg
-	if len(key) > 0 {
-		h.key = bytes.Clone(key)
-	}
+	h := &hashX{alg: alg, key: bytes.Clone(key)}
 	// Don't allocate hx.buf nor call bcrypt.CreateHash yet,
 	// which would be wasteful if the caller only wants to know
 	// the hash type. This is a common pattern in this package,
@@ -227,12 +223,7 @@ func (h *hashX) withCtx(fn func(ctx bcrypt.HASH_HANDLE) error) error {
 }
 
 func (h *hashX) Clone() (hash.Hash, error) {
-	h2 := &hashX{
-		alg: h.alg,
-	}
-	if h.key != nil {
-		h2.key = bytes.Clone(h.key)
-	}
+	h2 := &hashX{alg: h.alg, key: bytes.Clone(h.key)}
 	err := h.withCtx(func(ctx bcrypt.HASH_HANDLE) error {
 		return bcrypt.DuplicateHash(ctx, &h2._ctx, nil, 0)
 	})
