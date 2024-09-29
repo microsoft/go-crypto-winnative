@@ -8,9 +8,12 @@ package cng_test
 
 import (
 	"fmt"
+	"io"
+	"math/rand"
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
 )
@@ -38,4 +41,10 @@ func TestFIPS(t *testing.T) {
 			t.Errorf("FIPS() = %v, want = %v", enabled, want)
 		}
 	}
+}
+
+func newRandReader(t *testing.T) io.Reader {
+	seed := time.Now().UnixNano()
+	t.Logf("Deterministic RNG seed: 0x%x", seed)
+	return rand.New(rand.NewSource(seed))
 }

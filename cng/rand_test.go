@@ -4,16 +4,18 @@
 //go:build windows
 // +build windows
 
-package cng
+package cng_test
 
 import (
 	"io"
 	"testing"
+
+	"github.com/microsoft/go-crypto-winnative/cng"
 )
 
 func TestRand(t *testing.T) {
 	b := make([]byte, 5)
-	n, err := RandReader.Read(b)
+	n, err := cng.RandReader.Read(b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +30,7 @@ func TestRandBig(t *testing.T) {
 		t.Skip("skipping test in short mode.")
 	}
 	b := make([]byte, 1<<32+60)
-	n, err := io.ReadFull(RandReader, b)
+	n, err := io.ReadFull(cng.RandReader, b)
 	if err != nil {
 		t.Fatal(err)
 	}
