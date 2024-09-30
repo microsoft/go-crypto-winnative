@@ -340,7 +340,7 @@ func TestAEAD(t *testing.T, mAEAD MakeAEAD) {
 					// Perturb the ciphertext and check for an error when Opening
 					alterCT := make([]byte, len(ciphertext))
 					copy(alterCT, ciphertext)
-					alterCT[len(alterCT)-1]++
+					alterCT[len(alterCT)-1] += 1
 					_, err := aead.Open(nil, nonce, alterCT, addData)
 
 					if err == nil {
