@@ -353,7 +353,7 @@ func TestAEAD(t *testing.T, mAEAD MakeAEAD) {
 }
 
 // Helper function to Seal a plaintext with additional data. Checks that
-// ciphertext isn't bigger than the plaintext length plus Overhead().
+// ciphertext isn't bigger than the plaintext length plus Overhead()
 func sealMsg(t *testing.T, aead cipher.AEAD, ciphertext, nonce, plaintext, addData []byte) []byte {
 	t.Helper()
 
