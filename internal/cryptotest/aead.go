@@ -273,7 +273,7 @@ func TestAEAD(t *testing.T, mAEAD MakeAEAD) {
 					// Perturb the nonce and check for an error when Opening
 					alterNonce := make([]byte, aead.NonceSize())
 					copy(alterNonce, nonce)
-					alterNonce[len(alterNonce)-1]++
+					alterNonce[len(alterNonce)-1] += 1
 					_, err := aead.Open(nil, alterNonce, ciphertext, addData)
 
 					if err == nil {
@@ -308,7 +308,7 @@ func TestAEAD(t *testing.T, mAEAD MakeAEAD) {
 					// Perturb the Additional Data and check for an error when Opening
 					alterAD := make([]byte, adLen)
 					copy(alterAD, addData)
-					alterAD[len(alterAD)-1]++
+					alterAD[len(alterAD)-1] += 1
 					_, err := aead.Open(nil, nonce, ciphertext, alterAD)
 
 					if err == nil {
