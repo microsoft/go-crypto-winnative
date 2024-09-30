@@ -32,13 +32,13 @@ var aliasingTests = []struct {
 }
 
 func testAliasing(t *testing.T, i int, x, y []byte, anyOverlap, inexactOverlap bool) {
-	any := subtle.AnyOverlap(x, y)
-	if any != anyOverlap {
-		t.Errorf("%d: wrong AnyOverlap result, expected %v, got %v", i, anyOverlap, any)
+	isOverlapping := subtle.AnyOverlap(x, y)
+	if isOverlapping != anyOverlap {
+		t.Errorf("%d: wrong AnyOverlap result, expected %v, got %v", i, anyOverlap, isOverlapping)
 	}
 	inexact := subtle.InexactOverlap(x, y)
 	if inexact != inexactOverlap {
-		t.Errorf("%d: wrong InexactOverlap result, expected %v, got %v", i, inexactOverlap, any)
+		t.Errorf("%d: wrong InexactOverlap result, expected %v, got %v", i, inexactOverlap, isOverlapping)
 	}
 }
 

@@ -273,7 +273,7 @@ func TestAEAD(t *testing.T, mAEAD MakeAEAD) {
 					// Perturb the nonce and check for an error when Opening
 					alterNonce := make([]byte, aead.NonceSize())
 					copy(alterNonce, nonce)
-					alterNonce[len(alterNonce)-1] += 1
+					alterNonce[len(alterNonce)-1]++
 					_, err := aead.Open(nil, alterNonce, ciphertext, addData)
 
 					if err == nil {
@@ -308,7 +308,7 @@ func TestAEAD(t *testing.T, mAEAD MakeAEAD) {
 					// Perturb the Additional Data and check for an error when Opening
 					alterAD := make([]byte, adLen)
 					copy(alterAD, addData)
-					alterAD[len(alterAD)-1] += 1
+					alterAD[len(alterAD)-1]++
 					_, err := aead.Open(nil, nonce, ciphertext, alterAD)
 
 					if err == nil {
@@ -340,7 +340,7 @@ func TestAEAD(t *testing.T, mAEAD MakeAEAD) {
 					// Perturb the ciphertext and check for an error when Opening
 					alterCT := make([]byte, len(ciphertext))
 					copy(alterCT, ciphertext)
-					alterCT[len(alterCT)-1] += 1
+					alterCT[len(alterCT)-1]++
 					_, err := aead.Open(nil, nonce, alterCT, addData)
 
 					if err == nil {
@@ -353,7 +353,7 @@ func TestAEAD(t *testing.T, mAEAD MakeAEAD) {
 }
 
 // Helper function to Seal a plaintext with additional data. Checks that
-// ciphertext isn't bigger than the plaintext length plus Overhead()
+// ciphertext isn't bigger than the plaintext length plus Overhead().
 func sealMsg(t *testing.T, aead cipher.AEAD, ciphertext, nonce, plaintext, addData []byte) []byte {
 	t.Helper()
 

@@ -103,6 +103,6 @@ func generateSyscalls() []byte {
 		log.Fatal(err)
 	}
 	zsys := bout.Bytes()
-	zsys = bytes.Replace(zsys, []byte("\"internal/syscall/windows/sysdll\""), []byte("\"github.com/microsoft/go-crypto-winnative/internal/sysdll\""), -1)
+	zsys = bytes.ReplaceAll(zsys, []byte("\"internal/syscall/windows/sysdll\""), []byte("\"github.com/microsoft/go-crypto-winnative/internal/sysdll\""))
 	return zsys
 }
