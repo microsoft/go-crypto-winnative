@@ -156,14 +156,19 @@ func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
 		return nil, errors.New("cng: unknown key data blob version")
 	}
 	// KEY_DATA_BLOB_VERSION1 format is:
-	// cbHash uint32 // Big-endian
-	// hashName [cbHash]byte
+	// cbHashName uint32 // Big-endian
+	// pHashName [cbHash]byte
 	// key []byte // Rest of the blob
 	if len(blob) < 4 {
 		return nil, errors.New("cng: exported key is corrupted")
 	}
-	hashLength := binary.BigEndian.Uint32(blob[:])
-	return blob[4+hashLength:], nil
+	cbHashName := binary.BigEndian.Uint32(blob)
+	blob = blob[4:]
+	if len(blob) < int(cbHashName) {
+		return nil, errors.New("cng: exported key is corrupted")
+	}
+	// Skip pHashName.
+	return blob[cbHashName:], nil
 }
 
 func ExpandHKDF(h func() hash.Hash, pseudorandomKey, info []byte) (io.Reader, error) {
