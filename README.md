@@ -1,8 +1,6 @@
 # go-crypto-winnative
 
-<!-- Add once the repostory has been pulled publicly.
 [![Go Reference](https://pkg.go.dev/badge/github.com/microsoft/go-crypto-winnative/cng.svg)](https://pkg.go.dev/github.com/microsoft/go-crypto-winnative/cng)
--->
 
 The `cng` package implements Go crypto primitives on Windows using [CNG](https://docs.microsoft.com/en-us/windows/win32/seccng/cng-portal). When configured correctly, CNG can be executed in FIPS mode.
 
