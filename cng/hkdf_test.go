@@ -9,7 +9,6 @@ package cng_test
 import (
 	"bytes"
 	"hash"
-	"io"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
@@ -295,16 +294,12 @@ var hkdfTests = []hkdfTest{
 	},
 }
 
-func newHKDF(hash func() hash.Hash, secret, salt, info []byte) io.Reader {
+func newHKDF(hash func() hash.Hash, secret, salt, info []byte, keyLength int) ([]byte, error) {
 	prk, err := cng.ExtractHKDF(hash, secret, salt)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	r, err := cng.ExpandHKDF(hash, prk, info)
-	if err != nil {
-		panic(err)
-	}
-	return r
+	return cng.ExpandHKDF(hash, prk, info, keyLength)
 }
 
 func TestHKDF(t *testing.T) {
@@ -320,56 +315,25 @@ func TestHKDF(t *testing.T) {
 			t.Errorf("test %d: incorrect PRK: have %v, need %v.", i, prk, tt.prk)
 		}
 
-		hkdf := newHKDF(tt.hash, tt.master, tt.salt, tt.info)
-		out := make([]byte, len(tt.out))
-
-		n, err := io.ReadFull(hkdf, out)
-		if n != len(tt.out) || err != nil {
-			t.Errorf("test %d: not enough output bytes: %d.", i, n)
+		out, err := newHKDF(tt.hash, tt.master, tt.salt, tt.info, len(tt.out))
+		if err != nil {
+			t.Errorf("test %d: error generating HKDF: %v.", i, err)
 		}
-
 		if !bytes.Equal(out, tt.out) {
 			t.Errorf("test %d: incorrect output: have %v, need %v.", i, out, tt.out)
 		}
 
-		hkdf, err = cng.ExpandHKDF(tt.hash, prk, tt.info)
+		out, err = cng.ExpandHKDF(tt.hash, prk, tt.info, len(tt.out))
 		if err != nil {
 			t.Errorf("test %d: error expanding HKDF: %v.", i, err)
 		}
-
-		n, err = io.ReadFull(hkdf, out)
-		if n != len(tt.out) || err != nil {
-			t.Errorf("test %d: not enough output bytes from Expand: %d.", i, n)
-		}
-
 		if !bytes.Equal(out, tt.out) {
 			t.Errorf("test %d: incorrect output from Expand: have %v, need %v.", i, out, tt.out)
 		}
 	}
 }
 
-func TestHKDFMultiRead(t *testing.T) {
-	if !cng.SupportsHKDF() {
-		t.Skip("HKDF is not supported")
-	}
-	for i, tt := range hkdfTests {
-		hkdf := newHKDF(tt.hash, tt.master, tt.salt, tt.info)
-		out := make([]byte, len(tt.out))
-
-		for b := 0; b < len(tt.out); b++ {
-			n, err := io.ReadFull(hkdf, out[b:b+1])
-			if n != 1 || err != nil {
-				t.Errorf("test %d.%d: not enough output bytes: have %d, need %d .", i, b, n, len(tt.out))
-			}
-		}
-
-		if !bytes.Equal(out, tt.out) {
-			t.Errorf("test %d: incorrect output: have %v, need %v.", i, out, tt.out)
-		}
-	}
-}
-
-func TestHKDFLimit(t *testing.T) {
+func TestExpandHKDFOneShotLimit(t *testing.T) {
 	if !cng.SupportsHKDF() {
 		t.Skip("HKDF is not supported")
 	}
@@ -377,65 +341,39 @@ func TestHKDFLimit(t *testing.T) {
 	master := []byte{0x00, 0x01, 0x02, 0x03}
 	info := []byte{}
 
-	hkdf := newHKDF(hash, master, nil, info)
+	prk, err := cng.ExtractHKDF(hash, master, nil)
+	if err != nil {
+		t.Fatalf("error extracting HKDF: %v.", err)
+	}
 	limit := hash().Size() * 255
-	out := make([]byte, limit)
-
-	// The maximum output bytes should be extractable
-	n, err := io.ReadFull(hkdf, out)
-	if n != limit || err != nil {
-		t.Errorf("not enough output bytes: %d, %v.", n, err)
+	out, err := cng.ExpandHKDF(hash, prk, info, limit)
+	if err != nil {
+		t.Errorf("error expanding HKDF one-shot: %v.", err)
+	}
+	if len(out) != limit {
+		t.Errorf("incorrect output length: have %d, need %d.", len(out), limit)
 	}
 
-	// Reading one more should fail
-	n, err = io.ReadFull(hkdf, make([]byte, 1))
-	if n > 0 || err == nil {
-		t.Errorf("key expansion overflowed: n = %d, err = %v", n, err)
+	// Expanding one more byte should fail
+	_, err = cng.ExpandHKDF(hash, prk, info, limit+1)
+	if err == nil {
+		t.Errorf("expected error for key expansion overflow")
 	}
 }
 
 func BenchmarkHKDF32ByteSHA256Single(b *testing.B) {
-	benchmarkHKDFSingle(cng.NewSHA256, 32, b)
-}
-
-func BenchmarkHKDF8ByteSHA256Stream(b *testing.B) {
-	benchmarkHKDFStream(cng.NewSHA256, 8, b)
-}
-
-func BenchmarkHKDF32ByteSHA256Stream(b *testing.B) {
-	benchmarkHKDFStream(cng.NewSHA256, 32, b)
-}
-
-func benchmarkHKDFSingle(hasher func() hash.Hash, block int, b *testing.B) {
 	master := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}
 	salt := []byte{0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17}
 	info := []byte{0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27}
-	out := make([]byte, block)
+	const block = 32
 
 	b.SetBytes(int64(block))
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hkdf := newHKDF(hasher, master, salt, info)
-		io.ReadFull(hkdf, out)
-	}
-}
-
-func benchmarkHKDFStream(hasher func() hash.Hash, block int, b *testing.B) {
-	master := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}
-	salt := []byte{0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17}
-	info := []byte{0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27}
-	out := make([]byte, block)
-
-	b.SetBytes(int64(block))
-	b.ResetTimer()
-
-	hkdf := newHKDF(hasher, master, salt, info)
-	for i := 0; i < b.N; i++ {
-		_, err := io.ReadFull(hkdf, out)
+		_, err := newHKDF(cng.NewSHA256, master, salt, info, block)
 		if err != nil {
-			hkdf = newHKDF(hasher, master, salt, info)
-			i--
+			b.Error(err)
 		}
 	}
 }

@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"hash"
-	"io"
 	"runtime"
 	"unsafe"
 
@@ -28,99 +27,23 @@ func loadHKDF() (bcrypt.ALG_HANDLE, error) {
 	})
 }
 
-type hkdf struct {
-	hkey bcrypt.KEY_HANDLE
-	info []byte
-
-	hashLen int
-	n       int // count of bytes requested from Read
-	// buf contains the derived data.
-	// len(buf) can be larger than n, as Read may derive
-	// more data than requested and cache it in buf.
-	buf []byte
-}
-
-func (c *hkdf) finalize() {
-	bcrypt.DestroyKey(c.hkey)
-}
-
-func hkdfDerive(hkey bcrypt.KEY_HANDLE, info, out []byte) (int, error) {
-	var params *bcrypt.BufferDesc
-	if len(info) > 0 {
-		params = &bcrypt.BufferDesc{
-			Count: 1,
-			Buffers: &bcrypt.Buffer{
-				Length: uint32(len(info)),
-				Type:   bcrypt.KDF_HKDF_INFO,
-				Data:   uintptr(unsafe.Pointer(&info[0])),
-			},
-		}
-		defer runtime.KeepAlive(params)
-	}
-	var n uint32
-	err := bcrypt.KeyDerivation(hkey, params, out, &n, 0)
-	return int(n), err
-}
-
-func (c *hkdf) Read(p []byte) (int, error) {
-	// KeyDerivation doesn't support incremental output, each call
-	// derives the key from scratch and returns the requested bytes.
-	// To implement io.Reader, we need to ask for len(c.buf) + len(p)
-	// bytes and copy the last derived len(p) bytes to p.
-	maxDerived := 255 * c.hashLen
-	totalDerived := c.n + len(p)
-	// Check whether enough data can be derived.
-	if totalDerived > maxDerived {
-		return 0, errors.New("hkdf: entropy limit reached")
-	}
-	// Check whether c.buf already contains enough derived data,
-	// otherwise derive more data.
-	if bytesNeeded := totalDerived - len(c.buf); bytesNeeded > 0 {
-		// It is common to derive multiple equally sized keys from the same HKDF instance.
-		// Optimize this case by allocating a buffer large enough to hold
-		// at least 3 of such keys each time there is not enough data.
-		// Round up to the next multiple of hashLen.
-		blocks := (bytesNeeded-1)/c.hashLen + 1
-		const minBlocks = 3
-		if blocks < minBlocks {
-			blocks = minBlocks
-		}
-		alloc := blocks * c.hashLen
-		if len(c.buf)+alloc > maxDerived {
-			// The buffer can't grow beyond maxDerived.
-			alloc = maxDerived - len(c.buf)
-		}
-		c.buf = append(c.buf, make([]byte, alloc)...)
-		n, err := hkdfDerive(c.hkey, c.info, c.buf)
-		if err != nil {
-			c.buf = c.buf[:c.n]
-			return 0, err
-		}
-		// Adjust totalDerived to the actual number of bytes derived.
-		totalDerived = n
-	}
-	n := copy(p, c.buf[c.n:totalDerived])
-	c.n += n
-	return n, nil
-}
-
-func newHKDF(h func() hash.Hash, secret, salt []byte, info []byte) (*hkdf, error) {
+func newHKDF(h func() hash.Hash, secret, salt []byte, info []byte) (bcrypt.KEY_HANDLE, error) {
 	ch := h()
 	hashID := hashToID(ch)
 	if hashID == "" {
-		return nil, errors.New("cng: unsupported hash function")
+		return 0, errors.New("cng: unsupported hash function")
 	}
 	alg, err := loadHKDF()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	var kh bcrypt.KEY_HANDLE
 	if err := bcrypt.GenerateSymmetricKey(alg, &kh, nil, secret, 0); err != nil {
-		return nil, err
+		return 0, err
 	}
 	if err := setString(bcrypt.HANDLE(kh), bcrypt.HKDF_HASH_ALGORITHM, hashID); err != nil {
 		bcrypt.DestroyKey(kh)
-		return nil, err
+		return 0, err
 	}
 	if salt != nil {
 		// Used for Extract.
@@ -131,11 +54,9 @@ func newHKDF(h func() hash.Hash, secret, salt []byte, info []byte) (*hkdf, error
 	}
 	if err != nil {
 		bcrypt.DestroyKey(kh)
-		return nil, err
+		return 0, err
 	}
-	k := &hkdf{kh, info, ch.Size(), 0, nil}
-	runtime.SetFinalizer(k, (*hkdf).finalize)
-	return k, nil
+	return kh, nil
 }
 
 func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
@@ -147,11 +68,11 @@ func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	hdr, blob, err := exportKeyData(kh.hkey)
+	defer bcrypt.DestroyKey(kh)
+	hdr, blob, err := exportKeyData(kh)
 	if err != nil {
 		return nil, err
 	}
-	runtime.KeepAlive(kh)
 	if hdr.Version != bcrypt.KEY_DATA_BLOB_VERSION1 {
 		return nil, errors.New("cng: unknown key data blob version")
 	}
@@ -171,10 +92,33 @@ func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
 	return blob[cbHashName:], nil
 }
 
-func ExpandHKDF(h func() hash.Hash, pseudorandomKey, info []byte) (io.Reader, error) {
+// ExpandHKDF derives a key from the given hash, key, and optional context info.
+func ExpandHKDF(h func() hash.Hash, pseudorandomKey, info []byte, keyLength int) ([]byte, error) {
 	kh, err := newHKDF(h, pseudorandomKey, nil, info)
 	if err != nil {
 		return nil, err
 	}
-	return kh, nil
+	defer bcrypt.DestroyKey(kh)
+	out := make([]byte, keyLength)
+	var params *bcrypt.BufferDesc
+	if len(info) > 0 {
+		params = &bcrypt.BufferDesc{
+			Count: 1,
+			Buffers: &bcrypt.Buffer{
+				Length: uint32(len(info)),
+				Type:   bcrypt.KDF_HKDF_INFO,
+				Data:   uintptr(unsafe.Pointer(&info[0])),
+			},
+		}
+		defer runtime.KeepAlive(params)
+	}
+	var n uint32
+	err = bcrypt.KeyDerivation(kh, params, out, &n, 0)
+	if err != nil {
+		return nil, err
+	}
+	if int(n) != keyLength {
+		return nil, errors.New("cng: key derivation returned unexpected length")
+	}
+	return out, err
 }
