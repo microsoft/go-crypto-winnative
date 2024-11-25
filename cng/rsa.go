@@ -315,7 +315,7 @@ func newPSS_PADDING_INFO(h crypto.Hash, sizeBits uint32, saltLen int, sign bool)
 
 	// A salt length of -1 and 0 are valid Go sentinel values.
 	if saltLen <= -2 {
-		return info, errors.New("crypto/rsa: PSSOptions.SaltLength cannot be negative")
+		return info, errors.New("crypto/rsa: invalid PSS salt length")
 	}
 	// CNG does not support salt length special cases like Go crypto does,
 	// so we do a best-effort to resolve them.
