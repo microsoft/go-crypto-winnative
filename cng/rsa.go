@@ -232,18 +232,36 @@ func VerifyRSAPSS(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte, saltLen 
 	return keyVerify(pub.hkey, unsafe.Pointer(&info), hashed, sig, bcrypt.PAD_PSS)
 }
 
-func SignRSAPKCS1v15(priv *PrivateKeyRSA, h crypto.Hash, hashed []byte) ([]byte, error) {
+// SignRSAPKCS1v15 calculates the signature of hashed using
+// RSASSA-PKCS1-V1_5-SIGN from RSA PKCS #1 v1.5.  Note that hashed must
+// be the result of hashing the input message using the given hash
+// function. If hash is zero, hashed is signed directly.
+func SignRSAPKCS1v15(priv *PrivateKeyRSA, hash crypto.Hash, hashed []byte) ([]byte, error) {
 	defer runtime.KeepAlive(priv)
-	info, err := newPKCS1_PADDING_INFO(h)
+	if hash != crypto.Hash(0) {
+		if len(hashed) != hash.Size() {
+			return nil, errors.New("crypto/rsa: input must be hashed message")
+		}
+	}
+	info, err := newPKCS1_PADDING_INFO(hash)
 	if err != nil {
 		return nil, err
 	}
 	return keySign(priv.hkey, unsafe.Pointer(&info), hashed, bcrypt.PAD_PKCS1)
 }
 
-func VerifyRSAPKCS1v15(pub *PublicKeyRSA, h crypto.Hash, hashed, sig []byte) error {
+// VerifyPKCS1v15 verifies an RSA PKCS #1 v1.5 signature.
+// hashed is the result of hashing the input message using the given hash
+// function and sig is the signature. A valid signature is indicated by
+// returning a nil error. If hash is zero then hashed is used directly.
+func VerifyRSAPKCS1v15(pub *PublicKeyRSA, hash crypto.Hash, hashed, sig []byte) error {
 	defer runtime.KeepAlive(pub)
-	info, err := newPKCS1_PADDING_INFO(h)
+	if hash != crypto.Hash(0) {
+		if len(hashed) != hash.Size() {
+			return errors.New("crypto/rsa: input must be hashed message")
+		}
+	}
+	info, err := newPKCS1_PADDING_INFO(hash)
 	if err != nil {
 		return err
 	}
@@ -341,16 +359,24 @@ func newPSS_PADDING_INFO(h crypto.Hash, sizeBits uint32, saltLen int, sign bool)
 	return
 }
 
-func newPKCS1_PADDING_INFO(h crypto.Hash) (info bcrypt.PKCS1_PADDING_INFO, err error) {
-	if h != 0 {
+func newPKCS1_PADDING_INFO(h crypto.Hash) (bcrypt.PKCS1_PADDING_INFO, error) {
+	var alg *uint16
+	switch h {
+	case 0:
+		// Unpadded RSA signatures, no need to set the hash algorithm.
+	case crypto.MD5SHA1:
+		// The MD5SHA1 hash is not supported by CNG, but the AlgId field
+		// is only used to pad the signature with the hash OID, and
+		// PKCS1 has historically used a null OID for MD5SHA1.
+		// This is a special case for compatibility with TLS 1.0/1.1.
+	default:
 		hashID := cryptoHashToID(h)
 		if hashID == "" {
-			err = errors.New("crypto/rsa: unsupported hash function")
-		} else {
-			info.AlgId = utf16PtrFromString(hashID)
+			return bcrypt.PKCS1_PADDING_INFO{}, errors.New("crypto/rsa: unsupported hash function")
 		}
+		alg = utf16PtrFromString(hashID)
 	}
-	return
+	return bcrypt.PKCS1_PADDING_INFO{AlgId: alg}, nil
 }
 
 func cryptoHashToID(ch crypto.Hash) string {

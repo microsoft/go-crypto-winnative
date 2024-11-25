@@ -163,6 +163,60 @@ func TestSignVerifyPKCS1v15_Unhashed(t *testing.T) {
 	}
 }
 
+func TestSignVerifyPKCS1v15_MD5SHA1(t *testing.T) {
+	msg := []byte("hi!")
+
+	// MD5+SHA1 hash
+	md5, sha1 := cng.NewMD5(), cng.NewSHA1()
+	hashed := make([]byte, md5.Size()+sha1.Size())
+	md5.Write(msg)
+	sha1.Write(msg)
+	copy(hashed, md5.Sum(nil))
+	copy(hashed[md5.Size():], sha1.Sum(nil))
+
+	priv, pub := newRSAKey(t, 2048)
+	signed, err := cng.SignRSAPKCS1v15(priv, crypto.MD5SHA1, hashed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cng.VerifyRSAPKCS1v15(pub, crypto.MD5SHA1, hashed, signed)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSignPKCS1v15_NotHashed(t *testing.T) {
+	sha256 := cng.NewSHA256()
+	msg := []byte("hi!")
+	priv, _ := newRSAKey(t, 2048)
+	sha256.Write(msg)
+	hashed := sha256.Sum(nil)
+	_, err := cng.SignRSAPKCS1v15(priv, crypto.SHA1, hashed)
+	if err == nil {
+		t.Fatal("error expected")
+	} else if err.Error() != "crypto/rsa: input must be hashed message" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestVerifyPKCS1v15_NotHashed(t *testing.T) {
+	sha256 := cng.NewSHA256()
+	msg := []byte("hi!")
+	priv, pub := newRSAKey(t, 2048)
+	sha256.Write(msg)
+	hashed := sha256.Sum(nil)
+	signed, err := cng.SignRSAPKCS1v15(priv, crypto.SHA256, hashed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cng.VerifyRSAPKCS1v15(pub, crypto.SHA1, hashed, signed)
+	if err == nil {
+		t.Fatal("error expected")
+	} else if err.Error() != "crypto/rsa: input must be hashed message" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestSignVerifyPKCS1v15_Invalid(t *testing.T) {
 	sha256 := cng.NewSHA256()
 	msg := []byte("hi!")
@@ -173,7 +227,8 @@ func TestSignVerifyPKCS1v15_Invalid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = cng.VerifyRSAPKCS1v15(pub, crypto.SHA256, msg, signed)
+	signed[len(signed)-1] ^= 0xff
+	err = cng.VerifyRSAPKCS1v15(pub, crypto.SHA256, hashed, signed)
 	if err == nil {
 		t.Fatal("error expected")
 	}
