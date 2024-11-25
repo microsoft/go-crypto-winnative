@@ -217,6 +217,16 @@ func TestVerifyPKCS1v15_NotHashed(t *testing.T) {
 	}
 }
 
+func TestSignPKCS1v15_Empty(t *testing.T) {
+	priv, _ := newRSAKey(t, 2048)
+	_, err := cng.SignRSAPKCS1v15(priv, crypto.SHA256, nil)
+	if err == nil {
+		t.Fatal("error expected")
+	} else if err.Error() != "crypto/rsa: input must be hashed message" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestSignVerifyPKCS1v15_Invalid(t *testing.T) {
 	sha256 := cng.NewSHA256()
 	msg := []byte("hi!")
