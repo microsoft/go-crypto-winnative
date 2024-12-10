@@ -455,7 +455,7 @@ func hashAlgFromGroup(groupSize int) bcrypt.HASHALGORITHM_ENUM {
 	switch groupSize {
 	case 20:
 		return bcrypt.DSA_HASH_ALGORITHM_SHA1
-	case 28, 32:
+	case 32:
 		return bcrypt.DSA_HASH_ALGORITHM_SHA256
 	case 64:
 		return bcrypt.DSA_HASH_ALGORITHM_SHA512
