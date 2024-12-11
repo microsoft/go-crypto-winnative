@@ -284,7 +284,7 @@ func encodeDSAKey(h bcrypt.ALG_HANDLE, params DSAParameters, X, Y BigInt) (bcryp
 		copy(blob, (*(*[sizeOfDSAV2BlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 		data := blob[sizeOfDSAV2BlobHeader:]
 		if err := encodeBigInt(data, []sizedBigInt{
-			{dsaSeedNil[:groupSize], groupSize},
+			{dsaSeedNil[:], groupSize},
 			{params.Q, groupSize},
 			{params.P, keySize},
 			{params.G, keySize},
