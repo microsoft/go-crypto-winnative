@@ -16,13 +16,13 @@ import (
 )
 
 func TestDSAGenerateParameters(t *testing.T) {
-	testGenerateDSAParameters(t, 1024, 160)
-	testGenerateDSAParameters(t, 2048, 256)
-	testGenerateDSAParameters(t, 3072, 256)
+	testGenerateParametersDSA(t, 1024, 160)
+	testGenerateParametersDSA(t, 2048, 256)
+	testGenerateParametersDSA(t, 3072, 256)
 }
 
-func testGenerateDSAParameters(t *testing.T, L, N int) {
-	params, err := cng.GenerateDSAParameters(L)
+func testGenerateParametersDSA(t *testing.T, L, N int) {
+	params, err := cng.GenerateParametersDSA(L)
 	if err != nil {
 		t.Errorf("%d-%d: error generating parameters: %s", L, N, err)
 		return
@@ -47,17 +47,19 @@ func testGenerateDSAParameters(t *testing.T, L, N int) {
 	if rem.Sign() != 0 {
 		t.Errorf("%d-%d: p-1 mod q != 0", L, N)
 	}
-	x := new(big.Int).Exp(G, quo, P)
-	if x.Cmp(one) == 0 {
+	if x := new(big.Int).Exp(G, quo, P); x.Cmp(one) == 0 {
 		t.Errorf("%d-%d: invalid generator", L, N)
 	}
 
-	priv, err := cng.GenerateKeyDSA(params)
+	x, y, err := cng.GenerateKeyDSA(params)
 	if err != nil {
 		t.Errorf("error generating key: %s", err)
 		return
 	}
-
+	priv, err := cng.NewPrivateKeyDSA(params, x, y)
+	if err != nil {
+		t.Errorf("error creating key: %s", err)
+	}
 	testDSASignAndVerify(t, L, priv)
 }
 

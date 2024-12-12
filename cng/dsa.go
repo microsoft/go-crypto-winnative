@@ -61,11 +61,11 @@ func (p DSAParameters) groupSize() uint32 {
 	return uint32(len(p.Q))
 }
 
-// GenerateDSAParameters generates a set of DSA parameters for a key of size L bytes.
+// GenerateParametersDSA generates a set of DSA parameters for a key of size L bytes.
 // If L is less than or equal to 1024, the parameters are generated according to FIPS 186-2.
 // If L is greater than 1024, the parameters are generated according to FIPS 186-3.
 // The returned parameters are suitable for use in GenerateKey.
-func GenerateDSAParameters(L int) (params DSAParameters, err error) {
+func GenerateParametersDSA(L int) (params DSAParameters, err error) {
 	h, err := loadDSA()
 	if err != nil {
 		return DSAParameters{}, err
@@ -113,35 +113,31 @@ func (k *PublicKeyDSA) finalize() {
 }
 
 // GenerateKeyDSA generates a new private DSA key using the given parameters.
-func GenerateKeyDSA(params DSAParameters) (*PrivateKeyDSA, error) {
+func GenerateKeyDSA(params DSAParameters) (x, y BigInt, err error) {
 	h, err := loadDSA()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	keySize := params.keySize()
 	if !keyIsAllowed(h.allowedKeyLengths, keySize*8) {
-		return nil, errors.New("crypto/dsa: invalid key size")
+		return nil, nil, errors.New("crypto/dsa: invalid key size")
 	}
 	var hkey bcrypt.KEY_HANDLE
 	if err := bcrypt.GenerateKeyPair(h.handle, &hkey, keySize*8, 0); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	defer bcrypt.DestroyKey(hkey)
 	if err := setDSAParameter(hkey, params); err != nil {
-		bcrypt.DestroyKey(hkey)
-		return nil, err
+		return nil, nil, err
 	}
 	if err := bcrypt.FinalizeKeyPair(hkey, 0); err != nil {
-		bcrypt.DestroyKey(hkey)
-		return nil, err
+		return nil, nil, err
 	}
-	_, x, y, err := decodeDSAKey(hkey, true)
+	_, x, y, err = decodeDSAKey(hkey, true)
 	if err != nil {
-		bcrypt.DestroyKey(hkey)
-		return nil, err
+		return nil, nil, err
 	}
-	k := &PrivateKeyDSA{params, x, y, hkey}
-	runtime.SetFinalizer(k, (*PrivateKeyDSA).finalize)
-	return k, nil
+	return x, y, nil
 }
 
 // NewPrivateKeyDSA creates a new DSA private key from the given parameters.
