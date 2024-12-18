@@ -321,7 +321,7 @@ func SumSHAKE128(data []byte, length int) []byte {
 func SumSHAKE256(data []byte, length int) []byte {
 	out := make([]byte, length)
 	if err := hashOneShot(bcrypt.CSHAKE256_ALGORITHM, data, out); err != nil {
-		panic("bcrypt: CSHAKE128_ALGORITHM failed")
+		panic("bcrypt: CSHAKE256_ALGORITHM failed")
 	}
 	return out
 }
