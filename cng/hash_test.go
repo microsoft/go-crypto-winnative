@@ -229,17 +229,25 @@ var testShakes = map[string]struct {
 	"CSHAKE256": {cng.NewCSHAKE256, "CSHAKE256", "CustomString"},
 }
 
+func skipCSHAKEIfNotSupported(t *testing.T, algo string) {
+	switch algo {
+	case "SHAKE128", "CSHAKE128":
+		if !cng.SupportsSHAKE128() {
+			t.Skip("skipping: not supported")
+		}
+	case "SHAKE256", "CSHAKE256":
+		if !cng.SupportsSHAKE256() {
+			t.Skip("skipping: not supported")
+		}
+	}
+}
+
 // TestCSHAKESqueezing checks that squeezing the full output a single time produces
 // the same output as repeatedly squeezing the instance.
 func TestCSHAKESqueezing(t *testing.T) {
 	const testString = "brekeccakkeccak koax koax"
 	for algo, v := range testShakes {
-		if algo == "SHAKE128" && !cng.SupportsSHAKE128() {
-			t.Skip("skipping: not supported")
-		}
-		if algo == "SHAKE256" && !cng.SupportsSHAKE256() {
-			t.Skip("skipping: not supported")
-		}
+		skipCSHAKEIfNotSupported(t, algo)
 
 		d0 := v.constructor([]byte(v.defAlgoName), []byte(v.defCustomStr))
 		d0.Write([]byte(testString))
@@ -276,12 +284,8 @@ func TestCSHAKEReset(t *testing.T) {
 	out2 := make([]byte, 32)
 
 	for algo, v := range testShakes {
-		if algo == "SHAKE128" && !cng.SupportsSHAKE128() {
-			t.Skip("skipping: not supported")
-		}
-		if algo == "SHAKE256" && !cng.SupportsSHAKE256() {
-			t.Skip("skipping: not supported")
-		}
+		skipCSHAKEIfNotSupported(t, algo)
+
 		// Calculate hash for the first time
 		c := v.constructor(nil, []byte{0x99, 0x98})
 		c.Write(sequentialBytes(0x100))
