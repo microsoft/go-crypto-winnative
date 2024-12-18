@@ -306,6 +306,20 @@ func (h *hashX) Sum(in []byte) []byte {
 	return append(in, h.buf...)
 }
 
+// SupportsSHAKE128 returns true if the SHAKE128 extendable output function is
+// supported.
+func SupportsSHAKE128() bool {
+	_, err := loadHash(bcrypt.CSHAKE128_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+	return err == nil
+}
+
+// SupportsSHAKE256 returns true if the SHAKE256 extendable output function is
+// supported.
+func SupportsSHAKE256() bool {
+	_, err := loadHash(bcrypt.CSHAKE256_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+	return err == nil
+}
+
 // SumSHAKE128 applies the SHAKE128 extendable output function to data and
 // returns an output of the given length in bytes.
 func SumSHAKE128(data []byte, length int) []byte {

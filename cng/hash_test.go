@@ -225,8 +225,8 @@ var testShakes = map[string]struct {
 	// NewCSHAKE without customization produces same result as SHAKE
 	"SHAKE128":  {cng.NewCSHAKE128, "", ""},
 	"SHAKE256":  {cng.NewCSHAKE256, "", ""},
-	"cSHAKE128": {cng.NewCSHAKE128, "CSHAKE128", "CustomString"},
-	"cSHAKE256": {cng.NewCSHAKE256, "CSHAKE256", "CustomString"},
+	"CSHAKE128": {cng.NewCSHAKE128, "CSHAKE128", "CustomString"},
+	"CSHAKE256": {cng.NewCSHAKE256, "CSHAKE256", "CustomString"},
 }
 
 // TestCSHAKESqueezing checks that squeezing the full output a single time produces
@@ -234,6 +234,13 @@ var testShakes = map[string]struct {
 func TestCSHAKESqueezing(t *testing.T) {
 	const testString = "brekeccakkeccak koax koax"
 	for algo, v := range testShakes {
+		if algo == "SHAKE128" && !cng.SupportsSHAKE128() {
+			t.Skip("skipping: not supported")
+		}
+		if algo == "SHAKE256" && !cng.SupportsSHAKE256() {
+			t.Skip("skipping: not supported")
+		}
+
 		d0 := v.constructor([]byte(v.defAlgoName), []byte(v.defCustomStr))
 		d0.Write([]byte(testString))
 		ref := make([]byte, 32)
@@ -268,7 +275,13 @@ func TestCSHAKEReset(t *testing.T) {
 	out1 := make([]byte, 32)
 	out2 := make([]byte, 32)
 
-	for _, v := range testShakes {
+	for algo, v := range testShakes {
+		if algo == "SHAKE128" && !cng.SupportsSHAKE128() {
+			t.Skip("skipping: not supported")
+		}
+		if algo == "SHAKE256" && !cng.SupportsSHAKE256() {
+			t.Skip("skipping: not supported")
+		}
 		// Calculate hash for the first time
 		c := v.constructor(nil, []byte{0x99, 0x98})
 		c.Write(sequentialBytes(0x100))
@@ -287,10 +300,16 @@ func TestCSHAKEReset(t *testing.T) {
 
 func TestCSHAKEAccumulated(t *testing.T) {
 	t.Run("CSHAKE128", func(t *testing.T) {
+		if !cng.SupportsSHAKE128() {
+			t.Skip("skipping: not supported")
+		}
 		testCSHAKEAccumulated(t, cng.NewCSHAKE128, (1600-256)/8,
 			"bb14f8657c6ec5403d0b0e2ef3d3393497e9d3b1a9a9e8e6c81dbaa5fd809252")
 	})
 	t.Run("CSHAKE256", func(t *testing.T) {
+		if !cng.SupportsSHAKE256() {
+			t.Skip("skipping: not supported")
+		}
 		testCSHAKEAccumulated(t, cng.NewCSHAKE256, (1600-512)/8,
 			"0baaf9250c6e25f0c14ea5c7f9bfde54c8a922c8276437db28f3895bdf6eeeef")
 	})
@@ -327,6 +346,9 @@ func testCSHAKEAccumulated(t *testing.T, newCSHAKE func(N, S []byte) *cng.SHAKE,
 }
 
 func TestCSHAKELargeS(t *testing.T) {
+	if !cng.SupportsSHAKE128() {
+		t.Skip("skipping: not supported")
+	}
 	const s = (1<<32)/8 + 1000 // s * 8 > 2^32
 	S := make([]byte, s)
 	rnd := cng.NewSHAKE128()
@@ -345,6 +367,9 @@ func TestCSHAKELargeS(t *testing.T) {
 func TestCSHAKESum(t *testing.T) {
 	const testString = "hello world"
 	t.Run("CSHAKE128", func(t *testing.T) {
+		if !cng.SupportsSHAKE128() {
+			t.Skip("skipping: not supported")
+		}
 		h := cng.NewCSHAKE128(nil, nil)
 		h.Write([]byte(testString[:5]))
 		h.Write([]byte(testString[5:]))
@@ -356,6 +381,9 @@ func TestCSHAKESum(t *testing.T) {
 		}
 	})
 	t.Run("CSHAKE256", func(t *testing.T) {
+		if !cng.SupportsSHAKE256() {
+			t.Skip("skipping: not supported")
+		}
 		h := cng.NewCSHAKE256(nil, nil)
 		h.Write([]byte(testString[:5]))
 		h.Write([]byte(testString[5:]))
