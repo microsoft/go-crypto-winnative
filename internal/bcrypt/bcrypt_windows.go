@@ -298,7 +298,7 @@ type DSA_KEY_BLOB_V2 struct {
 	Count           [4]uint8
 }
 
-func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) {
+func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
 	var pInput *byte
 	if len(plaintext) > 0 {
 		pInput = &plaintext[0]
@@ -311,42 +311,42 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 	return _Encrypt(hKey, pInput, uint32(len(plaintext)), pPaddingInfo, pbIV, pbOutput, pcbResult, dwFlags)
 }
 
-//sys	GetFipsAlgorithmMode(enabled *bool) (s error) = bcrypt.BCryptGetFipsAlgorithmMode
-//sys	SetProperty(hObject HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (s error) = bcrypt.BCryptSetProperty
-//sys	GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptGetProperty
-//sys	OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags AlgorithmProviderFlags) (s error) = bcrypt.BCryptOpenAlgorithmProvider
-//sys	CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptCloseAlgorithmProvider
+//sys	GetFipsAlgorithmMode(enabled *bool) (ntstatus error) = bcrypt.BCryptGetFipsAlgorithmMode
+//sys	SetProperty(hObject HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSetProperty
+//sys	GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty
+//sys	OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags AlgorithmProviderFlags) (ntstatus error) = bcrypt.BCryptOpenAlgorithmProvider
+//sys	CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCloseAlgorithmProvider
 
 // SHA and HMAC
 
-//sys	Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (s error) = bcrypt.BCryptHash
-//sys	CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (s error) = bcrypt.BCryptCreateHash
-//sys	DestroyHash(hHash HASH_HANDLE) (s error) = bcrypt.BCryptDestroyHash
-//sys   HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (s error) = bcrypt.BCryptHashData
-//sys   HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (s error) = bcrypt.BCryptHashData
-//sys   DuplicateHash(hHash HASH_HANDLE,  phNewHash *HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (s error) = bcrypt.BCryptDuplicateHash
-//sys   FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (s error) = bcrypt.BCryptFinishHash
+//sys	Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) = bcrypt.BCryptHash
+//sys	CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCreateHash
+//sys	DestroyHash(hHash HASH_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyHash
+//sys   HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
+//sys   HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
+//sys   DuplicateHash(hHash HASH_HANDLE,  phNewHash *HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDuplicateHash
+//sys   FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinishHash
 
 // Rand
 
-//sys   GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (s error) = bcrypt.BCryptGenRandom
+//sys   GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenRandom
 
 // Keys
 
-//sys   generateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (s error) = bcrypt.BCryptGenerateSymmetricKey
-//sys   GenerateKeyPair(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, dwLength uint32, dwFlags uint32) (s error) = bcrypt.BCryptGenerateKeyPair
-//sys   FinalizeKeyPair(hKey KEY_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptFinalizeKeyPair
-//sys   ImportKeyPair (hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *uint16, phKey *KEY_HANDLE, pbInput []byte, dwFlags uint32) (s error) = bcrypt.BCryptImportKeyPair
-//sys   ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptExportKey
-//sys   DestroyKey(hKey KEY_HANDLE) (s error) = bcrypt.BCryptDestroyKey
-//sys   _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) = bcrypt.BCryptEncrypt
-//sys   Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) = bcrypt.BCryptDecrypt
-//sys   SignHash (hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (s error) = bcrypt.BCryptSignHash
-//sys   VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags PadMode) (s error) = bcrypt.BCryptVerifySignature
-//sys   SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SECRET_HANDLE, dwFlags uint32) (s error) = bcrypt.BCryptSecretAgreement
-//sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptDeriveKey
-//sys   KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (s error) = bcrypt.BCryptKeyDerivation
-//sys   DestroySecret(hSecret SECRET_HANDLE) (s error) = bcrypt.BCryptDestroySecret
+//sys   generateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenerateSymmetricKey
+//sys   GenerateKeyPair(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, dwLength uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenerateKeyPair
+//sys   FinalizeKeyPair(hKey KEY_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinalizeKeyPair
+//sys   ImportKeyPair (hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *uint16, phKey *KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptImportKeyPair
+//sys   ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptExportKey
+//sys   DestroyKey(hKey KEY_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyKey
+//sys   _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptEncrypt
+//sys   Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptDecrypt
+//sys   SignHash (hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptSignHash
+//sys   VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptVerifySignature
+//sys   SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SECRET_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSecretAgreement
+//sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDeriveKey
+//sys   KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptKeyDerivation
+//sys   DestroySecret(hSecret SECRET_HANDLE) (ntstatus error) = bcrypt.BCryptDestroySecret
 
 func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) error {
 	cbLen := uint32(len(pbSecret))
