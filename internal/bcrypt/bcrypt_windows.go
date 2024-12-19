@@ -119,6 +119,7 @@ const (
 
 const (
 	HASH_DONT_RESET_FLAG = 0x00000001
+	HASH_REUSABLE_FLAG   = 0x00000020
 )
 
 const (

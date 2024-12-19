@@ -9,11 +9,13 @@ package cng
 import (
 	"hash"
 	"runtime"
-	"slices"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
+
+// maxSHA3Size is the size of SHA3_512, the largest SHA3 hash we support.
+const maxSHA3Size = 64
 
 // SumSHA3_256 returns the SHA3-256 checksum of the data.
 func SumSHA3_256(p []byte) (sum [32]byte) {
@@ -98,7 +100,7 @@ func (h *DigestSHA3) init() {
 	if h.ctx != 0 {
 		return
 	}
-	err := bcrypt.CreateHash(h.alg.handle, &h.ctx, nil, nil, 0)
+	err := bcrypt.CreateHash(h.alg.handle, &h.ctx, nil, nil, bcrypt.HASH_REUSABLE_FLAG)
 	if err != nil {
 		panic(err)
 	}
@@ -121,9 +123,13 @@ func (h *DigestSHA3) Clone() (hash.Hash, error) {
 func (h *DigestSHA3) Reset() {
 	defer runtime.KeepAlive(h)
 	if h.ctx != 0 {
-		bcrypt.DestroyHash(h.ctx)
-		h.ctx = 0
-		runtime.SetFinalizer(h, nil)
+		// bcrypt.FinishHash expects the output buffer to match the hash size.
+		// We don't care about the output, so we just pass a stack-allocated buffer
+		// that is large enough to hold the largest hash size we support.
+		var discard [maxSHA3Size]byte
+		if err := bcrypt.FinishHash(h.ctx, discard[:h.Size()], 0); err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -175,7 +181,7 @@ func (h *DigestSHA3) Sum(in []byte) []byte {
 		panic(err)
 	}
 	defer bcrypt.DestroyHash(ctx2)
-	buf := make([]byte, h.alg.size, 64) // explicit cap to allow stack allocation
+	buf := make([]byte, h.alg.size, maxSHA3Size) // explicit cap to allow stack allocation
 	err = bcrypt.FinishHash(ctx2, buf, 0)
 	if err != nil {
 		panic(err)
@@ -207,9 +213,8 @@ func SupportsSHAKE256() bool {
 
 // SHAKE is an instance of a SHAKE extendable output function.
 type SHAKE struct {
-	alg  *hashAlgorithm
-	ctx  bcrypt.HASH_HANDLE
-	n, s []byte
+	ctx       bcrypt.HASH_HANDLE
+	blockSize uint32
 }
 
 func newShake(id string, N, S []byte) *SHAKE {
@@ -217,8 +222,8 @@ func newShake(id string, N, S []byte) *SHAKE {
 	if err != nil {
 		panic(err)
 	}
-	h := &SHAKE{alg: alg, n: slices.Clone(N), s: slices.Clone(S)}
-	err = bcrypt.CreateHash(h.alg.handle, &h.ctx, nil, nil, 0)
+	h := &SHAKE{blockSize: alg.blockSize}
+	err = bcrypt.CreateHash(alg.handle, &h.ctx, nil, nil, bcrypt.HASH_REUSABLE_FLAG)
 	if err != nil {
 		panic(err)
 	}
@@ -309,24 +314,13 @@ func (s *SHAKE) Read(p []byte) (n int, err error) {
 // Reset resets the XOF to its initial state.
 func (s *SHAKE) Reset() {
 	defer runtime.KeepAlive(s)
-	bcrypt.DestroyHash(s.ctx)
-	err := bcrypt.CreateHash(s.alg.handle, &s.ctx, nil, nil, 0)
-	if err != nil {
+	var discard [1]byte
+	if err := bcrypt.FinishHash(s.ctx, discard[:], 0); err != nil {
 		panic(err)
-	}
-	if len(s.n) != 0 {
-		if err := bcrypt.SetProperty(bcrypt.HANDLE(s.ctx), utf16PtrFromString(bcrypt.FUNCTION_NAME_STRING), s.n, 0); err != nil {
-			panic(err)
-		}
-	}
-	if len(s.s) != 0 {
-		if err := bcrypt.SetProperty(bcrypt.HANDLE(s.ctx), utf16PtrFromString(bcrypt.CUSTOMIZATION_STRING), s.s, 0); err != nil {
-			panic(err)
-		}
 	}
 }
 
 // BlockSize returns the rate of the XOF.
 func (s *SHAKE) BlockSize() int {
-	return int(s.alg.blockSize)
+	return int(s.blockSize)
 }
