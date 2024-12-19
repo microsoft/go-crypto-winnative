@@ -32,11 +32,11 @@ func cryptoToHash(h crypto.Hash) func() hash.Hash {
 	case crypto.SHA512:
 		return cng.NewSHA512
 	case crypto.SHA3_256:
-		return cng.NewSHA3_256
+		return func() hash.Hash { return cng.NewSHA3_256() }
 	case crypto.SHA3_384:
-		return cng.NewSHA3_384
+		return func() hash.Hash { return cng.NewSHA3_384() }
 	case crypto.SHA3_512:
-		return cng.NewSHA3_512
+		return func() hash.Hash { return cng.NewSHA3_512() }
 	}
 	return nil
 }
@@ -156,15 +156,15 @@ func TestHash_OneShot(t *testing.T) {
 			return b[:]
 		}},
 		{crypto.SHA3_256, func(p []byte) []byte {
-			b := cng.SHA3_256(p)
+			b := cng.SumSHA3_256(p)
 			return b[:]
 		}},
 		{crypto.SHA3_384, func(p []byte) []byte {
-			b := cng.SHA3_384(p)
+			b := cng.SumSHA3_384(p)
 			return b[:]
 		}},
 		{crypto.SHA3_512, func(p []byte) []byte {
-			b := cng.SHA3_512(p)
+			b := cng.SumSHA3_512(p)
 			return b[:]
 		}},
 	}

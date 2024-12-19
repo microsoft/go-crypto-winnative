@@ -84,27 +84,6 @@ func SHA512(p []byte) (sum [64]byte) {
 	return
 }
 
-func SHA3_256(p []byte) (sum [32]byte) {
-	if err := hashOneShot(bcrypt.SHA3_256_ALGORITHM, p, sum[:]); err != nil {
-		panic("bcrypt: SHA3_256 failed")
-	}
-	return
-}
-
-func SHA3_384(p []byte) (sum [48]byte) {
-	if err := hashOneShot(bcrypt.SHA3_384_ALGORITHM, p, sum[:]); err != nil {
-		panic("bcrypt: SHA3_384 failed")
-	}
-	return
-}
-
-func SHA3_512(p []byte) (sum [64]byte) {
-	if err := hashOneShot(bcrypt.SHA3_512_ALGORITHM, p, sum[:]); err != nil {
-		panic("bcrypt: SHA3_512 failed")
-	}
-	return
-}
-
 // NewMD4 returns a new MD4 hash.
 func NewMD4() hash.Hash {
 	return newHashX(bcrypt.MD4_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
@@ -133,21 +112,6 @@ func NewSHA384() hash.Hash {
 // NewSHA512 returns a new SHA512 hash.
 func NewSHA512() hash.Hash {
 	return newHashX(bcrypt.SHA512_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
-}
-
-// NewSHA3_256 returns a new SHA256 hash.
-func NewSHA3_256() hash.Hash {
-	return newHashX(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
-}
-
-// NewSHA3_384 returns a new SHA384 hash.
-func NewSHA3_384() hash.Hash {
-	return newHashX(bcrypt.SHA3_384_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
-}
-
-// NewSHA3_512 returns a new SHA512 hash.
-func NewSHA3_512() hash.Hash {
-	return newHashX(bcrypt.SHA3_512_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
 }
 
 type hashAlgorithm struct {
