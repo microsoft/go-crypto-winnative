@@ -14,9 +14,6 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-// maxSHA3Size is the size of SHA3_512, the largest SHA3 hash we support.
-const maxSHA3Size = 64
-
 // SumSHA3_256 returns the SHA3-256 checksum of the data.
 func SumSHA3_256(p []byte) (sum [32]byte) {
 	if err := hashOneShot(bcrypt.SHA3_256_ALGORITHM, p, sum[:]); err != nil {
@@ -123,28 +120,14 @@ func (h *DigestSHA3) Clone() (hash.Hash, error) {
 func (h *DigestSHA3) Reset() {
 	defer runtime.KeepAlive(h)
 	if h.ctx != 0 {
-		// bcrypt.FinishHash expects the output buffer to match the hash size.
-		// We don't care about the output, so we just pass a stack-allocated buffer
-		// that is large enough to hold the largest hash size we support.
-		var discard [maxSHA3Size]byte
-		if err := bcrypt.FinishHash(h.ctx, discard[:h.Size()], 0); err != nil {
-			panic(err)
-		}
+		hashReset(h.ctx, h.Size())
 	}
 }
 
 func (h *DigestSHA3) Write(p []byte) (n int, err error) {
 	defer runtime.KeepAlive(h)
 	h.init()
-	for n < len(p) && err == nil {
-		nn := len32(p[n:])
-		err = bcrypt.HashData(h.ctx, p[n:n+nn], 0)
-		n += nn
-	}
-	if err != nil {
-		// hash.Hash interface mandates Write should never return an error.
-		panic(err)
-	}
+	hashData(h.ctx, p)
 	return len(p), nil
 }
 
@@ -156,12 +139,14 @@ func (h *DigestSHA3) WriteString(s string) (int, error) {
 func (h *DigestSHA3) WriteByte(c byte) error {
 	defer runtime.KeepAlive(h)
 	h.init()
-	err := bcrypt.HashDataRaw(h.ctx, &c, 1, 0)
-	if err != nil {
-		// hash.Hash interface mandates Write should never return an error.
-		panic(err)
-	}
+	hashByte(h.ctx, c)
 	return nil
+}
+
+func (h *DigestSHA3) Sum(in []byte) []byte {
+	defer runtime.KeepAlive(h)
+	h.init()
+	return hashSum(h.ctx, h.Size(), in)
 }
 
 func (h *DigestSHA3) Size() int {
@@ -170,23 +155,6 @@ func (h *DigestSHA3) Size() int {
 
 func (h *DigestSHA3) BlockSize() int {
 	return int(h.alg.blockSize)
-}
-
-func (h *DigestSHA3) Sum(in []byte) []byte {
-	defer runtime.KeepAlive(h)
-	h.init()
-	var ctx2 bcrypt.HASH_HANDLE
-	err := bcrypt.DuplicateHash(h.ctx, &ctx2, nil, 0)
-	if err != nil {
-		panic(err)
-	}
-	defer bcrypt.DestroyHash(ctx2)
-	buf := make([]byte, h.alg.size, maxSHA3Size) // explicit cap to allow stack allocation
-	err = bcrypt.FinishHash(ctx2, buf, 0)
-	if err != nil {
-		panic(err)
-	}
-	return append(in, buf...)
 }
 
 // NewSHA3_256 returns a new SHA256 hash.
@@ -281,14 +249,7 @@ func (s *SHAKE) Write(p []byte) (n int, err error) {
 		return 0, nil
 	}
 	defer runtime.KeepAlive(s)
-	for n < len(p) && err == nil {
-		nn := len32(p[n:])
-		err = bcrypt.HashData(s.ctx, p[n:n+nn], 0)
-		n += nn
-	}
-	if err != nil {
-		panic(err)
-	}
+	hashData(s.ctx, p)
 	return len(p), nil
 }
 
@@ -314,10 +275,9 @@ func (s *SHAKE) Read(p []byte) (n int, err error) {
 // Reset resets the XOF to its initial state.
 func (s *SHAKE) Reset() {
 	defer runtime.KeepAlive(s)
-	var discard [1]byte
-	if err := bcrypt.FinishHash(s.ctx, discard[:], 0); err != nil {
-		panic(err)
-	}
+	// SHAKE has a variable size, CNG doesn't change the size of the hash
+	// when resetting, so we can pass a small value here.
+	hashReset(s.ctx, 1)
 }
 
 // BlockSize returns the rate of the XOF.
