@@ -190,11 +190,13 @@ func (h *hashX) init() {
 func (h *hashX) Clone() (hash.Hash, error) {
 	defer runtime.KeepAlive(h)
 	h2 := &hashX{alg: h.alg, key: bytes.Clone(h.key)}
-	err := bcrypt.DuplicateHash(h.ctx, &h2.ctx, nil, 0)
-	if err != nil {
-		return nil, err
+	if h.ctx != 0 {
+		err := bcrypt.DuplicateHash(h.ctx, &h2.ctx, nil, 0)
+		if err != nil {
+			return nil, err
+		}
+		runtime.SetFinalizer(h2, (*hashX).finalize)
 	}
-	runtime.SetFinalizer(h2, (*hashX).finalize)
 	return h2, nil
 }
 
