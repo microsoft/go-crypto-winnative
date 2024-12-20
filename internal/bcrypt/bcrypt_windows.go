@@ -22,6 +22,8 @@ const (
 	SHA3_256_ALGORITHM   = "SHA3-256"
 	SHA3_384_ALGORITHM   = "SHA3-384"
 	SHA3_512_ALGORITHM   = "SHA3-512"
+	CSHAKE128_ALGORITHM  = "CSHAKE128"
+	CSHAKE256_ALGORITHM  = "CSHAKE256"
 	AES_ALGORITHM        = "AES"
 	RC4_ALGORITHM        = "RC4"
 	RSA_ALGORITHM        = "RSA"
@@ -47,17 +49,19 @@ const (
 )
 
 const (
-	HASH_LENGTH       = "HashDigestLength"
-	HASH_BLOCK_LENGTH = "HashBlockLength"
-	CHAINING_MODE     = "ChainingMode"
-	CHAIN_MODE_ECB    = "ChainingModeECB"
-	CHAIN_MODE_CBC    = "ChainingModeCBC"
-	CHAIN_MODE_GCM    = "ChainingModeGCM"
-	KEY_LENGTH        = "KeyLength"
-	KEY_LENGTHS       = "KeyLengths"
-	SIGNATURE_LENGTH  = "SignatureLength"
-	BLOCK_LENGTH      = "BlockLength"
-	ECC_CURVE_NAME    = "ECCCurveName"
+	HASH_LENGTH          = "HashDigestLength"
+	HASH_BLOCK_LENGTH    = "HashBlockLength"
+	CHAINING_MODE        = "ChainingMode"
+	CHAIN_MODE_ECB       = "ChainingModeECB"
+	CHAIN_MODE_CBC       = "ChainingModeCBC"
+	CHAIN_MODE_GCM       = "ChainingModeGCM"
+	KEY_LENGTH           = "KeyLength"
+	KEY_LENGTHS          = "KeyLengths"
+	SIGNATURE_LENGTH     = "SignatureLength"
+	BLOCK_LENGTH         = "BlockLength"
+	ECC_CURVE_NAME       = "ECCCurveName"
+	FUNCTION_NAME_STRING = "FunctionNameString"
+	CUSTOMIZATION_STRING = "CustomizationString"
 )
 
 const (
@@ -111,6 +115,11 @@ type BufferDesc struct {
 
 const (
 	USE_SYSTEM_PREFERRED_RNG = 0x00000002
+)
+
+const (
+	HASH_DONT_RESET_FLAG = 0x00000001
+	HASH_REUSABLE_FLAG   = 0x00000020
 )
 
 const (
