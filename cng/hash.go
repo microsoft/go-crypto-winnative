@@ -16,7 +16,7 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-// maxHashSize is the size of SHA52 and SHA3_512, the largest hashes we support.
+// maxHashSize is the size of SHA512 and SHA3_512, the largest hashes we support.
 const maxHashSize = 64
 
 // SupportsHash returns true if a hash.Hash implementation is supported for h.
