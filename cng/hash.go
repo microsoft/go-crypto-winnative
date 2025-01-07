@@ -148,6 +148,19 @@ func hashToID(h hash.Hash) string {
 	return hx.alg.id
 }
 
+// cloneHash is an interface that defines a Clone method.
+//
+// hash.CloneHash will probably be added in Go 1.25, see https://golang.org/issue/69521,
+// but we need it now.
+type cloneHash interface {
+	hash.Hash
+	// Clone returns a separate Hash instance with the same state as h.
+	Clone() hash.Hash
+}
+
+var _ hash.Hash = (*hashX)(nil)
+var _ cloneHash = (*hashX)(nil)
+
 // hashX implements [hash.Hash].
 type hashX struct {
 	alg *hashAlgorithm
@@ -187,17 +200,14 @@ func (h *hashX) init() {
 	runtime.SetFinalizer(h, (*hashX).finalize)
 }
 
-func (h *hashX) Clone() (hash.Hash, error) {
+func (h *hashX) Clone() hash.Hash {
 	defer runtime.KeepAlive(h)
 	h2 := &hashX{alg: h.alg, key: bytes.Clone(h.key)}
 	if h.ctx != 0 {
-		err := bcrypt.DuplicateHash(h.ctx, &h2.ctx, nil, 0)
-		if err != nil {
-			return nil, err
-		}
+		hashClone(h.ctx, &h2.ctx)
 		runtime.SetFinalizer(h2, (*hashX).finalize)
 	}
-	return h2, nil
+	return h2
 }
 
 func (h *hashX) Reset() {
@@ -289,6 +299,14 @@ func hashReset(ctx bcrypt.HASH_HANDLE, size int) {
 	// that is large enough to hold the largest hash size we support.
 	var discard [maxHashSize]byte
 	if err := bcrypt.FinishHash(ctx, discard[:size], 0); err != nil {
+		panic(err)
+	}
+}
+
+// hashClone clones ctx into ctx2. It panics on error.
+func hashClone(ctx bcrypt.HASH_HANDLE, ctx2 *bcrypt.HASH_HANDLE) {
+	err := bcrypt.DuplicateHash(ctx, ctx2, nil, 0)
+	if err != nil {
 		panic(err)
 	}
 }
