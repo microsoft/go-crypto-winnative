@@ -72,6 +72,9 @@ func TestCSHAKESqueezing(t *testing.T) {
 }
 
 // sequentialBytes produces a buffer of size consecutive bytes 0x00, 0x01, ..., used for testing.
+//
+// The alignment of each slice is intentionally randomized to detect alignment
+// issues in the implementation. See https://golang.org/issue/37644.
 func sequentialBytes(size int) []byte {
 	alignmentOffset := rand.Intn(8)
 	result := make([]byte, size+alignmentOffset)[alignmentOffset:]

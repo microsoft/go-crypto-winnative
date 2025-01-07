@@ -65,6 +65,13 @@ func SupportsSHAKE128() bool {
 	return err == nil
 }
 
+// SupportsSHAKE256 returns true if the SHAKE256 extendable output function is
+// supported.
+func SupportsSHAKE256() bool {
+	_, err := loadHash(bcrypt.CSHAKE256_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+	return err == nil
+}
+
 var _ hash.Hash = (*DigestSHA3)(nil)
 
 // DigestSHA3 is the [sha3.SHA3] implementation using the CNG API.
@@ -170,13 +177,6 @@ func NewSHA3_384() *DigestSHA3 {
 // NewSHA3_512 returns a new SHA512 hash.
 func NewSHA3_512() *DigestSHA3 {
 	return newDigestSHA3(bcrypt.SHA3_512_ALGORITHM)
-}
-
-// SupportsSHAKE256 returns true if the SHAKE256 extendable output function is
-// supported.
-func SupportsSHAKE256() bool {
-	_, err := loadHash(bcrypt.CSHAKE256_ALGORITHM, bcrypt.ALG_NONE_FLAG)
-	return err == nil
 }
 
 // SHAKE is an instance of a SHAKE extendable output function.
