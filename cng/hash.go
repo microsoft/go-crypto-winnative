@@ -150,7 +150,7 @@ func hashToID(h hash.Hash) string {
 
 // cloneHash is an interface that defines a Clone method.
 //
-// hahs.CloneHash will probably be added in Go 1.25, see https://golang.org/issue/69521,
+// hash.CloneHash will probably be added in Go 1.25, see https://golang.org/issue/69521,
 // but we need it now.
 type cloneHash interface {
 	hash.Hash
