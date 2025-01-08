@@ -34,14 +34,10 @@ var testShakes = map[string]struct {
 func skipCSHAKEIfNotSupported(t *testing.T, algo string) {
 	var supported bool
 	switch algo {
-	case "SHAKE128":
+	case "SHAKE128", "CSHAKE128":
 		supported = cng.SupportsSHAKE(128)
-	case "SHAKE256":
+	case "SHAKE256", "CSHAKE256":
 		supported = cng.SupportsSHAKE(256)
-	case "CSHAKE128":
-		supported = cng.SupportsCSHAKE(128)
-	case "CSHAKE256":
-		supported = cng.SupportsCSHAKE(256)
 	}
 	if !supported {
 		t.Skip("skipping: not supported")

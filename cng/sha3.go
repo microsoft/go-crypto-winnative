@@ -58,16 +58,9 @@ func SumSHAKE256(data []byte, length int) []byte {
 	return out
 }
 
-// SupportsSHAKE returns true if the SHAKE extendable output function with the
-// given securityBits is supported.
+// SupportsSHAKE returns true if the SHAKE and CSHAKE extendable output functions
+// with the given securityBits are supported.
 func SupportsSHAKE(securityBits int) bool {
-	// CNG implements SHAKE using CSHAKE with empty N and S.
-	return SupportsCSHAKE(securityBits)
-}
-
-// SupportsCSHAKE returns true if the CSHAKE extendable output function with the
-// given securityBits is supported.
-func SupportsCSHAKE(securityBits int) bool {
 	var id string
 	switch securityBits {
 	case 128:
