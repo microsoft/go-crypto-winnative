@@ -58,17 +58,26 @@ func SumSHAKE256(data []byte, length int) []byte {
 	return out
 }
 
-// SupportsSHAKE128 returns true if the SHAKE128 extendable output function is
-// supported.
-func SupportsSHAKE128() bool {
-	_, err := loadHash(bcrypt.CSHAKE128_ALGORITHM, bcrypt.ALG_NONE_FLAG)
-	return err == nil
+// SupportsSHAKE returns true if the SHAKE extendable output function with the
+// given securityBits is supported.
+func SupportsSHAKE(securityBits int) bool {
+	// CNG implements SHAKE using CSHAKE with empty N and S.
+	return SupportsCSHAKE(securityBits)
 }
 
-// SupportsSHAKE256 returns true if the SHAKE256 extendable output function is
-// supported.
-func SupportsSHAKE256() bool {
-	_, err := loadHash(bcrypt.CSHAKE256_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+// SupportsCSHAKE returns true if the CSHAKE extendable output function with the
+// given securityBits is supported.
+func SupportsCSHAKE(securityBits int) bool {
+	var id string
+	switch securityBits {
+	case 128:
+		id = bcrypt.CSHAKE128_ALGORITHM
+	case 256:
+		id = bcrypt.CSHAKE256_ALGORITHM
+	default:
+		return false
+	}
+	_, err := loadHash(id, bcrypt.ALG_NONE_FLAG)
 	return err == nil
 }
 
