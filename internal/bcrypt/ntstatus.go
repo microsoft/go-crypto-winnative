@@ -1,7 +1,7 @@
 package bcrypt
 
 import (
-	"fmt"
+	"strconv"
 	"syscall"
 	"unicode/utf16"
 )
@@ -27,7 +27,7 @@ func (s NTStatus) Error() string {
 	b := make([]uint16, 300)
 	n, err := formatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_FROM_HMODULE|FORMAT_MESSAGE_ARGUMENT_ARRAY, modntdll.Handle(), uint32(s), langID(LANG_ENGLISH, SUBLANG_ENGLISH_US), b, nil)
 	if err != nil {
-		return fmt.Sprintf("NTSTATUS 0x%08x", uint32(s))
+		return "NTSTATUS 0x" + strconv.FormatUint(uint64(s), 16)
 	}
 	// trim terminating \r and \n
 	for ; n > 0 && (b[n-1] == '\n' || b[n-1] == '\r'); n-- {
