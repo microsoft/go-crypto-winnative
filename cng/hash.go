@@ -9,6 +9,7 @@ package cng
 import (
 	"bytes"
 	"crypto"
+	"errors"
 	"hash"
 	"runtime"
 	"unsafe"
@@ -248,6 +249,18 @@ func (h *hashX) Size() int {
 
 func (h *hashX) BlockSize() int {
 	return int(h.alg.blockSize)
+}
+
+func (hx *hashX) MarshalBinary() ([]byte, error) {
+	return nil, errors.New("cng: hash state is not marshallable")
+}
+
+func (hx *hashX) AppendBinary(b []byte) ([]byte, error) {
+	return nil, errors.New("cng: hash state is not marshallable")
+}
+
+func (hx *hashX) UnmarshalBinary(data []byte) error {
+	return errors.New("cng: hash state is not marshallable")
 }
 
 // hashData writes p to ctx. It panics on error.

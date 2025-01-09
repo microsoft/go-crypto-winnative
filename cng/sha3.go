@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"errors"
 	"hash"
 	"runtime"
 	"unsafe"
@@ -164,6 +165,18 @@ func (h *DigestSHA3) BlockSize() int {
 	return int(h.alg.blockSize)
 }
 
+func (ds *DigestSHA3) MarshalBinary() ([]byte, error) {
+	return nil, errors.New("cng: hash state is not marshallable")
+}
+
+func (ds *DigestSHA3) AppendBinary(b []byte) ([]byte, error) {
+	return nil, errors.New("cng: hash state is not marshallable")
+}
+
+func (ds *DigestSHA3) UnmarshalBinary(data []byte) error {
+	return errors.New("cng: hash state is not marshallable")
+}
+
 // NewSHA3_256 returns a new SHA256 hash.
 func NewSHA3_256() *DigestSHA3 {
 	return newDigestSHA3(bcrypt.SHA3_256_ALGORITHM)
@@ -283,4 +296,16 @@ func (s *SHAKE) Reset() {
 // BlockSize returns the rate of the XOF.
 func (s *SHAKE) BlockSize() int {
 	return int(s.blockSize)
+}
+
+func (s *SHAKE) MarshalBinary() ([]byte, error) {
+	return nil, errors.New("cng: hash state is not marshallable")
+}
+
+func (s *SHAKE) AppendBinary(b []byte) ([]byte, error) {
+	return nil, errors.New("cng: hash state is not marshallable")
+}
+
+func (s *SHAKE) UnmarshalBinary(data []byte) error {
+	return errors.New("cng: hash state is not marshallable")
 }
