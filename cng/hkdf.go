@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"encoding/binary"
 	"errors"
 	"hash"
 	"runtime"
@@ -82,7 +83,7 @@ func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
 	if len(blob) < 4 {
 		return nil, errors.New("cng: exported key is corrupted")
 	}
-	cbHashName := bigUint32(blob)
+	cbHashName := binary.BigEndian.Uint32(blob)
 	blob = blob[4:]
 	if len(blob) < int(cbHashName) {
 		return nil, errors.New("cng: exported key is corrupted")
@@ -124,5 +125,5 @@ func ExpandHKDF(h func() hash.Hash, pseudorandomKey, info []byte, keyLength int)
 
 func bigUint32(b []byte) uint32 {
 	_ = b[3] // bounds check hint to compiler; see golang.org/issue/14808
-	return uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16 | uint32(b[3])<<24
+	return uint32(b[3]) | uint32(b[2])<<8 | uint32(b[1])<<16 | uint32(b[0])<<24
 }
