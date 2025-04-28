@@ -181,6 +181,66 @@ func TestHash_OneShot(t *testing.T) {
 	}
 }
 
+func TestHashAllocations(t *testing.T) {
+	msg := []byte("testing")
+	n := int(testing.AllocsPerRun(10, func() {
+		sink ^= cng.SHA1(msg)[0]
+		sink ^= cng.SHA256(msg)[0]
+		sink ^= cng.SHA384(msg)[0]
+		sink ^= cng.SHA512(msg)[0]
+		sink ^= cng.SumSHA3_256(msg)[0]
+		sink ^= cng.SumSHA3_384(msg)[0]
+		sink ^= cng.SumSHA3_512(msg)[0]
+	}))
+	want := 0
+	if n > want {
+		t.Errorf("allocs = %d, want %d", n, want)
+	}
+}
+
+func TestHashStructAllocations(t *testing.T) {
+	msg := []byte("testing")
+
+	sha1Hash := cng.NewSHA1()
+	sha256Hash := cng.NewSHA256()
+	sha384Hash := cng.NewSHA384()
+	sha512Hash := cng.NewSHA512()
+	sha3_256 := cng.NewSHA3_256()
+	sha3_384 := cng.NewSHA3_384()
+	sha3_512 := cng.NewSHA3_512()
+
+	sum := make([]byte, sha512Hash.Size())
+	n := int(testing.AllocsPerRun(10, func() {
+		sha1Hash.Write(msg)
+		sha256Hash.Write(msg)
+		sha384Hash.Write(msg)
+		sha512Hash.Write(msg)
+		sha3_256.Write(msg)
+		sha3_384.Write(msg)
+		sha3_512.Write(msg)
+
+		sha1Hash.Sum(sum[:0])
+		sha256Hash.Sum(sum[:0])
+		sha384Hash.Sum(sum[:0])
+		sha512Hash.Sum(sum[:0])
+		sha3_256.Sum(sum[:0])
+		sha3_384.Sum(sum[:0])
+		sha3_512.Sum(sum[:0])
+
+		sha1Hash.Reset()
+		sha256Hash.Reset()
+		sha384Hash.Reset()
+		sha512Hash.Reset()
+		sha3_256.Reset()
+		sha3_384.Reset()
+		sha3_512.Reset()
+	}))
+	want := 0
+	if n > want {
+		t.Errorf("allocs = %d, want %d", n, want)
+	}
+}
+
 func BenchmarkSHA256_8Bytes(b *testing.B) {
 	b.StopTimer()
 	h := cng.NewSHA256()
