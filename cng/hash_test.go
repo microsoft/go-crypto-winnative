@@ -184,6 +184,8 @@ func TestHash_OneShot(t *testing.T) {
 func TestHashAllocations(t *testing.T) {
 	msg := []byte("testing")
 	n := int(testing.AllocsPerRun(10, func() {
+		sink ^= cng.MD4(msg)[0]
+		sink ^= cng.MD5(msg)[0]
 		sink ^= cng.SHA1(msg)[0]
 		sink ^= cng.SHA256(msg)[0]
 		sink ^= cng.SHA384(msg)[0]
@@ -198,6 +200,8 @@ func TestHashAllocations(t *testing.T) {
 func TestHashStructAllocations(t *testing.T) {
 	msg := []byte("testing")
 
+	md4Hash := cng.NewMD4()
+	md5Hash := cng.NewMD5()
 	sha1Hash := cng.NewSHA1()
 	sha256Hash := cng.NewSHA256()
 	sha384Hash := cng.NewSHA384()
@@ -205,16 +209,22 @@ func TestHashStructAllocations(t *testing.T) {
 
 	sum := make([]byte, sha512Hash.Size())
 	n := int(testing.AllocsPerRun(10, func() {
+		md4Hash.Write(msg)
+		md5Hash.Write(msg)
 		sha1Hash.Write(msg)
 		sha256Hash.Write(msg)
 		sha384Hash.Write(msg)
 		sha512Hash.Write(msg)
 
+		md4Hash.Sum(sum[:0])
+		md5Hash.Sum(sum[:0])
 		sha1Hash.Sum(sum[:0])
 		sha256Hash.Sum(sum[:0])
 		sha384Hash.Sum(sum[:0])
 		sha512Hash.Sum(sum[:0])
 
+		md4Hash.Reset()
+		md5Hash.Reset()
 		sha1Hash.Reset()
 		sha256Hash.Reset()
 		sha384Hash.Reset()
