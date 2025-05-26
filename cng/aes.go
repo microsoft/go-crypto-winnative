@@ -366,10 +366,9 @@ func (g *aesGCM) SealWithRandomNonce(out, nonce, plaintext, additionalData []byt
 		panic(err)
 	}
 	if int(encSize) != len(plaintext) {
-		panic("crypto/aes: plaintext not fully encrypted")
+		panic("crypto/cipher: plaintext not fully encrypted")
 	}
 	runtime.KeepAlive(g)
-	return
 }
 
 var errOpen = errors.New("cipher: message authentication failed")
