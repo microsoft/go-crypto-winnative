@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//go:generate go run github.com/microsoft/go-crypto-winnative/cmd/mksyscall -output zsyscall_windows.go bcrypt_windows.go
+//go:generate go run github.com/microsoft/go-crypto-winnative/cmd/mksyscall -output zsyscall_windows.go bcrypt_windows.go ntstatus_windows.go
 
 // Package bcrypt implements interop with bcrypt.dll, a component of Windows CNG.
 // See https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/
