@@ -160,7 +160,7 @@ type cloneHash interface {
 }
 
 var _ hash.Hash = (*hashX)(nil)
-var _ cloneHash = (*hashX)(nil)
+var _ HashCloner = (*hashX)(nil)
 
 // hashX implements [hash.Hash].
 type hashX struct {
@@ -201,14 +201,14 @@ func (h *hashX) init() {
 	runtime.SetFinalizer(h, (*hashX).finalize)
 }
 
-func (h *hashX) Clone() hash.Hash {
+func (h *hashX) Clone() (HashCloner, error) {
 	defer runtime.KeepAlive(h)
 	h2 := &hashX{alg: h.alg, key: bytes.Clone(h.key)}
 	if h.ctx != 0 {
 		hashClone(h.ctx, &h2.ctx)
 		runtime.SetFinalizer(h2, (*hashX).finalize)
 	}
-	return h2
+	return h2, nil
 }
 
 func (h *hashX) Reset() {
