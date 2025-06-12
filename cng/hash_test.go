@@ -302,7 +302,7 @@ func BenchmarkSHA256_OneShot(b *testing.B) {
 	}
 }
 
-// Helper function for writing. Verifies that Write does not error.Add commentMore actions
+// Helper function for writing. Verifies that Write does not error.
 func writeToHash(t *testing.T, h hash.Hash, p []byte) {
 	t.Helper()
 
