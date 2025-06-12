@@ -79,18 +79,6 @@ func TestHash(t *testing.T) {
 				t.Error("Write didn't change internal hash state")
 			}
 
-			h2 := h.(interface{ Clone() hash.Hash }).Clone()
-			h.Write(msg)
-			h2.Write(msg)
-			if actual, actual2 := h.Sum(nil), h2.Sum(nil); !bytes.Equal(actual, actual2) {
-				t.Errorf("%s(%q) = 0x%x != cloned 0x%x", tt.String(), msg, actual, actual2)
-			}
-			h.Reset()
-			sum = h.Sum(nil)
-			if !bytes.Equal(sum, initSum) {
-				t.Errorf("got:%x want:%x", sum, initSum)
-			}
-
 			bw := h.(io.ByteWriter)
 			for i := 0; i < len(msg); i++ {
 				bw.WriteByte(msg[i])

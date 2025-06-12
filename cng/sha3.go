@@ -76,7 +76,7 @@ func SupportsSHAKE(securityBits int) bool {
 }
 
 var _ hash.Hash = (*DigestSHA3)(nil)
-var _ cloneHash = (*DigestSHA3)(nil)
+var _ HashCloner = (*DigestSHA3)(nil)
 
 // DigestSHA3 is the [sha3.SHA3] implementation using the CNG API.
 type DigestSHA3 struct {
@@ -115,14 +115,14 @@ func (h *DigestSHA3) init() {
 	runtime.SetFinalizer(h, (*DigestSHA3).finalize)
 }
 
-func (h *DigestSHA3) Clone() hash.Hash {
+func (h *DigestSHA3) Clone() (HashCloner, error) {
 	defer runtime.KeepAlive(h)
 	h2 := &DigestSHA3{alg: h.alg}
 	if h.ctx != 0 {
 		hashClone(h.ctx, &h2.ctx)
 		runtime.SetFinalizer(h2, (*DigestSHA3).finalize)
 	}
-	return h2
+	return h2, nil
 }
 
 func (h *DigestSHA3) Reset() {

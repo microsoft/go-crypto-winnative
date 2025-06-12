@@ -149,16 +149,6 @@ func hashToID(h hash.Hash) string {
 	return hx.alg.id
 }
 
-// cloneHash is an interface that defines a Clone method.
-//
-// hash.CloneHash will probably be added in Go 1.25, see https://golang.org/issue/69521,
-// but we need it now.
-type cloneHash interface {
-	hash.Hash
-	// Clone returns a separate Hash instance with the same state as h.
-	Clone() hash.Hash
-}
-
 var _ hash.Hash = (*hashX)(nil)
 var _ HashCloner = (*hashX)(nil)
 
