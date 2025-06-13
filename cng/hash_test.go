@@ -79,18 +79,6 @@ func TestHash(t *testing.T) {
 				t.Error("Write didn't change internal hash state")
 			}
 
-			h2 := h.(interface{ Clone() hash.Hash }).Clone()
-			h.Write(msg)
-			h2.Write(msg)
-			if actual, actual2 := h.Sum(nil), h2.Sum(nil); !bytes.Equal(actual, actual2) {
-				t.Errorf("%s(%q) = 0x%x != cloned 0x%x", tt.String(), msg, actual, actual2)
-			}
-			h.Reset()
-			sum = h.Sum(nil)
-			if !bytes.Equal(sum, initSum) {
-				t.Errorf("got:%x want:%x", sum, initSum)
-			}
-
 			bw := h.(io.ByteWriter)
 			for i := 0; i < len(msg); i++ {
 				bw.WriteByte(msg[i])
@@ -106,6 +94,55 @@ func TestHash(t *testing.T) {
 			sum = h.Sum(nil)
 			if !bytes.Equal(sum, initSum) {
 				t.Errorf("got:%x want:%x", sum, initSum)
+			}
+		})
+	}
+}
+
+func TestHash_Clone(t *testing.T) {
+	msg := []byte("testing")
+	for _, tt := range hashes {
+		t.Run(tt.String(), func(t *testing.T) {
+			if !cng.SupportsHash(tt) {
+				t.Skip("skipping: not supported")
+			}
+			h := cryptoToHash(tt)().(cng.HashCloner)
+
+			_, err := h.Write(msg)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			h3, err := h.Clone()
+			if err != nil {
+				t.Fatalf("Clone failed: %v", err)
+			}
+			prefix := []byte("tmp")
+			writeToHash(t, h, prefix)
+			h2, err := h.Clone()
+			if err != nil {
+				t.Fatalf("Clone failed: %v", err)
+			}
+			prefixSum := h.Sum(nil)
+			if !bytes.Equal(prefixSum, h2.Sum(nil)) {
+				t.Fatalf("%T Clone results are inconsistent", h)
+			}
+			suffix := []byte("tmp2")
+			writeToHash(t, h, suffix)
+			writeToHash(t, h3, append(prefix, suffix...))
+			compositeSum := h3.Sum(nil)
+			if !bytes.Equal(h.Sum(nil), compositeSum) {
+				t.Fatalf("%T Clone results are inconsistent", h)
+			}
+			if !bytes.Equal(h2.Sum(nil), prefixSum) {
+				t.Fatalf("%T Clone results are inconsistent", h)
+			}
+			writeToHash(t, h2, suffix)
+			if !bytes.Equal(h.Sum(nil), compositeSum) {
+				t.Fatalf("%T Clone results are inconsistent", h)
+			}
+			if !bytes.Equal(h2.Sum(nil), compositeSum) {
+				t.Fatalf("%T Clone results are inconsistent", h)
 			}
 		})
 	}
@@ -262,5 +299,22 @@ func BenchmarkSHA256_OneShot(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		cng.SHA256(buf)
+	}
+}
+
+// Helper function for writing. Verifies that Write does not error.
+func writeToHash(t *testing.T, h hash.Hash, p []byte) {
+	t.Helper()
+
+	before := make([]byte, len(p))
+	copy(before, p)
+
+	n, err := h.Write(p)
+	if err != nil || n != len(p) {
+		t.Errorf("Write returned error; got (%v, %v), want (nil, %v)", err, n, len(p))
+	}
+
+	if !bytes.Equal(p, before) {
+		t.Errorf("Write modified input slice; got %x, want %x", p, before)
 	}
 }
