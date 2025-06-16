@@ -105,10 +105,10 @@ func (c *aesCipher) NewGCM(nonceSize, tagSize int) (cipher.AEAD, error) {
 	}
 	// Fall back to standard library for GCM with non-standard nonce or tag size.
 	if nonceSize != gcmStandardNonceSize {
-		return cipher.NewGCMWithNonceSize(&noGCM{c}, nonceSize)
+		return cipher.NewGCMWithNonceSize(&noGCM{c}, nonceSize) // CodeQL [SM04391] This is to keep compatibility with upstream, it's on end user teams to raise exceptions with the Crypto Board.
 	}
 	if tagSize != gcmTagSize {
-		return cipher.NewGCMWithTagSize(&noGCM{c}, tagSize)
+		return cipher.NewGCMWithTagSize(&noGCM{c}, tagSize) // CodeQL [SM04391] This is to keep compatibility with upstream, it's on end user teams to raise exceptions with the Crypto Board.
 	}
 	return newGCM(c.key, cipherGCMTLSNone)
 }
