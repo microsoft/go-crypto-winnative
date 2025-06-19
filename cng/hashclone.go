@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//go:build windows
-// +build windows
+//go:build !go1.25 && windows
+// +build !go1.25,windows
 
 package cng
 
