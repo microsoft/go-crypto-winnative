@@ -31,5 +31,30 @@ func NewHMAC(h func() hash.Hash, key []byte) hash.Hash {
 		ch.Write(key)
 		key = ch.Sum(nil)
 	}
-	return newHashX(id, bcrypt.ALG_HANDLE_HMAC_FLAG, key)
+
+	return hmacWrapper{hashX: newHashX(id, bcrypt.ALG_HANDLE_HMAC_FLAG, key)}
+}
+
+type hmacWrapper struct {
+	hashX *hashX
+}
+
+func (h hmacWrapper) Write(p []byte) (n int, err error) {
+	return h.hashX.Write(p)
+}
+
+func (h hmacWrapper) Sum(b []byte) []byte {
+	return h.hashX.Sum(b)
+}
+
+func (h hmacWrapper) Reset() {
+	h.hashX.Reset()
+}
+
+func (h hmacWrapper) Size() int {
+	return h.hashX.Size()
+}
+
+func (h hmacWrapper) BlockSize() int {
+	return h.hashX.BlockSize()
 }
