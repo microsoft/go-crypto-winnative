@@ -58,3 +58,11 @@ func (h hmacWrapper) Size() int {
 func (h hmacWrapper) BlockSize() int {
 	return h.hashX.BlockSize()
 }
+
+func (h hmacWrapper) Clone() (HashCloner, error) {
+	clone, err := h.hashX.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return hmacWrapper{hashX: clone.(*hashX)}, nil
+}
