@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"crypto"
 	"errors"
+	"fmt"
 	"hash"
 	"runtime"
 	"unsafe"
@@ -242,15 +243,15 @@ func (h *hashX) BlockSize() int {
 }
 
 func (hx *hashX) MarshalBinary() ([]byte, error) {
-	return nil, errors.New("cng: hash state is not marshallable")
+	return nil, fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
 }
 
 func (hx *hashX) AppendBinary(b []byte) ([]byte, error) {
-	return nil, errors.New("cng: hash state is not marshallable")
+	return nil, fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
 }
 
 func (hx *hashX) UnmarshalBinary(data []byte) error {
-	return errors.New("cng: hash state is not marshallable")
+	return fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
 }
 
 // hashData writes p to ctx. It panics on error.
