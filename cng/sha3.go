@@ -7,7 +7,6 @@
 package cng
 
 import (
-	"errors"
 	"hash"
 	"runtime"
 	"unsafe"
@@ -166,15 +165,15 @@ func (h *DigestSHA3) BlockSize() int {
 }
 
 func (ds *DigestSHA3) MarshalBinary() ([]byte, error) {
-	return nil, errors.New("cng: hash state is not marshallable")
+	return nil, errMarshallUnsupported{}
 }
 
 func (ds *DigestSHA3) AppendBinary(b []byte) ([]byte, error) {
-	return nil, errors.New("cng: hash state is not marshallable")
+	return nil, errMarshallUnsupported{}
 }
 
 func (ds *DigestSHA3) UnmarshalBinary(data []byte) error {
-	return errors.New("cng: hash state is not marshallable")
+	return errMarshallUnsupported{}
 }
 
 // NewSHA3_256 returns a new SHA256 hash.
@@ -299,13 +298,13 @@ func (s *SHAKE) BlockSize() int {
 }
 
 func (s *SHAKE) MarshalBinary() ([]byte, error) {
-	return nil, errors.New("cng: hash state is not marshallable")
+	return nil, errMarshallUnsupported{}
 }
 
 func (s *SHAKE) AppendBinary(b []byte) ([]byte, error) {
-	return nil, errors.New("cng: hash state is not marshallable")
+	return nil, errMarshallUnsupported{}
 }
 
 func (s *SHAKE) UnmarshalBinary(data []byte) error {
-	return errors.New("cng: hash state is not marshallable")
+	return errMarshallUnsupported{}
 }
