@@ -7,8 +7,6 @@
 package cng
 
 import (
-	"errors"
-	"fmt"
 	"hash"
 	"runtime"
 	"unsafe"
@@ -167,15 +165,15 @@ func (h *DigestSHA3) BlockSize() int {
 }
 
 func (ds *DigestSHA3) MarshalBinary() ([]byte, error) {
-	return nil, fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return nil, errMarshallUnsupported{}
 }
 
 func (ds *DigestSHA3) AppendBinary(b []byte) ([]byte, error) {
-	return nil, fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return nil, errMarshallUnsupported{}
 }
 
 func (ds *DigestSHA3) UnmarshalBinary(data []byte) error {
-	return fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return errMarshallUnsupported{}
 }
 
 // NewSHA3_256 returns a new SHA256 hash.
@@ -300,13 +298,13 @@ func (s *SHAKE) BlockSize() int {
 }
 
 func (s *SHAKE) MarshalBinary() ([]byte, error) {
-	return nil, fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return nil, errMarshallUnsupported{}
 }
 
 func (s *SHAKE) AppendBinary(b []byte) ([]byte, error) {
-	return nil, fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return nil, errMarshallUnsupported{}
 }
 
 func (s *SHAKE) UnmarshalBinary(data []byte) error {
-	return fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return errMarshallUnsupported{}
 }

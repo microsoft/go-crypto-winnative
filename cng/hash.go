@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"crypto"
 	"errors"
-	"fmt"
 	"hash"
 	"runtime"
 	"unsafe"
@@ -242,16 +241,26 @@ func (h *hashX) BlockSize() int {
 	return int(h.alg.blockSize)
 }
 
+type errMarshallUnsupported struct{}
+
+func (e errMarshallUnsupported) Error() string {
+	return "cryptokit: hash state is not marshallable"
+}
+
+func (e errMarshallUnsupported) Unwrap() error {
+	return errors.ErrUnsupported
+}
+
 func (hx *hashX) MarshalBinary() ([]byte, error) {
-	return nil, fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return nil, errMarshallUnsupported{}
 }
 
 func (hx *hashX) AppendBinary(b []byte) ([]byte, error) {
-	return nil, fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return nil, errMarshallUnsupported{}
 }
 
 func (hx *hashX) UnmarshalBinary(data []byte) error {
-	return fmt.Errorf("cng: hash state is not marshallable: %w", errors.ErrUnsupported)
+	return errMarshallUnsupported{}
 }
 
 // hashData writes p to ctx. It panics on error.
