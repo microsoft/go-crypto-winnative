@@ -29,4 +29,3 @@ jobs:
       run: go test -v -gcflags=all=-d=checkptr -count 10 -short ./...
       env:
         GO_TEST_FIPS: ${{ matrix.fips }}
-
