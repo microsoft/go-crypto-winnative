@@ -15,7 +15,7 @@ import (
 	"runtime"
 )
 
-const mkwinsyscallVersion = "b874c991c1a5"
+const mkwinsyscallVersion = "v0.37.0"
 
 const description = `
 Example:
