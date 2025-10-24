@@ -43,12 +43,14 @@ var (
 
 	procBCryptCloseAlgorithmProvider = modbcrypt.NewProc("BCryptCloseAlgorithmProvider")
 	procBCryptCreateHash             = modbcrypt.NewProc("BCryptCreateHash")
+	procBCryptDecapsulate            = modbcrypt.NewProc("BCryptDecapsulate")
 	procBCryptDecrypt                = modbcrypt.NewProc("BCryptDecrypt")
 	procBCryptDeriveKey              = modbcrypt.NewProc("BCryptDeriveKey")
 	procBCryptDestroyHash            = modbcrypt.NewProc("BCryptDestroyHash")
 	procBCryptDestroyKey             = modbcrypt.NewProc("BCryptDestroyKey")
 	procBCryptDestroySecret          = modbcrypt.NewProc("BCryptDestroySecret")
 	procBCryptDuplicateHash          = modbcrypt.NewProc("BCryptDuplicateHash")
+	procBCryptEncapsulate            = modbcrypt.NewProc("BCryptEncapsulate")
 	procBCryptEncrypt                = modbcrypt.NewProc("BCryptEncrypt")
 	procBCryptExportKey              = modbcrypt.NewProc("BCryptExportKey")
 	procBCryptFinalizeKeyPair        = modbcrypt.NewProc("BCryptFinalizeKeyPair")
@@ -89,6 +91,22 @@ func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte,
 		_p1 = &pbSecret[0]
 	}
 	r0, _, _ := syscall.SyscallN(procBCryptCreateHash.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
+	return
+}
+
+func Decapsulate(hKey KEY_HANDLE, pbCiphertext []byte, pbSecret []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbCiphertext) > 0 {
+		_p0 = &pbCiphertext[0]
+	}
+	var _p1 *byte
+	if len(pbSecret) > 0 {
+		_p1 = &pbSecret[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptDecapsulate.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbCiphertext)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -157,6 +175,22 @@ func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byt
 		_p0 = &pbHashObject[0]
 	}
 	r0, _, _ := syscall.SyscallN(procBCryptDuplicateHash.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(phNewHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
+	return
+}
+
+func Encapsulate(hKey KEY_HANDLE, pbSecret []byte, pcbResult *uint32, pbCiphertext []byte, pcbCiphertext *uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbSecret) > 0 {
+		_p0 = &pbSecret[0]
+	}
+	var _p1 *byte
+	if len(pbCiphertext) > 0 {
+		_p1 = &pbCiphertext[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptEncapsulate.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbSecret)), uintptr(unsafe.Pointer(pcbResult)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbCiphertext)), uintptr(unsafe.Pointer(pcbCiphertext)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}

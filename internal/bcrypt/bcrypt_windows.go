@@ -38,6 +38,7 @@ const (
 	TLS1_1_KDF_ALGORITHM = "TLS1_1_KDF"
 	TLS1_2_KDF_ALGORITHM = "TLS1_2_KDF"
 	DSA_ALGORITHM        = "DSA"
+	MLKEM_ALGORITHM      = "ML-KEM"
 )
 
 const (
@@ -71,6 +72,8 @@ const (
 	ECCPRIVATE_BLOB     = "ECCPRIVATEBLOB"
 	DSA_PUBLIC_BLOB     = "DSAPUBLICBLOB"
 	DSA_PRIVATE_BLOB    = "DSAPRIVATEBLOB"
+	MLKEM_PUBLIC_BLOB   = "MLKEMPUBLICBLOB"
+	MLKEM_PRIVATE_BLOB  = "MLKEMPRIVATEBLOB"
 )
 
 const (
@@ -128,6 +131,13 @@ const (
 
 const (
 	DSA_PARAMETERS = "DSAParameters"
+)
+
+const (
+	// ML-KEM related properties and constants
+	PARAMETER_SET_NAME       = "ParameterSetName"
+	MLKEM_PARAMETER_SET_768  = "768"
+	MLKEM_PARAMETER_SET_1024 = "1024"
 )
 
 type HASHALGORITHM_ENUM uint32
@@ -201,6 +211,9 @@ const (
 	DSA_PARAMETERS_MAGIC_V2 KeyBlobMagicNumber = 0x324d5044
 	DSA_PUBLIC_MAGIC_V2     KeyBlobMagicNumber = 0x32425044
 	DSA_PRIVATE_MAGIC_V2    KeyBlobMagicNumber = 0x32565044
+
+	MLKEM_PUBLIC_MAGIC  KeyBlobMagicNumber = 0x504b4c4d
+	MLKEM_PRIVATE_MAGIC KeyBlobMagicNumber = 0x524b4c4d
 )
 
 type (
@@ -307,6 +320,11 @@ type DSA_KEY_BLOB_V2 struct {
 	Count           [4]uint8
 }
 
+// https://learn.microsoft.com/en-us/windows/win32/seccng/cng-mlkem
+type MLKEM_KEY_BLOB struct {
+	Magic          KeyBlobMagicNumber
+}
+
 func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
 	var pInput *byte
 	if len(plaintext) > 0 {
@@ -356,6 +374,13 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 //sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDeriveKey
 //sys   KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptKeyDerivation
 //sys   DestroySecret(hSecret SECRET_HANDLE) (ntstatus error) = bcrypt.BCryptDestroySecret
+
+// ML-KEM uses standard BCrypt functions
+// BCryptGenerateKeyPair, BCryptSetProperty, BCryptFinalizeKeyPair, BCryptExportKey, BCryptImportKeyPair
+// BCryptEncapsulate, BCryptDecapsulate
+
+//sys   Encapsulate(hKey KEY_HANDLE, pbSecret []byte, pcbResult *uint32, pbCiphertext []byte, pcbCiphertext *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptEncapsulate
+//sys   Decapsulate(hKey KEY_HANDLE, pbCiphertext []byte, pbSecret []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDecapsulate
 
 func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) error {
 	cbLen := uint32(len(pbSecret))
