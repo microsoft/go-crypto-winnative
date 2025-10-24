@@ -7,12 +7,9 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"runtime"
 )
 
 const mkwinsyscallVersion = "v0.37.0"
@@ -37,7 +34,12 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "%s\n\n", description)
 	}
 	flag.Parse()
-	goTool := filepath.Join(runtime.GOROOT(), "bin", "go")
+
+	// Find the go binary in the system PATH
+	goTool, err := exec.LookPath("go")
+	if err != nil {
+		log.Fatal("could not find 'go' binary in PATH:", err)
+	}
 
 	listCmd := exec.Command(goTool, "list", "-m")
 	listCmd.Env = append(os.Environ(), "GO111MODULE=on")
@@ -54,7 +56,7 @@ func main() {
 	if *output == "" {
 		os.Stdout.Write(zsys)
 	} else {
-		err = ioutil.WriteFile(*output, zsys, 0666)
+		err = os.WriteFile(*output, zsys, 0666)
 		if err != nil {
 			log.Fatal(err)
 		}
