@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -15,7 +14,7 @@ import (
 	"runtime"
 )
 
-const mkwinsyscallVersion = "b874c991c1a5"
+const mkwinsyscallVersion = "v0.37.0"
 
 const description = `
 Example:
@@ -54,7 +53,7 @@ func main() {
 	if *output == "" {
 		os.Stdout.Write(zsys)
 	} else {
-		err = ioutil.WriteFile(*output, zsys, 0666)
+		err = os.WriteFile(*output, zsys, 0o666)
 		if err != nil {
 			log.Fatal(err)
 		}

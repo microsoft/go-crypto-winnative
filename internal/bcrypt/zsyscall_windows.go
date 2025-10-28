@@ -72,7 +72,7 @@ var (
 )
 
 func CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (ntstatus error) {
-	r0, _, _ := syscall.Syscall(procBCryptCloseAlgorithmProvider.Addr(), 2, uintptr(hAlgorithm), uintptr(dwFlags), 0)
+	r0, _, _ := syscall.SyscallN(procBCryptCloseAlgorithmProvider.Addr(), uintptr(hAlgorithm), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -88,7 +88,7 @@ func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte,
 	if len(pbSecret) > 0 {
 		_p1 = &pbSecret[0]
 	}
-	r0, _, _ := syscall.Syscall9(procBCryptCreateHash.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptCreateHash.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -108,7 +108,7 @@ func Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV 
 	if len(pbOutput) > 0 {
 		_p2 = &pbOutput[0]
 	}
-	r0, _, _ := syscall.Syscall12(procBCryptDecrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptDecrypt.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -120,7 +120,7 @@ func DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *Buf
 	if len(pbDerivedKey) > 0 {
 		_p0 = &pbDerivedKey[0]
 	}
-	r0, _, _ := syscall.Syscall9(procBCryptDeriveKey.Addr(), 7, uintptr(hSharedSecret), uintptr(unsafe.Pointer(pwszKDF)), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbDerivedKey)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptDeriveKey.Addr(), uintptr(hSharedSecret), uintptr(unsafe.Pointer(pwszKDF)), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbDerivedKey)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -128,7 +128,7 @@ func DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *Buf
 }
 
 func DestroyHash(hHash HASH_HANDLE) (ntstatus error) {
-	r0, _, _ := syscall.Syscall(procBCryptDestroyHash.Addr(), 1, uintptr(hHash), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptDestroyHash.Addr(), uintptr(hHash))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -136,7 +136,7 @@ func DestroyHash(hHash HASH_HANDLE) (ntstatus error) {
 }
 
 func DestroyKey(hKey KEY_HANDLE) (ntstatus error) {
-	r0, _, _ := syscall.Syscall(procBCryptDestroyKey.Addr(), 1, uintptr(hKey), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptDestroyKey.Addr(), uintptr(hKey))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -144,7 +144,7 @@ func DestroyKey(hKey KEY_HANDLE) (ntstatus error) {
 }
 
 func DestroySecret(hSecret SECRET_HANDLE) (ntstatus error) {
-	r0, _, _ := syscall.Syscall(procBCryptDestroySecret.Addr(), 1, uintptr(hSecret), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptDestroySecret.Addr(), uintptr(hSecret))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -156,7 +156,7 @@ func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byt
 	if len(pbHashObject) > 0 {
 		_p0 = &pbHashObject[0]
 	}
-	r0, _, _ := syscall.Syscall6(procBCryptDuplicateHash.Addr(), 5, uintptr(hHash), uintptr(unsafe.Pointer(phNewHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(dwFlags), 0)
+	r0, _, _ := syscall.SyscallN(procBCryptDuplicateHash.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(phNewHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -172,7 +172,7 @@ func _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsaf
 	if len(pbOutput) > 0 {
 		_p1 = &pbOutput[0]
 	}
-	r0, _, _ := syscall.Syscall12(procBCryptEncrypt.Addr(), 10, uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptEncrypt.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -184,7 +184,7 @@ func ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOu
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
 	}
-	r0, _, _ := syscall.Syscall9(procBCryptExportKey.Addr(), 7, uintptr(hKey), uintptr(hExportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptExportKey.Addr(), uintptr(hKey), uintptr(hExportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -192,7 +192,7 @@ func ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOu
 }
 
 func FinalizeKeyPair(hKey KEY_HANDLE, dwFlags uint32) (ntstatus error) {
-	r0, _, _ := syscall.Syscall(procBCryptFinalizeKeyPair.Addr(), 2, uintptr(hKey), uintptr(dwFlags), 0)
+	r0, _, _ := syscall.SyscallN(procBCryptFinalizeKeyPair.Addr(), uintptr(hKey), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -204,7 +204,7 @@ func FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus er
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
 	}
-	r0, _, _ := syscall.Syscall6(procBCryptFinishHash.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptFinishHash.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -216,7 +216,7 @@ func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (ntstatus
 	if len(pbBuffer) > 0 {
 		_p0 = &pbBuffer[0]
 	}
-	r0, _, _ := syscall.Syscall6(procBCryptGenRandom.Addr(), 4, uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbBuffer)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptGenRandom.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbBuffer)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -224,7 +224,7 @@ func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (ntstatus
 }
 
 func GenerateKeyPair(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, dwLength uint32, dwFlags uint32) (ntstatus error) {
-	r0, _, _ := syscall.Syscall6(procBCryptGenerateKeyPair.Addr(), 4, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(dwLength), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptGenerateKeyPair.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(dwLength), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -236,7 +236,7 @@ func generateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject 
 	if len(pbKeyObject) > 0 {
 		_p0 = &pbKeyObject[0]
 	}
-	r0, _, _ := syscall.Syscall9(procBCryptGenerateSymmetricKey.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbKeyObject)), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptGenerateSymmetricKey.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbKeyObject)), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -248,7 +248,7 @@ func GetFipsAlgorithmMode(enabled *bool) (ntstatus error) {
 	if *enabled {
 		_p0 = 1
 	}
-	r0, _, _ := syscall.Syscall(procBCryptGetFipsAlgorithmMode.Addr(), 1, uintptr(unsafe.Pointer(&_p0)), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptGetFipsAlgorithmMode.Addr(), uintptr(unsafe.Pointer(&_p0)))
 	*enabled = _p0 != 0
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
@@ -261,7 +261,7 @@ func GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
 	}
-	r0, _, _ := syscall.Syscall6(procBCryptGetProperty.Addr(), 6, uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	r0, _, _ := syscall.SyscallN(procBCryptGetProperty.Addr(), uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -281,7 +281,7 @@ func Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byt
 	if len(pbOutput) > 0 {
 		_p2 = &pbOutput[0]
 	}
-	r0, _, _ := syscall.Syscall9(procBCryptHash.Addr(), 7, uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbSecret)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptHash.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbSecret)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -289,7 +289,7 @@ func Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byt
 }
 
 func HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (ntstatus error) {
-	r0, _, _ := syscall.Syscall6(procBCryptHashData.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptHashData.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -301,7 +301,7 @@ func HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
 	}
-	r0, _, _ := syscall.Syscall6(procBCryptHashData.Addr(), 4, uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptHashData.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -313,7 +313,7 @@ func ImportKeyPair(hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *ui
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
 	}
-	r0, _, _ := syscall.Syscall9(procBCryptImportKeyPair.Addr(), 7, uintptr(hAlgorithm), uintptr(hImportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptImportKeyPair.Addr(), uintptr(hAlgorithm), uintptr(hImportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -325,7 +325,7 @@ func KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []b
 	if len(pbDerivedKey) > 0 {
 		_p0 = &pbDerivedKey[0]
 	}
-	r0, _, _ := syscall.Syscall6(procBCryptKeyDerivation.Addr(), 6, uintptr(hKey), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbDerivedKey)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	r0, _, _ := syscall.SyscallN(procBCryptKeyDerivation.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbDerivedKey)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -333,7 +333,7 @@ func KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []b
 }
 
 func OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags AlgorithmProviderFlags) (ntstatus error) {
-	r0, _, _ := syscall.Syscall6(procBCryptOpenAlgorithmProvider.Addr(), 4, uintptr(unsafe.Pointer(phAlgorithm)), uintptr(unsafe.Pointer(pszAlgId)), uintptr(unsafe.Pointer(pszImplementation)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptOpenAlgorithmProvider.Addr(), uintptr(unsafe.Pointer(phAlgorithm)), uintptr(unsafe.Pointer(pszAlgId)), uintptr(unsafe.Pointer(pszImplementation)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -341,7 +341,7 @@ func OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImpleme
 }
 
 func SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SECRET_HANDLE, dwFlags uint32) (ntstatus error) {
-	r0, _, _ := syscall.Syscall6(procBCryptSecretAgreement.Addr(), 4, uintptr(hPrivKey), uintptr(hPubKey), uintptr(unsafe.Pointer(phAgreedSecret)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptSecretAgreement.Addr(), uintptr(hPrivKey), uintptr(hPubKey), uintptr(unsafe.Pointer(phAgreedSecret)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -353,7 +353,7 @@ func SetProperty(hObject HANDLE, pszProperty *uint16, pbInput []byte, dwFlags ui
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
 	}
-	r0, _, _ := syscall.Syscall6(procBCryptSetProperty.Addr(), 5, uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags), 0)
+	r0, _, _ := syscall.SyscallN(procBCryptSetProperty.Addr(), uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -369,7 +369,7 @@ func SignHash(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOu
 	if len(pbOutput) > 0 {
 		_p1 = &pbOutput[0]
 	}
-	r0, _, _ := syscall.Syscall9(procBCryptSignHash.Addr(), 8, uintptr(hKey), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags), 0)
+	r0, _, _ := syscall.SyscallN(procBCryptSignHash.Addr(), uintptr(hKey), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -385,7 +385,7 @@ func VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte
 	if len(pbSignature) > 0 {
 		_p1 = &pbSignature[0]
 	}
-	r0, _, _ := syscall.Syscall9(procBCryptVerifySignature.Addr(), 7, uintptr(hKey), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHash)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSignature)), uintptr(dwFlags), 0, 0)
+	r0, _, _ := syscall.SyscallN(procBCryptVerifySignature.Addr(), uintptr(hKey), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHash)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSignature)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -397,7 +397,7 @@ func formatMessage(flags uint32, msgsrc uintptr, msgid uint32, langid uint32, bu
 	if len(buf) > 0 {
 		_p0 = &buf[0]
 	}
-	r0, _, e1 := syscall.Syscall9(procFormatMessageW.Addr(), 7, uintptr(flags), uintptr(msgsrc), uintptr(msgid), uintptr(langid), uintptr(unsafe.Pointer(_p0)), uintptr(len(buf)), uintptr(unsafe.Pointer(args)), 0, 0)
+	r0, _, e1 := syscall.SyscallN(procFormatMessageW.Addr(), uintptr(flags), uintptr(msgsrc), uintptr(msgid), uintptr(langid), uintptr(unsafe.Pointer(_p0)), uintptr(len(buf)), uintptr(unsafe.Pointer(args)))
 	n = uint32(r0)
 	if n == 0 {
 		err = errnoErr(e1)
@@ -406,7 +406,7 @@ func formatMessage(flags uint32, msgsrc uintptr, msgid uint32, langid uint32, bu
 }
 
 func rtlNtStatusToDosErrorNoTeb(ntstatus NTStatus) (ret syscall.Errno) {
-	r0, _, _ := syscall.Syscall(procRtlNtStatusToDosErrorNoTeb.Addr(), 1, uintptr(ntstatus), 0, 0)
+	r0, _, _ := syscall.SyscallN(procRtlNtStatusToDosErrorNoTeb.Addr(), uintptr(ntstatus))
 	ret = syscall.Errno(r0)
 	return
 }
