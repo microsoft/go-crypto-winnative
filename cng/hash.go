@@ -26,20 +26,20 @@ func SupportsHash(h crypto.Hash) bool {
 	case crypto.MD4, crypto.MD5, crypto.SHA1, crypto.SHA256, crypto.SHA384, crypto.SHA512:
 		return true
 	case crypto.SHA3_256:
-		_, err := loadHash(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG, false)
+		_, err := loadHash(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG)
 		return err == nil
 	case crypto.SHA3_384:
-		_, err := loadHash(bcrypt.SHA3_384_ALGORITHM, bcrypt.ALG_NONE_FLAG, false)
+		_, err := loadHash(bcrypt.SHA3_384_ALGORITHM, bcrypt.ALG_NONE_FLAG)
 		return err == nil
 	case crypto.SHA3_512:
-		_, err := loadHash(bcrypt.SHA3_512_ALGORITHM, bcrypt.ALG_NONE_FLAG, false)
+		_, err := loadHash(bcrypt.SHA3_512_ALGORITHM, bcrypt.ALG_NONE_FLAG)
 		return err == nil
 	}
 	return false
 }
 
 func hashOneShot(id string, p, sum []byte) error {
-	h, err := loadHash(id, 0, false)
+	h, err := loadHash(id, 0)
 	if err != nil {
 		return err
 	}
@@ -90,32 +90,32 @@ func SHA512(p []byte) (sum [64]byte) {
 
 // NewMD4 returns a new MD4 hash.
 func NewMD4() hash.Hash {
-	return newHashX(bcrypt.MD4_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+	return newHash(bcrypt.MD4_ALGORITHM)
 }
 
 // NewMD5 returns a new MD5 hash.
 func NewMD5() hash.Hash {
-	return newHashX(bcrypt.MD5_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+	return newHash(bcrypt.MD5_ALGORITHM)
 }
 
 // NewSHA1 returns a new SHA1 hash.
 func NewSHA1() hash.Hash {
-	return newHashX(bcrypt.SHA1_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+	return newHash(bcrypt.SHA1_ALGORITHM)
 }
 
 // NewSHA256 returns a new SHA256 hash.
 func NewSHA256() hash.Hash {
-	return newHashX(bcrypt.SHA256_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+	return newHash(bcrypt.SHA256_ALGORITHM)
 }
 
 // NewSHA384 returns a new SHA384 hash.
 func NewSHA384() hash.Hash {
-	return newHashX(bcrypt.SHA384_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+	return newHash(bcrypt.SHA384_ALGORITHM)
 }
 
 // NewSHA512 returns a new SHA512 hash.
 func NewSHA512() hash.Hash {
-	return newHashX(bcrypt.SHA512_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)
+	return newHash(bcrypt.SHA512_ALGORITHM)
 }
 
 type hashAlgorithm struct {
@@ -125,8 +125,16 @@ type hashAlgorithm struct {
 	blockSize uint32
 }
 
-func loadHash(id string, flags bcrypt.AlgorithmProviderFlags, must bool) (*hashAlgorithm, error) {
-	h, err := loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (*hashAlgorithm, error) {
+func mustLoadHash(id string, flags bcrypt.AlgorithmProviderFlags) *hashAlgorithm {
+	h, err := loadHash(id, flags)
+	if err != nil {
+		panic(err)
+	}
+	return h
+}
+
+func loadHash(id string, flags bcrypt.AlgorithmProviderFlags) (*hashAlgorithm, error) {
+	return loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (*hashAlgorithm, error) {
 		size, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_LENGTH)
 		if err != nil {
 			return nil, err
@@ -137,10 +145,6 @@ func loadHash(id string, flags bcrypt.AlgorithmProviderFlags, must bool) (*hashA
 		}
 		return &hashAlgorithm{h, id, size, blockSize}, nil
 	})
-	if err != nil && must {
-		panic(err)
-	}
-	return h, err
 }
 
 // hashToID converts a hash.Hash implementation from this package
@@ -165,25 +169,12 @@ type Hash struct {
 }
 
 func newHash(id string) *Hash {
-	alg, _ := loadHash(id, bcrypt.ALG_NONE_FLAG, true)
 	// Don't call bcrypt.CreateHash yet, it would be wasteful
 	// if the caller only wants to know the hash type. This
 	// is a common pattern in this package, as some functions
 	// accept a `func() hash.Hash` parameter and call it just
 	// to know the hash type.
-	return &Hash{alg: alg}
-}
-
-// newHashX returns a new hash.Hash using the specified algorithm.
-func newHashX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *Hash {
-	alg, _ := loadHash(id, flag, true)
-	h := &Hash{alg: alg, key: bytes.Clone(key)}
-	// Don't call bcrypt.CreateHash yet, it would be wasteful
-	// if the caller only wants to know the hash type. This
-	// is a common pattern in this package, as some functions
-	// accept a `func() hash.Hash` parameter and call it just
-	// to know the hash type.
-	return h
+	return &Hash{alg: mustLoadHash(id, bcrypt.ALG_NONE_FLAG)}
 }
 
 func (h *Hash) finalize() {

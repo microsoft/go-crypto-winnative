@@ -34,8 +34,7 @@ func NewHMAC(h func() hash.Hash, key []byte) hash.Hash {
 	} else {
 		key = bytes.Clone(key)
 	}
-	alg, _ := loadHash(id, bcrypt.ALG_HANDLE_HMAC_FLAG, true)
-	return hmacWrapper{hashX: &Hash{alg: alg, key: key}}
+	return hmacWrapper{hashX: &Hash{alg: mustLoadHash(id, bcrypt.ALG_HANDLE_HMAC_FLAG), key: key}}
 }
 
 type hmacWrapper struct {

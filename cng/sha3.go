@@ -68,7 +68,7 @@ func SupportsSHAKE(securityBits int) bool {
 	default:
 		return false
 	}
-	_, err := loadHash(id, bcrypt.ALG_NONE_FLAG, false)
+	_, err := loadHash(id, bcrypt.ALG_NONE_FLAG)
 	return err == nil
 }
 
@@ -94,7 +94,7 @@ type SHAKE struct {
 }
 
 func newShake(id string, N, S []byte) *SHAKE {
-	alg, _ := loadHash(id, bcrypt.ALG_NONE_FLAG, true)
+	alg := mustLoadHash(id, bcrypt.ALG_NONE_FLAG)
 	h := &SHAKE{blockSize: alg.blockSize}
 	err := bcrypt.CreateHash(alg.handle, &h.ctx, nil, nil, bcrypt.HASH_REUSABLE_FLAG)
 	if err != nil {
