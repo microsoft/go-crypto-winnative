@@ -72,7 +72,7 @@ func SupportsSHAKE(securityBits int) bool {
 	return err == nil
 }
 
-// NewSHA3_256 returns a new SHA256 hash.
+// NewSHA3_256 returns a new SHA3-256 hash.
 func NewSHA3_256() *Hash {
 	return newHash(bcrypt.SHA3_256_ALGORITHM)
 }
