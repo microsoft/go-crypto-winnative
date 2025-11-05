@@ -82,7 +82,7 @@ func NewSHA3_384() *Hash {
 	return newHash(bcrypt.SHA3_384_ALGORITHM)
 }
 
-// NewSHA3_512 returns a new SHA512 hash.
+// NewSHA3_512 returns a new SHA3-512 hash.
 func NewSHA3_512() *Hash {
 	return newHash(bcrypt.SHA3_512_ALGORITHM)
 }
