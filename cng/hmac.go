@@ -7,6 +7,7 @@
 package cng
 
 import (
+	"bytes"
 	"hash"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -30,13 +31,14 @@ func NewHMAC(h func() hash.Hash, key []byte) hash.Hash {
 		// allow keys longer than math.MaxUint32 bytes.
 		ch.Write(key)
 		key = ch.Sum(nil)
+	} else {
+		key = bytes.Clone(key)
 	}
-
-	return hmacWrapper{hashX: newHashX(id, bcrypt.ALG_HANDLE_HMAC_FLAG, key)}
+	return hmacWrapper{hashX: &Hash{alg: mustLoadHash(id, bcrypt.ALG_HANDLE_HMAC_FLAG), key: key}}
 }
 
 type hmacWrapper struct {
-	hashX *hashX
+	hashX *Hash
 }
 
 func (h hmacWrapper) Write(p []byte) (n int, err error) {
@@ -64,5 +66,5 @@ func (h hmacWrapper) Clone() (HashCloner, error) {
 	if err != nil {
 		return nil, err
 	}
-	return hmacWrapper{hashX: clone.(*hashX)}, nil
+	return hmacWrapper{hashX: clone.(*Hash)}, nil
 }
