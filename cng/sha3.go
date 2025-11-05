@@ -9,7 +9,6 @@ package cng
 import (
 	"hash"
 	"runtime"
-	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
@@ -74,121 +73,25 @@ func SupportsSHAKE(securityBits int) bool {
 	return err == nil
 }
 
-var _ hash.Hash = (*DigestSHA3)(nil)
-var _ HashCloner = (*DigestSHA3)(nil)
+var _ hash.Hash = DigestSHA3{}
+var _ HashCloner = DigestSHA3{}
 
 // DigestSHA3 is the [sha3.SHA3] implementation using the CNG API.
-type DigestSHA3 struct {
-	alg *hashAlgorithm
-	ctx bcrypt.HASH_HANDLE
-}
-
-// newDigestSHA3 returns a new hash.Hash using the specified algorithm.
-func newDigestSHA3(id string) *DigestSHA3 {
-	alg, err := loadHash(id, bcrypt.ALG_NONE_FLAG)
-	if err != nil {
-		panic(err)
-	}
-	h := &DigestSHA3{alg: alg}
-	// Don't call bcrypt.CreateHash yet, it would be wasteful
-	// if the caller only wants to know the hash type. This
-	// is a common pattern in this package, as some functions
-	// accept a `func() hash.Hash` parameter and call it just
-	// to know the hash type.
-	return h
-}
-
-func (h *DigestSHA3) finalize() {
-	bcrypt.DestroyHash(h.ctx)
-}
-
-func (h *DigestSHA3) init() {
-	defer runtime.KeepAlive(h)
-	if h.ctx != 0 {
-		return
-	}
-	err := bcrypt.CreateHash(h.alg.handle, &h.ctx, nil, nil, bcrypt.HASH_REUSABLE_FLAG)
-	if err != nil {
-		panic(err)
-	}
-	runtime.SetFinalizer(h, (*DigestSHA3).finalize)
-}
-
-func (h *DigestSHA3) Clone() (HashCloner, error) {
-	defer runtime.KeepAlive(h)
-	h2 := &DigestSHA3{alg: h.alg}
-	if h.ctx != 0 {
-		hashClone(h.ctx, &h2.ctx)
-		runtime.SetFinalizer(h2, (*DigestSHA3).finalize)
-	}
-	return h2, nil
-}
-
-func (h *DigestSHA3) Reset() {
-	defer runtime.KeepAlive(h)
-	if h.ctx != 0 {
-		hashReset(h.ctx, h.Size())
-	}
-}
-
-func (h *DigestSHA3) Write(p []byte) (n int, err error) {
-	defer runtime.KeepAlive(h)
-	h.init()
-	hashData(h.ctx, p)
-	return len(p), nil
-}
-
-func (h *DigestSHA3) WriteString(s string) (int, error) {
-	defer runtime.KeepAlive(h)
-	return h.Write(unsafe.Slice(unsafe.StringData(s), len(s)))
-}
-
-func (h *DigestSHA3) WriteByte(c byte) error {
-	defer runtime.KeepAlive(h)
-	h.init()
-	hashByte(h.ctx, c)
-	return nil
-}
-
-func (h *DigestSHA3) Sum(in []byte) []byte {
-	defer runtime.KeepAlive(h)
-	h.init()
-	return hashSum(h.ctx, h.Size(), in)
-}
-
-func (h *DigestSHA3) Size() int {
-	return int(h.alg.size)
-}
-
-func (h *DigestSHA3) BlockSize() int {
-	return int(h.alg.blockSize)
-}
-
-func (ds *DigestSHA3) MarshalBinary() ([]byte, error) {
-	return nil, errMarshallUnsupported{}
-}
-
-func (ds *DigestSHA3) AppendBinary(b []byte) ([]byte, error) {
-	return nil, errMarshallUnsupported{}
-}
-
-func (ds *DigestSHA3) UnmarshalBinary(data []byte) error {
-	return errMarshallUnsupported{}
-}
+type DigestSHA3 struct{ *hashX }
 
 // NewSHA3_256 returns a new SHA256 hash.
-func NewSHA3_256() *DigestSHA3 {
-	return newDigestSHA3(bcrypt.SHA3_256_ALGORITHM)
+func NewSHA3_256() DigestSHA3 {
+	return DigestSHA3{newHashX(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)}
 }
 
 // NewSHA3_384 returns a new SHA384 hash.
-func NewSHA3_384() *DigestSHA3 {
-	return newDigestSHA3(bcrypt.SHA3_384_ALGORITHM)
+func NewSHA3_384() DigestSHA3 {
+	return DigestSHA3{newHashX(bcrypt.SHA3_384_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)}
 }
 
 // NewSHA3_512 returns a new SHA512 hash.
-func NewSHA3_512() *DigestSHA3 {
-	return newDigestSHA3(bcrypt.SHA3_512_ALGORITHM)
+func NewSHA3_512() DigestSHA3 {
+	return DigestSHA3{newHashX(bcrypt.SHA3_512_ALGORITHM, bcrypt.ALG_NONE_FLAG, nil)}
 }
 
 // SHAKE is an instance of a SHAKE extendable output function.
