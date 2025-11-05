@@ -26,20 +26,20 @@ func SupportsHash(h crypto.Hash) bool {
 	case crypto.MD4, crypto.MD5, crypto.SHA1, crypto.SHA256, crypto.SHA384, crypto.SHA512:
 		return true
 	case crypto.SHA3_256:
-		_, err := loadHash(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+		_, err := loadHash(bcrypt.SHA3_256_ALGORITHM, bcrypt.ALG_NONE_FLAG, false)
 		return err == nil
 	case crypto.SHA3_384:
-		_, err := loadHash(bcrypt.SHA3_384_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+		_, err := loadHash(bcrypt.SHA3_384_ALGORITHM, bcrypt.ALG_NONE_FLAG, false)
 		return err == nil
 	case crypto.SHA3_512:
-		_, err := loadHash(bcrypt.SHA3_512_ALGORITHM, bcrypt.ALG_NONE_FLAG)
+		_, err := loadHash(bcrypt.SHA3_512_ALGORITHM, bcrypt.ALG_NONE_FLAG, false)
 		return err == nil
 	}
 	return false
 }
 
 func hashOneShot(id string, p, sum []byte) error {
-	h, err := loadHash(id, 0)
+	h, err := loadHash(id, 0, false)
 	if err != nil {
 		return err
 	}
@@ -125,8 +125,8 @@ type hashAlgorithm struct {
 	blockSize uint32
 }
 
-func loadHash(id string, flags bcrypt.AlgorithmProviderFlags) (*hashAlgorithm, error) {
-	return loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (*hashAlgorithm, error) {
+func loadHash(id string, flags bcrypt.AlgorithmProviderFlags, must bool) (*hashAlgorithm, error) {
+	h, err := loadOrStoreAlg(id, flags, "", func(h bcrypt.ALG_HANDLE) (*hashAlgorithm, error) {
 		size, err := getUint32(bcrypt.HANDLE(h), bcrypt.HASH_LENGTH)
 		if err != nil {
 			return nil, err
@@ -137,36 +137,47 @@ func loadHash(id string, flags bcrypt.AlgorithmProviderFlags) (*hashAlgorithm, e
 		}
 		return &hashAlgorithm{h, id, size, blockSize}, nil
 	})
+	if err != nil && must {
+		panic(err)
+	}
+	return h, err
 }
 
 // hashToID converts a hash.Hash implementation from this package
 // to a CNG hash ID
 func hashToID(h hash.Hash) string {
-	hx, ok := h.(*hashX)
+	hx, ok := h.(*Hash)
 	if !ok {
 		return ""
 	}
 	return hx.alg.id
 }
 
-var _ hash.Hash = (*hashX)(nil)
-var _ HashCloner = (*hashX)(nil)
+var _ hash.Hash = (*Hash)(nil)
+var _ HashCloner = (*Hash)(nil)
 
-// hashX implements [hash.Hash].
-type hashX struct {
+// Hash implements [hash.Hash].
+type Hash struct {
 	alg *hashAlgorithm
 	ctx bcrypt.HASH_HANDLE
 
 	key []byte
 }
 
+func newHash(id string) *Hash {
+	alg, _ := loadHash(id, bcrypt.ALG_NONE_FLAG, true)
+	// Don't call bcrypt.CreateHash yet, it would be wasteful
+	// if the caller only wants to know the hash type. This
+	// is a common pattern in this package, as some functions
+	// accept a `func() hash.Hash` parameter and call it just
+	// to know the hash type.
+	return &Hash{alg: alg}
+}
+
 // newHashX returns a new hash.Hash using the specified algorithm.
-func newHashX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *hashX {
-	alg, err := loadHash(id, flag)
-	if err != nil {
-		panic(err)
-	}
-	h := &hashX{alg: alg, key: bytes.Clone(key)}
+func newHashX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *Hash {
+	alg, _ := loadHash(id, flag, true)
+	h := &Hash{alg: alg, key: bytes.Clone(key)}
 	// Don't call bcrypt.CreateHash yet, it would be wasteful
 	// if the caller only wants to know the hash type. This
 	// is a common pattern in this package, as some functions
@@ -175,11 +186,11 @@ func newHashX(id string, flag bcrypt.AlgorithmProviderFlags, key []byte) *hashX 
 	return h
 }
 
-func (h *hashX) finalize() {
+func (h *Hash) finalize() {
 	bcrypt.DestroyHash(h.ctx)
 }
 
-func (h *hashX) init() {
+func (h *Hash) init() {
 	defer runtime.KeepAlive(h)
 	if h.ctx != 0 {
 		return
@@ -188,56 +199,56 @@ func (h *hashX) init() {
 	if err != nil {
 		panic(err)
 	}
-	runtime.SetFinalizer(h, (*hashX).finalize)
+	runtime.SetFinalizer(h, (*Hash).finalize)
 }
 
-func (h *hashX) Clone() (HashCloner, error) {
+func (h *Hash) Clone() (HashCloner, error) {
 	defer runtime.KeepAlive(h)
-	h2 := &hashX{alg: h.alg, key: bytes.Clone(h.key)}
+	h2 := &Hash{alg: h.alg, key: bytes.Clone(h.key)}
 	if h.ctx != 0 {
 		hashClone(h.ctx, &h2.ctx)
-		runtime.SetFinalizer(h2, (*hashX).finalize)
+		runtime.SetFinalizer(h2, (*Hash).finalize)
 	}
 	return h2, nil
 }
 
-func (h *hashX) Reset() {
+func (h *Hash) Reset() {
 	defer runtime.KeepAlive(h)
 	if h.ctx != 0 {
 		hashReset(h.ctx, h.Size())
 	}
 }
 
-func (h *hashX) Write(p []byte) (n int, err error) {
+func (h *Hash) Write(p []byte) (n int, err error) {
 	defer runtime.KeepAlive(h)
 	h.init()
 	hashData(h.ctx, p)
 	return len(p), nil
 }
 
-func (h *hashX) WriteString(s string) (int, error) {
+func (h *Hash) WriteString(s string) (int, error) {
 	defer runtime.KeepAlive(h)
 	return h.Write(unsafe.Slice(unsafe.StringData(s), len(s)))
 }
 
-func (h *hashX) WriteByte(c byte) error {
+func (h *Hash) WriteByte(c byte) error {
 	defer runtime.KeepAlive(h)
 	h.init()
 	hashByte(h.ctx, c)
 	return nil
 }
 
-func (h *hashX) Sum(in []byte) []byte {
+func (h *Hash) Sum(in []byte) []byte {
 	defer runtime.KeepAlive(h)
 	h.init()
 	return hashSum(h.ctx, h.Size(), in)
 }
 
-func (h *hashX) Size() int {
+func (h *Hash) Size() int {
 	return int(h.alg.size)
 }
 
-func (h *hashX) BlockSize() int {
+func (h *Hash) BlockSize() int {
 	return int(h.alg.blockSize)
 }
 
@@ -251,15 +262,15 @@ func (e errMarshallUnsupported) Unwrap() error {
 	return errors.ErrUnsupported
 }
 
-func (hx *hashX) MarshalBinary() ([]byte, error) {
+func (hx *Hash) MarshalBinary() ([]byte, error) {
 	return nil, errMarshallUnsupported{}
 }
 
-func (hx *hashX) AppendBinary(b []byte) ([]byte, error) {
+func (hx *Hash) AppendBinary(b []byte) ([]byte, error) {
 	return nil, errMarshallUnsupported{}
 }
 
-func (hx *hashX) UnmarshalBinary(data []byte) error {
+func (hx *Hash) UnmarshalBinary(data []byte) error {
 	return errMarshallUnsupported{}
 }
 
