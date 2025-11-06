@@ -318,3 +318,13 @@ func writeToHash(t *testing.T, h hash.Hash, p []byte) {
 		t.Errorf("Write modified input slice; got %x, want %x", p, before)
 	}
 }
+
+func TestSupportsHashAllocations(t *testing.T) {
+	if allocs := testing.AllocsPerRun(10, func() {
+		for _, hash := range hashes {
+			cng.SupportsHash(hash)
+		}
+	}); allocs != 0 {
+		t.Errorf("SupportsHash allocations = %v, want 0", allocs)
+	}
+}
