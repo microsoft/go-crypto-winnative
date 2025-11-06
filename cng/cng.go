@@ -46,25 +46,34 @@ func loadOrStoreAlg[T any](id string, flags bcrypt.AlgorithmProviderFlags, mode 
 		mode  string
 	}{id, flags, mode}
 
+	type entryResult[T any] struct {
+		value T
+		err   error
+	}
+
+	// Try to load the algorithm from the cache.
 	if v, ok := algCache.Load(entryKey); ok {
-		return v.(T), nil
+		ret := v.(entryResult[T])
+		return ret.value, ret.err
 	}
+
+	// Not found in cache, create a new one.
+	var ret entryResult[T]
 	var h bcrypt.ALG_HANDLE
-	err := bcrypt.OpenAlgorithmProvider(&h, utf16PtrFromString(id), nil, flags)
-	if err != nil {
-		return *new(T), err
+	if ret.err = bcrypt.OpenAlgorithmProvider(&h, utf16PtrFromString(id), nil, flags); ret.err == nil {
+		ret.value, ret.err = fn(h)
+		if ret.err != nil {
+			bcrypt.CloseAlgorithmProvider(h, 0)
+		}
 	}
-	v, err := fn(h)
-	if err != nil {
+
+	// Store the result in the cache.
+	if existing, loaded := algCache.LoadOrStore(entryKey, ret); loaded {
+		// Another goroutine stored it first concurrently, so use that one instead.
 		bcrypt.CloseAlgorithmProvider(h, 0)
-		return *new(T), err
+		ret = existing.(entryResult[T])
 	}
-	if existing, loaded := algCache.LoadOrStore(entryKey, v); loaded {
-		// We can safely use a provider that has already been cached in another concurrent goroutine.
-		bcrypt.CloseAlgorithmProvider(h, 0)
-		v = existing.(T)
-	}
-	return v, nil
+	return ret.value, ret.err
 }
 
 func utf16PtrFromString(s string) *uint16 {
