@@ -77,17 +77,17 @@ func SupportsMLKEM() bool {
 }
 
 // generateMLKEMKey generates a new ML-KEM key pair with the specified parameter set
-// and returns the raw key bytes (not the blob).
-func generateMLKEMKey(paramSet string, expectedSize int) ([]byte, error) {
+// and writes the raw key bytes (not the blob) into dst.
+func generateMLKEMKey(paramSet string, dst []byte) error {
 	alg, err := loadMLKEM()
 	if err != nil {
-		return nil, errors.New("mlkem: failed to open algorithm provider")
+		return errors.New("mlkem: failed to open algorithm provider")
 	}
 
 	var hKey bcrypt.KEY_HANDLE
 	err = bcrypt.GenerateKeyPair(alg.handle, &hKey, 0, 0)
 	if err != nil {
-		return nil, errors.New("mlkem: key generation failed")
+		return errors.New("mlkem: key generation failed")
 	}
 	defer bcrypt.DestroyKey(hKey)
 
@@ -99,33 +99,29 @@ func generateMLKEMKey(paramSet string, expectedSize int) ([]byte, error) {
 	}
 	err = bcrypt.SetProperty(bcrypt.HANDLE(hKey), utf16PtrFromString(bcrypt.PARAMETER_SET_NAME), paramSetBytes, 0)
 	if err != nil {
-		return nil, errors.New("mlkem: failed to set parameter set")
+		return errors.New("mlkem: failed to set parameter set")
 	}
 
 	err = bcrypt.FinalizeKeyPair(hKey, 0)
 	if err != nil {
-		return nil, errors.New("mlkem: key finalization failed")
+		return errors.New("mlkem: key finalization failed")
 	}
 
 	// Export the private key blob
 	var size uint32
 	err = bcrypt.ExportKey(hKey, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), nil, &size, 0)
 	if err != nil {
-		return nil, errors.New("mlkem: failed to get key blob size")
+		return errors.New("mlkem: failed to get key blob size")
 	}
 
 	blob := make([]byte, size)
 	err = bcrypt.ExportKey(hKey, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), blob, &size, 0)
 	if err != nil {
-		return nil, errors.New("mlkem: failed to export key")
+		return errors.New("mlkem: failed to export key")
 	}
 
-	// Extract and return raw key bytes
-	keyBytes := make([]byte, expectedSize)
-	if err := extractMLKEMKeyBytes(blob, keyBytes); err != nil {
-		return nil, err
-	}
-	return keyBytes, nil
+	// Extract raw key bytes into destination
+	return extractMLKEMKeyBytes(blob, dst)
 }
 
 // newMLKEMDecapsulationKeyFromBytes creates a decapsulation key blob from raw key bytes.
@@ -295,12 +291,10 @@ type DecapsulationKeyMLKEM768 [decapsulationKeySizeMLKEM768]byte
 // GenerateKeyMLKEM768 generates a new decapsulation key, drawing random bytes from
 // the default crypto/rand source. The decapsulation key must be kept secret.
 func GenerateKeyMLKEM768() (DecapsulationKeyMLKEM768, error) {
-	keyBytes, err := generateMLKEMKey(bcrypt.MLKEM_PARAMETER_SET_768, decapsulationKeySizeMLKEM768)
-	if err != nil {
+	var dk DecapsulationKeyMLKEM768
+	if err := generateMLKEMKey(bcrypt.MLKEM_PARAMETER_SET_768, dk[:]); err != nil {
 		return DecapsulationKeyMLKEM768{}, err
 	}
-	var dk DecapsulationKeyMLKEM768
-	copy(dk[:], keyBytes)
 	return dk, nil
 }
 
@@ -391,12 +385,10 @@ type DecapsulationKeyMLKEM1024 [decapsulationKeySizeMLKEM1024]byte
 // GenerateKeyMLKEM1024 generates a new decapsulation key, drawing random bytes from
 // the default crypto/rand source. The decapsulation key must be kept secret.
 func GenerateKeyMLKEM1024() (DecapsulationKeyMLKEM1024, error) {
-	keyBytes, err := generateMLKEMKey(bcrypt.MLKEM_PARAMETER_SET_1024, decapsulationKeySizeMLKEM1024)
-	if err != nil {
+	var dk DecapsulationKeyMLKEM1024
+	if err := generateMLKEMKey(bcrypt.MLKEM_PARAMETER_SET_1024, dk[:]); err != nil {
 		return DecapsulationKeyMLKEM1024{}, err
 	}
-	var dk DecapsulationKeyMLKEM1024
-	copy(dk[:], keyBytes)
 	return dk, nil
 }
 
