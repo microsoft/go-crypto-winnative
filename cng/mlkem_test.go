@@ -293,3 +293,228 @@ func TestMLKEMConstantSizes(t *testing.T) {
 		t.Errorf("EncapsulationKeySize1024 mismatch: got %d, want %d", cng.EncapsulationKeySizeMLKEM1024, mlkem.EncapsulationKeySize1024)
 	}
 }
+
+// TestMLKEMInteropWithStdlib tests that CNG and stdlib implementations can interoperate.
+func TestMLKEMInteropWithStdlib(t *testing.T) {
+	if !cng.SupportsMLKEM() {
+		t.Skip("ML-KEM not supported on this platform")
+	}
+
+	t.Run("768_CNG_to_Stdlib", func(t *testing.T) {
+		// Generate key with CNG
+		cngDK, err := cng.GenerateKeyMLKEM768()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cngEK := cngDK.EncapsulationKey()
+
+		// Import CNG encapsulation key into stdlib
+		stdlibEK, err := mlkem.NewEncapsulationKey768(cngEK.Bytes())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Encapsulate with stdlib
+		stdlibSharedKey, ciphertext := stdlibEK.Encapsulate()
+
+		// Decapsulate with CNG
+		cngSharedKey, err := cngDK.Decapsulate(ciphertext)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Verify shared keys match
+		if !bytes.Equal(stdlibSharedKey, cngSharedKey) {
+			t.Error("shared keys don't match (CNG DK, stdlib EK)")
+		}
+	})
+
+	t.Run("768_Stdlib_to_CNG", func(t *testing.T) {
+		// Generate key with stdlib
+		stdlibDK, err := mlkem.GenerateKey768()
+		if err != nil {
+			t.Fatal(err)
+		}
+		stdlibEK := stdlibDK.EncapsulationKey()
+
+		// Import stdlib encapsulation key into CNG
+		cngEK, err := cng.NewEncapsulationKeyMLKEM768(stdlibEK.Bytes())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Encapsulate with CNG
+		cngSharedKey, ciphertext := cngEK.Encapsulate()
+
+		// Decapsulate with stdlib
+		stdlibSharedKey, err := stdlibDK.Decapsulate(ciphertext)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Verify shared keys match
+		if !bytes.Equal(stdlibSharedKey, cngSharedKey) {
+			t.Error("shared keys don't match (stdlib DK, CNG EK)")
+		}
+	})
+
+	t.Run("768_Bidirectional", func(t *testing.T) {
+		// Generate keys with both implementations
+		cngDK, err := cng.GenerateKeyMLKEM768()
+		if err != nil {
+			t.Fatal(err)
+		}
+		stdlibDK, err := mlkem.GenerateKey768()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Test CNG encapsulation key -> stdlib
+		cngEKBytes := cngDK.EncapsulationKey().Bytes()
+		stdlibEK, err := mlkem.NewEncapsulationKey768(cngEKBytes)
+		if err != nil {
+			t.Fatalf("failed to import CNG encapsulation key into stdlib: %v", err)
+		}
+		if !bytes.Equal(cngEKBytes, stdlibEK.Bytes()) {
+			t.Error("encapsulation key bytes don't match after round-trip (CNG -> stdlib)")
+		}
+
+		// Test stdlib encapsulation key -> CNG
+		stdlibEKBytes := stdlibDK.EncapsulationKey().Bytes()
+		cngEK, err := cng.NewEncapsulationKeyMLKEM768(stdlibEKBytes)
+		if err != nil {
+			t.Fatalf("failed to import stdlib encapsulation key into CNG: %v", err)
+		}
+		if !bytes.Equal(stdlibEKBytes, cngEK.Bytes()) {
+			t.Error("encapsulation key bytes don't match after round-trip (stdlib -> CNG)")
+		}
+
+		// Test cross-encryption/decryption
+		sharedKey1, ct1 := stdlibEK.Encapsulate()
+		sharedKey2, err := cngDK.Decapsulate(ct1)
+		if err != nil {
+			t.Fatalf("CNG failed to decapsulate stdlib ciphertext: %v", err)
+		}
+		if !bytes.Equal(sharedKey1, sharedKey2) {
+			t.Error("shared keys don't match (stdlib encaps, CNG decaps)")
+		}
+
+		sharedKey3, ct2 := cngEK.Encapsulate()
+		sharedKey4, err := stdlibDK.Decapsulate(ct2)
+		if err != nil {
+			t.Fatalf("stdlib failed to decapsulate CNG ciphertext: %v", err)
+		}
+		if !bytes.Equal(sharedKey3, sharedKey4) {
+			t.Error("shared keys don't match (CNG encaps, stdlib decaps)")
+		}
+	})
+
+	t.Run("1024_CNG_to_Stdlib", func(t *testing.T) {
+		// Generate key with CNG
+		cngDK, err := cng.GenerateKeyMLKEM1024()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cngEK := cngDK.EncapsulationKey()
+
+		// Import CNG encapsulation key into stdlib
+		stdlibEK, err := mlkem.NewEncapsulationKey1024(cngEK.Bytes())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Encapsulate with stdlib
+		stdlibSharedKey, ciphertext := stdlibEK.Encapsulate()
+
+		// Decapsulate with CNG
+		cngSharedKey, err := cngDK.Decapsulate(ciphertext)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Verify shared keys match
+		if !bytes.Equal(stdlibSharedKey, cngSharedKey) {
+			t.Error("shared keys don't match (CNG DK, stdlib EK)")
+		}
+	})
+
+	t.Run("1024_Stdlib_to_CNG", func(t *testing.T) {
+		// Generate key with stdlib
+		stdlibDK, err := mlkem.GenerateKey1024()
+		if err != nil {
+			t.Fatal(err)
+		}
+		stdlibEK := stdlibDK.EncapsulationKey()
+
+		// Import stdlib encapsulation key into CNG
+		cngEK, err := cng.NewEncapsulationKeyMLKEM1024(stdlibEK.Bytes())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Encapsulate with CNG
+		cngSharedKey, ciphertext := cngEK.Encapsulate()
+
+		// Decapsulate with stdlib
+		stdlibSharedKey, err := stdlibDK.Decapsulate(ciphertext)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Verify shared keys match
+		if !bytes.Equal(stdlibSharedKey, cngSharedKey) {
+			t.Error("shared keys don't match (stdlib DK, CNG EK)")
+		}
+	})
+
+	t.Run("1024_Bidirectional", func(t *testing.T) {
+		// Generate keys with both implementations
+		cngDK, err := cng.GenerateKeyMLKEM1024()
+		if err != nil {
+			t.Fatal(err)
+		}
+		stdlibDK, err := mlkem.GenerateKey1024()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Test CNG encapsulation key -> stdlib
+		cngEKBytes := cngDK.EncapsulationKey().Bytes()
+		stdlibEK, err := mlkem.NewEncapsulationKey1024(cngEKBytes)
+		if err != nil {
+			t.Fatalf("failed to import CNG encapsulation key into stdlib: %v", err)
+		}
+		if !bytes.Equal(cngEKBytes, stdlibEK.Bytes()) {
+			t.Error("encapsulation key bytes don't match after round-trip (CNG -> stdlib)")
+		}
+
+		// Test stdlib encapsulation key -> CNG
+		stdlibEKBytes := stdlibDK.EncapsulationKey().Bytes()
+		cngEK, err := cng.NewEncapsulationKeyMLKEM1024(stdlibEKBytes)
+		if err != nil {
+			t.Fatalf("failed to import stdlib encapsulation key into CNG: %v", err)
+		}
+		if !bytes.Equal(stdlibEKBytes, cngEK.Bytes()) {
+			t.Error("encapsulation key bytes don't match after round-trip (stdlib -> CNG)")
+		}
+
+		// Test cross-encryption/decryption
+		sharedKey1, ct1 := stdlibEK.Encapsulate()
+		sharedKey2, err := cngDK.Decapsulate(ct1)
+		if err != nil {
+			t.Fatalf("CNG failed to decapsulate stdlib ciphertext: %v", err)
+		}
+		if !bytes.Equal(sharedKey1, sharedKey2) {
+			t.Error("shared keys don't match (stdlib encaps, CNG decaps)")
+		}
+
+		sharedKey3, ct2 := cngEK.Encapsulate()
+		sharedKey4, err := stdlibDK.Decapsulate(ct2)
+		if err != nil {
+			t.Fatalf("stdlib failed to decapsulate CNG ciphertext: %v", err)
+		}
+		if !bytes.Equal(sharedKey3, sharedKey4) {
+			t.Error("shared keys don't match (CNG encaps, stdlib decaps)")
+		}
+	})
+}

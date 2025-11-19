@@ -24,22 +24,36 @@ const (
 	// ciphertextSizeMLKEM768 is the size of a ciphertext produced by ML-KEM-768.
 	ciphertextSizeMLKEM768 = 1088
 
-	// encapsulationKeySizeMLKEM768 is the size of an ML-KEM-768 encapsulation key.
+	// encapsulationKeySizeMLKEM768 is the size of an ML-KEM-768 encapsulation key (raw key material).
 	encapsulationKeySizeMLKEM768 = 1184
 
-	// decapsulationKeySizeMLKEM768 is the size of the ML-KEM-768 decapsulation key data
-	// (Windows blob format, without header).
+	// encapsulationKeyBlobSizeMLKEM768 is the size of the ML-KEM-768 encapsulation key blob
+	// (Windows blob format, with header).
+	encapsulationKeyBlobSizeMLKEM768 = 1204 // 12 + 8 ("768\0" in UTF-16) + 1184
+
+	// decapsulationKeySizeMLKEM768 is the size of the ML-KEM-768 decapsulation key data (raw key material).
 	decapsulationKeySizeMLKEM768 = 2400
+
+	// decapsulationKeyBlobSizeMLKEM768 is the size of the ML-KEM-768 decapsulation key blob
+	// (Windows blob format, with header).
+	decapsulationKeyBlobSizeMLKEM768 = 2420 // 12 + 8 ("768\0" in UTF-16) + 2400
 
 	// ciphertextSizeMLKEM1024 is the size of a ciphertext produced by ML-KEM-1024.
 	ciphertextSizeMLKEM1024 = 1568
 
-	// encapsulationKeySizeMLKEM1024 is the size of an ML-KEM-1024 encapsulation key.
+	// encapsulationKeySizeMLKEM1024 is the size of an ML-KEM-1024 encapsulation key (raw key material).
 	encapsulationKeySizeMLKEM1024 = 1568
 
-	// decapsulationKeySizeMLKEM1024 is the size of the ML-KEM-1024 decapsulation key data
-	// (Windows blob format, without header).
+	// encapsulationKeyBlobSizeMLKEM1024 is the size of the ML-KEM-1024 encapsulation key blob
+	// (Windows blob format, with header).
+	encapsulationKeyBlobSizeMLKEM1024 = 1590 // 12 + 10 ("1024\0" in UTF-16) + 1568
+
+	// decapsulationKeySizeMLKEM1024 is the size of the ML-KEM-1024 decapsulation key data (raw key material).
 	decapsulationKeySizeMLKEM1024 = 3168
+
+	// decapsulationKeyBlobSizeMLKEM1024 is the size of the ML-KEM-1024 decapsulation key blob
+	// (Windows blob format, with header).
+	decapsulationKeyBlobSizeMLKEM1024 = 3190 // 12 + 10 ("1024\0" in UTF-16) + 3168
 )
 
 // putUint32LE puts a uint32 in little-endian byte order.
@@ -177,7 +191,7 @@ func extractMLKEMKeyBytes(blob []byte) []byte {
 
 // DecapsulationKeyMLKEM768 is the secret key used to decapsulate a shared key
 // from a ciphertext. It includes various precomputed values.
-type DecapsulationKeyMLKEM768 [seedSizeMLKEM]byte
+type DecapsulationKeyMLKEM768 [decapsulationKeyBlobSizeMLKEM768]byte
 
 // GenerateKeyMLKEM768 generates a new decapsulation key, drawing random bytes from
 // the default crypto/rand source. The decapsulation key must be kept secret.
@@ -186,14 +200,16 @@ func GenerateKeyMLKEM768() (DecapsulationKeyMLKEM768, error) {
 	if err != nil {
 		return DecapsulationKeyMLKEM768{}, err
 	}
-	return DecapsulationKeyMLKEM768(blob), nil
+	var dk DecapsulationKeyMLKEM768
+	copy(dk[:], blob)
+	return dk, nil
 }
 
 // NewDecapsulationKeyMLKEM768 expands a decapsulation key from a 64-byte seed in the
 // "d || z" form. The seed must be uniformly random.
 func NewDecapsulationKeyMLKEM768(seed []byte) (DecapsulationKeyMLKEM768, error) {
-	// Windows CNG implementation: we store the full private key blob, not just a seed
-	// The input here is actually the full blob (returned by Bytes()), not a seed
+	// The input is raw key bytes extracted from a blob (returned by Bytes())
+	// We need to construct the full blob with header
 	if len(seed) != decapsulationKeySizeMLKEM768 {
 		return DecapsulationKeyMLKEM768{}, errors.New("mlkem: invalid decapsulation key size")
 	}
@@ -202,7 +218,10 @@ func NewDecapsulationKeyMLKEM768(seed []byte) (DecapsulationKeyMLKEM768, error) 
 	if err != nil {
 		return DecapsulationKeyMLKEM768{}, err
 	}
-	return DecapsulationKeyMLKEM768(blob), nil
+
+	var dk DecapsulationKeyMLKEM768
+	copy(dk[:], blob)
+	return dk, nil
 }
 
 // Bytes returns the decapsulation key as a 64-byte seed in the "d || z" form.
@@ -273,12 +292,14 @@ func (dk DecapsulationKeyMLKEM768) EncapsulationKey() EncapsulationKeyMLKEM768 {
 	}
 
 	runtime.KeepAlive(dk)
-	return EncapsulationKeyMLKEM768(pubBlob)
+	var ek EncapsulationKeyMLKEM768
+	copy(ek[:], pubBlob)
+	return ek
 }
 
 // An EncapsulationKeyMLKEM768 is the public key used to produce ciphertexts to be
 // decapsulated by the corresponding DecapsulationKeyMLKEM768.
-type EncapsulationKeyMLKEM768 [encapsulationKeySizeMLKEM768]byte
+type EncapsulationKeyMLKEM768 [encapsulationKeyBlobSizeMLKEM768]byte
 
 // NewEncapsulationKeyMLKEM768 parses an encapsulation key from its encoded form. If
 // the encapsulation key is not valid, NewEncapsulationKeyMLKEM768 returns an error.
@@ -291,7 +312,10 @@ func NewEncapsulationKeyMLKEM768(encapsulationKey []byte) (EncapsulationKeyMLKEM
 	if err != nil {
 		return EncapsulationKeyMLKEM768{}, err
 	}
-	return EncapsulationKeyMLKEM768(blob), nil
+
+	var ek EncapsulationKeyMLKEM768
+	copy(ek[:], blob)
+	return ek, nil
 }
 
 // Bytes returns the encapsulation key as a byte slice.
@@ -336,7 +360,7 @@ func (ek EncapsulationKeyMLKEM768) Encapsulate() (sharedKey, ciphertext []byte) 
 
 // DecapsulationKeyMLKEM1024 is the secret key used to decapsulate a shared key
 // from a ciphertext. It includes various precomputed values.
-type DecapsulationKeyMLKEM1024 [seedSizeMLKEM]byte
+type DecapsulationKeyMLKEM1024 [decapsulationKeyBlobSizeMLKEM1024]byte
 
 // GenerateKeyMLKEM1024 generates a new decapsulation key, drawing random bytes from
 // the default crypto/rand source. The decapsulation key must be kept secret.
@@ -345,14 +369,16 @@ func GenerateKeyMLKEM1024() (DecapsulationKeyMLKEM1024, error) {
 	if err != nil {
 		return DecapsulationKeyMLKEM1024{}, err
 	}
-	return DecapsulationKeyMLKEM1024(blob), nil
+	var dk DecapsulationKeyMLKEM1024
+	copy(dk[:], blob)
+	return dk, nil
 }
 
 // NewDecapsulationKeyMLKEM1024 expands a decapsulation key from a 64-byte seed in the
 // "d || z" form. The seed must be uniformly random.
 func NewDecapsulationKeyMLKEM1024(seed []byte) (DecapsulationKeyMLKEM1024, error) {
-	// Windows CNG implementation: we store the full private key blob, not just a seed
-	// The input here is actually the full blob (returned by Bytes()), not a seed
+	// The input is raw key bytes extracted from a blob (returned by Bytes())
+	// We need to construct the full blob with header
 	if len(seed) != decapsulationKeySizeMLKEM1024 {
 		return DecapsulationKeyMLKEM1024{}, errors.New("mlkem: invalid decapsulation key size")
 	}
@@ -361,7 +387,10 @@ func NewDecapsulationKeyMLKEM1024(seed []byte) (DecapsulationKeyMLKEM1024, error
 	if err != nil {
 		return DecapsulationKeyMLKEM1024{}, err
 	}
-	return DecapsulationKeyMLKEM1024(blob), nil
+
+	var dk DecapsulationKeyMLKEM1024
+	copy(dk[:], blob)
+	return dk, nil
 }
 
 // Bytes returns the decapsulation key as a 64-byte seed in the "d || z" form.
@@ -432,12 +461,14 @@ func (dk DecapsulationKeyMLKEM1024) EncapsulationKey() EncapsulationKeyMLKEM1024
 	}
 
 	runtime.KeepAlive(dk)
-	return EncapsulationKeyMLKEM1024(pubBlob)
+	var ek EncapsulationKeyMLKEM1024
+	copy(ek[:], pubBlob)
+	return ek
 }
 
 // An EncapsulationKeyMLKEM1024 is the public key used to produce ciphertexts to be
 // decapsulated by the corresponding DecapsulationKeyMLKEM1024.
-type EncapsulationKeyMLKEM1024 [encapsulationKeySizeMLKEM1024]byte
+type EncapsulationKeyMLKEM1024 [encapsulationKeyBlobSizeMLKEM1024]byte
 
 // NewEncapsulationKeyMLKEM1024 parses an encapsulation key from its encoded form. If
 // the encapsulation key is not valid, NewEncapsulationKeyMLKEM1024 returns an error.
@@ -450,7 +481,10 @@ func NewEncapsulationKeyMLKEM1024(encapsulationKey []byte) (EncapsulationKeyMLKE
 	if err != nil {
 		return EncapsulationKeyMLKEM1024{}, err
 	}
-	return EncapsulationKeyMLKEM1024(blob), nil
+
+	var ek EncapsulationKeyMLKEM1024
+	copy(ek[:], blob)
+	return ek, nil
 }
 
 // Bytes returns the encapsulation key as a byte slice.
