@@ -27,16 +27,8 @@ const (
 	// encapsulationKeySizeMLKEM768 is the size of an ML-KEM-768 encapsulation key (raw key material).
 	encapsulationKeySizeMLKEM768 = 1184
 
-	// encapsulationKeyBlobSizeMLKEM768 is the size of the ML-KEM-768 encapsulation key blob
-	// (Windows blob format, with header).
-	encapsulationKeyBlobSizeMLKEM768 = 1204 // 12 + 8 ("768\0" in UTF-16) + 1184
-
 	// decapsulationKeySizeMLKEM768 is the size of the ML-KEM-768 decapsulation key data (raw key material).
 	decapsulationKeySizeMLKEM768 = 2400
-
-	// decapsulationKeyBlobSizeMLKEM768 is the size of the ML-KEM-768 decapsulation key blob
-	// (Windows blob format, with header).
-	decapsulationKeyBlobSizeMLKEM768 = 2420 // 12 + 8 ("768\0" in UTF-16) + 2400
 
 	// ciphertextSizeMLKEM1024 is the size of a ciphertext produced by ML-KEM-1024.
 	ciphertextSizeMLKEM1024 = 1568
@@ -44,16 +36,8 @@ const (
 	// encapsulationKeySizeMLKEM1024 is the size of an ML-KEM-1024 encapsulation key (raw key material).
 	encapsulationKeySizeMLKEM1024 = 1568
 
-	// encapsulationKeyBlobSizeMLKEM1024 is the size of the ML-KEM-1024 encapsulation key blob
-	// (Windows blob format, with header).
-	encapsulationKeyBlobSizeMLKEM1024 = 1590 // 12 + 10 ("1024\0" in UTF-16) + 1568
-
 	// decapsulationKeySizeMLKEM1024 is the size of the ML-KEM-1024 decapsulation key data (raw key material).
 	decapsulationKeySizeMLKEM1024 = 3168
-
-	// decapsulationKeyBlobSizeMLKEM1024 is the size of the ML-KEM-1024 decapsulation key blob
-	// (Windows blob format, with header).
-	decapsulationKeyBlobSizeMLKEM1024 = 3190 // 12 + 10 ("1024\0" in UTF-16) + 3168
 )
 
 // putUint32LE puts a uint32 in little-endian byte order.
@@ -191,7 +175,9 @@ func extractMLKEMKeyBytes(blob []byte) []byte {
 
 // DecapsulationKeyMLKEM768 is the secret key used to decapsulate a shared key
 // from a ciphertext. It includes various precomputed values.
-type DecapsulationKeyMLKEM768 [decapsulationKeyBlobSizeMLKEM768]byte
+// Note: Unlike the stdlib crypto/mlkem implementation which uses a 64-byte seed,
+// the Windows CNG implementation stores the full 2400-byte expanded key material.
+type DecapsulationKeyMLKEM768 [decapsulationKeySizeMLKEM768]byte
 
 // GenerateKeyMLKEM768 generates a new decapsulation key, drawing random bytes from
 // the default crypto/rand source. The decapsulation key must be kept secret.
@@ -200,35 +186,36 @@ func GenerateKeyMLKEM768() (DecapsulationKeyMLKEM768, error) {
 	if err != nil {
 		return DecapsulationKeyMLKEM768{}, err
 	}
+	// Extract raw key bytes from the blob
+	keyBytes := extractMLKEMKeyBytes(blob)
+	if keyBytes == nil || len(keyBytes) != decapsulationKeySizeMLKEM768 {
+		return DecapsulationKeyMLKEM768{}, errors.New("mlkem: unexpected key size")
+	}
 	var dk DecapsulationKeyMLKEM768
-	copy(dk[:], blob)
+	copy(dk[:], keyBytes)
 	return dk, nil
 }
 
-// NewDecapsulationKeyMLKEM768 expands a decapsulation key from a 64-byte seed in the
-// "d || z" form. The seed must be uniformly random.
-func NewDecapsulationKeyMLKEM768(seed []byte) (DecapsulationKeyMLKEM768, error) {
-	// The input is raw key bytes extracted from a blob (returned by Bytes())
-	// We need to construct the full blob with header
-	if len(seed) != decapsulationKeySizeMLKEM768 {
+// NewDecapsulationKeyMLKEM768 constructs a decapsulation key from its serialized form.
+// Note: Unlike the stdlib crypto/mlkem which expects a 64-byte seed, this function
+// expects the full 2400-byte expanded key material as returned by Bytes().
+func NewDecapsulationKeyMLKEM768(keyBytes []byte) (DecapsulationKeyMLKEM768, error) {
+	if len(keyBytes) != decapsulationKeySizeMLKEM768 {
 		return DecapsulationKeyMLKEM768{}, errors.New("mlkem: invalid decapsulation key size")
 	}
 
-	blob, err := newMLKEMDecapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_768, seed, bcrypt.MLKEM_PRIVATE_MAGIC)
-	if err != nil {
-		return DecapsulationKeyMLKEM768{}, err
-	}
-
 	var dk DecapsulationKeyMLKEM768
-	copy(dk[:], blob)
+	copy(dk[:], keyBytes)
 	return dk, nil
 }
 
-// Bytes returns the decapsulation key as a 64-byte seed in the "d || z" form.
+// Bytes returns the decapsulation key in its serialized form.
+// Note: Unlike the stdlib crypto/mlkem which returns a 64-byte seed, this returns
+// the full 2400-byte expanded key material.
 //
 // The decapsulation key must be kept secret.
 func (dk DecapsulationKeyMLKEM768) Bytes() []byte {
-	return extractMLKEMKeyBytes(dk[:])
+	return dk[:]
 }
 
 // Decapsulate generates a shared key from a ciphertext and a decapsulation
@@ -245,8 +232,14 @@ func (dk DecapsulationKeyMLKEM768) Decapsulate(ciphertext []byte) (sharedKey []b
 		return nil, errors.New("mlkem: failed to open algorithm provider")
 	}
 
+	// Construct blob from raw key bytes
+	blob, err := newMLKEMDecapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_768, dk[:], bcrypt.MLKEM_PRIVATE_MAGIC)
+	if err != nil {
+		return nil, fmt.Errorf("mlkem: failed to construct key blob: %w", err)
+	}
+
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, dk[:], 0)
+	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, blob, 0)
 	if err != nil {
 		return nil, fmt.Errorf("mlkem: failed to import key: %w", err)
 	}
@@ -271,8 +264,14 @@ func (dk DecapsulationKeyMLKEM768) EncapsulationKey() EncapsulationKeyMLKEM768 {
 		panic(err)
 	}
 
+	// Construct blob from raw key bytes
+	blob, err := newMLKEMDecapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_768, dk[:], bcrypt.MLKEM_PRIVATE_MAGIC)
+	if err != nil {
+		panic(err)
+	}
+
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, dk[:], 0)
+	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, blob, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -291,15 +290,21 @@ func (dk DecapsulationKeyMLKEM768) EncapsulationKey() EncapsulationKeyMLKEM768 {
 		panic(err)
 	}
 
+	// Extract raw public key bytes from blob
+	pubKeyBytes := extractMLKEMKeyBytes(pubBlob)
+	if pubKeyBytes == nil || len(pubKeyBytes) != encapsulationKeySizeMLKEM768 {
+		panic("mlkem: unexpected public key size")
+	}
+
 	runtime.KeepAlive(dk)
 	var ek EncapsulationKeyMLKEM768
-	copy(ek[:], pubBlob)
+	copy(ek[:], pubKeyBytes)
 	return ek
 }
 
 // An EncapsulationKeyMLKEM768 is the public key used to produce ciphertexts to be
 // decapsulated by the corresponding DecapsulationKeyMLKEM768.
-type EncapsulationKeyMLKEM768 [encapsulationKeyBlobSizeMLKEM768]byte
+type EncapsulationKeyMLKEM768 [encapsulationKeySizeMLKEM768]byte
 
 // NewEncapsulationKeyMLKEM768 parses an encapsulation key from its encoded form. If
 // the encapsulation key is not valid, NewEncapsulationKeyMLKEM768 returns an error.
@@ -308,23 +313,14 @@ func NewEncapsulationKeyMLKEM768(encapsulationKey []byte) (EncapsulationKeyMLKEM
 		return EncapsulationKeyMLKEM768{}, errors.New("mlkem: invalid encapsulation key size")
 	}
 
-	blob, err := newMLKEMEncapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_768, encapsulationKey, bcrypt.MLKEM_PUBLIC_MAGIC)
-	if err != nil {
-		return EncapsulationKeyMLKEM768{}, err
-	}
-
 	var ek EncapsulationKeyMLKEM768
-	copy(ek[:], blob)
+	copy(ek[:], encapsulationKey)
 	return ek, nil
 }
 
 // Bytes returns the encapsulation key as a byte slice.
 func (ek EncapsulationKeyMLKEM768) Bytes() []byte {
-	keyBytes := extractMLKEMKeyBytes(ek[:])
-	if keyBytes == nil {
-		panic("mlkem: invalid blob size")
-	}
-	return keyBytes
+	return ek[:]
 }
 
 // Encapsulate generates a shared key and an associated ciphertext from an
@@ -337,8 +333,14 @@ func (ek EncapsulationKeyMLKEM768) Encapsulate() (sharedKey, ciphertext []byte) 
 		panic(err)
 	}
 
+	// Construct blob from raw key bytes
+	blob, err := newMLKEMEncapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_768, ek[:], bcrypt.MLKEM_PUBLIC_MAGIC)
+	if err != nil {
+		panic(err)
+	}
+
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PUBLIC_BLOB), &hKey, ek[:], 0)
+	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PUBLIC_BLOB), &hKey, blob, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -360,7 +362,9 @@ func (ek EncapsulationKeyMLKEM768) Encapsulate() (sharedKey, ciphertext []byte) 
 
 // DecapsulationKeyMLKEM1024 is the secret key used to decapsulate a shared key
 // from a ciphertext. It includes various precomputed values.
-type DecapsulationKeyMLKEM1024 [decapsulationKeyBlobSizeMLKEM1024]byte
+// Note: Unlike the stdlib crypto/mlkem implementation which uses a 64-byte seed,
+// the Windows CNG implementation stores the full 3168-byte expanded key material.
+type DecapsulationKeyMLKEM1024 [decapsulationKeySizeMLKEM1024]byte
 
 // GenerateKeyMLKEM1024 generates a new decapsulation key, drawing random bytes from
 // the default crypto/rand source. The decapsulation key must be kept secret.
@@ -369,35 +373,36 @@ func GenerateKeyMLKEM1024() (DecapsulationKeyMLKEM1024, error) {
 	if err != nil {
 		return DecapsulationKeyMLKEM1024{}, err
 	}
+	// Extract raw key bytes from the blob
+	keyBytes := extractMLKEMKeyBytes(blob)
+	if keyBytes == nil || len(keyBytes) != decapsulationKeySizeMLKEM1024 {
+		return DecapsulationKeyMLKEM1024{}, errors.New("mlkem: unexpected key size")
+	}
 	var dk DecapsulationKeyMLKEM1024
-	copy(dk[:], blob)
+	copy(dk[:], keyBytes)
 	return dk, nil
 }
 
-// NewDecapsulationKeyMLKEM1024 expands a decapsulation key from a 64-byte seed in the
-// "d || z" form. The seed must be uniformly random.
-func NewDecapsulationKeyMLKEM1024(seed []byte) (DecapsulationKeyMLKEM1024, error) {
-	// The input is raw key bytes extracted from a blob (returned by Bytes())
-	// We need to construct the full blob with header
-	if len(seed) != decapsulationKeySizeMLKEM1024 {
+// NewDecapsulationKeyMLKEM1024 constructs a decapsulation key from its serialized form.
+// Note: Unlike the stdlib crypto/mlkem which expects a 64-byte seed, this function
+// expects the full 3168-byte expanded key material as returned by Bytes().
+func NewDecapsulationKeyMLKEM1024(keyBytes []byte) (DecapsulationKeyMLKEM1024, error) {
+	if len(keyBytes) != decapsulationKeySizeMLKEM1024 {
 		return DecapsulationKeyMLKEM1024{}, errors.New("mlkem: invalid decapsulation key size")
 	}
 
-	blob, err := newMLKEMDecapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_1024, seed, bcrypt.MLKEM_PRIVATE_MAGIC)
-	if err != nil {
-		return DecapsulationKeyMLKEM1024{}, err
-	}
-
 	var dk DecapsulationKeyMLKEM1024
-	copy(dk[:], blob)
+	copy(dk[:], keyBytes)
 	return dk, nil
 }
 
-// Bytes returns the decapsulation key as a 64-byte seed in the "d || z" form.
+// Bytes returns the decapsulation key in its serialized form.
+// Note: Unlike the stdlib crypto/mlkem which returns a 64-byte seed, this returns
+// the full 3168-byte expanded key material.
 //
 // The decapsulation key must be kept secret.
 func (dk DecapsulationKeyMLKEM1024) Bytes() []byte {
-	return extractMLKEMKeyBytes(dk[:])
+	return dk[:]
 }
 
 // Decapsulate generates a shared key from a ciphertext and a decapsulation
@@ -414,8 +419,14 @@ func (dk DecapsulationKeyMLKEM1024) Decapsulate(ciphertext []byte) (sharedKey []
 		return nil, errors.New("mlkem: failed to open algorithm provider")
 	}
 
+	// Construct blob from raw key bytes
+	blob, err := newMLKEMDecapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_1024, dk[:], bcrypt.MLKEM_PRIVATE_MAGIC)
+	if err != nil {
+		return nil, errors.New("mlkem: failed to construct key blob")
+	}
+
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, dk[:], 0)
+	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, blob, 0)
 	if err != nil {
 		return nil, errors.New("mlkem: failed to import key")
 	}
@@ -440,8 +451,14 @@ func (dk DecapsulationKeyMLKEM1024) EncapsulationKey() EncapsulationKeyMLKEM1024
 		panic(err)
 	}
 
+	// Construct blob from raw key bytes
+	blob, err := newMLKEMDecapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_1024, dk[:], bcrypt.MLKEM_PRIVATE_MAGIC)
+	if err != nil {
+		panic(err)
+	}
+
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, dk[:], 0)
+	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, blob, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -460,15 +477,21 @@ func (dk DecapsulationKeyMLKEM1024) EncapsulationKey() EncapsulationKeyMLKEM1024
 		panic(err)
 	}
 
+	// Extract raw public key bytes from blob
+	pubKeyBytes := extractMLKEMKeyBytes(pubBlob)
+	if pubKeyBytes == nil || len(pubKeyBytes) != encapsulationKeySizeMLKEM1024 {
+		panic("mlkem: unexpected public key size")
+	}
+
 	runtime.KeepAlive(dk)
 	var ek EncapsulationKeyMLKEM1024
-	copy(ek[:], pubBlob)
+	copy(ek[:], pubKeyBytes)
 	return ek
 }
 
 // An EncapsulationKeyMLKEM1024 is the public key used to produce ciphertexts to be
 // decapsulated by the corresponding DecapsulationKeyMLKEM1024.
-type EncapsulationKeyMLKEM1024 [encapsulationKeyBlobSizeMLKEM1024]byte
+type EncapsulationKeyMLKEM1024 [encapsulationKeySizeMLKEM1024]byte
 
 // NewEncapsulationKeyMLKEM1024 parses an encapsulation key from its encoded form. If
 // the encapsulation key is not valid, NewEncapsulationKeyMLKEM1024 returns an error.
@@ -477,23 +500,14 @@ func NewEncapsulationKeyMLKEM1024(encapsulationKey []byte) (EncapsulationKeyMLKE
 		return EncapsulationKeyMLKEM1024{}, errors.New("mlkem: invalid encapsulation key size")
 	}
 
-	blob, err := newMLKEMEncapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_1024, encapsulationKey, bcrypt.MLKEM_PUBLIC_MAGIC)
-	if err != nil {
-		return EncapsulationKeyMLKEM1024{}, err
-	}
-
 	var ek EncapsulationKeyMLKEM1024
-	copy(ek[:], blob)
+	copy(ek[:], encapsulationKey)
 	return ek, nil
 }
 
 // Bytes returns the encapsulation key as a byte slice.
 func (ek EncapsulationKeyMLKEM1024) Bytes() []byte {
-	keyBytes := extractMLKEMKeyBytes(ek[:])
-	if keyBytes == nil {
-		panic("mlkem: invalid blob size")
-	}
-	return keyBytes
+	return ek[:]
 }
 
 // Encapsulate generates a shared key and an associated ciphertext from an
@@ -506,8 +520,14 @@ func (ek EncapsulationKeyMLKEM1024) Encapsulate() (sharedKey, ciphertext []byte)
 		panic(err)
 	}
 
+	// Construct blob from raw key bytes
+	blob, err := newMLKEMEncapsulationKeyFromBytes(bcrypt.MLKEM_PARAMETER_SET_1024, ek[:], bcrypt.MLKEM_PUBLIC_MAGIC)
+	if err != nil {
+		panic(err)
+	}
+
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PUBLIC_BLOB), &hKey, ek[:], 0)
+	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PUBLIC_BLOB), &hKey, blob, 0)
 	if err != nil {
 		panic(err)
 	}
