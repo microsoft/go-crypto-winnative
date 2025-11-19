@@ -322,7 +322,7 @@ type DSA_KEY_BLOB_V2 struct {
 
 // https://learn.microsoft.com/en-us/windows/win32/seccng/cng-mlkem
 type MLKEM_KEY_BLOB struct {
-	Magic          KeyBlobMagicNumber
+	Magic KeyBlobMagicNumber
 }
 
 func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {

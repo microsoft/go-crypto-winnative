@@ -314,7 +314,10 @@ func BenchmarkGenerateKeyRSA(b *testing.B) {
 }
 
 func TestSignWithPSSSaltLengthAuto(t *testing.T) {
-	privGo, _ := rsa.GenerateKey(cng.RandReader, 513)
+	privGo, err := rsa.GenerateKey(cng.RandReader, 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
 	priv, err := cng.NewPrivateKeyRSA(
 		bbig.Enc(privGo.N), bbig.Enc(big.NewInt(int64(privGo.E))), bbig.Enc(privGo.D),
 		bbig.Enc(privGo.Primes[0]), bbig.Enc(privGo.Primes[1]), nil, nil, nil,
