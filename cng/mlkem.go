@@ -8,7 +8,6 @@ package cng
 
 import (
 	"errors"
-	"fmt"
 	"runtime"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -87,7 +86,7 @@ func generateMLKEMKey(paramSet string, dst []byte) error {
 	var hKey bcrypt.KEY_HANDLE
 	err = bcrypt.GenerateKeyPair(alg.handle, &hKey, 0, 0)
 	if err != nil {
-		return errors.New("mlkem: key generation failed")
+		return err
 	}
 	defer bcrypt.DestroyKey(hKey)
 
@@ -95,26 +94,23 @@ func generateMLKEMKey(paramSet string, dst []byte) error {
 	if err := setString(bcrypt.HANDLE(hKey), bcrypt.PARAMETER_SET_NAME, paramSet); err != nil {
 		return err
 	}
-	if err != nil {
-		return errors.New("mlkem: failed to set parameter set")
-	}
 
 	err = bcrypt.FinalizeKeyPair(hKey, 0)
 	if err != nil {
-		return errors.New("mlkem: key finalization failed")
+		return err
 	}
 
 	// Export the private key blob
 	var size uint32
 	err = bcrypt.ExportKey(hKey, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), nil, &size, 0)
 	if err != nil {
-		return errors.New("mlkem: failed to get key blob size")
+		return err
 	}
 
 	blob := make([]byte, size)
 	err = bcrypt.ExportKey(hKey, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), blob, &size, 0)
 	if err != nil {
-		return errors.New("mlkem: failed to export key")
+		return err
 	}
 
 	// Extract raw key bytes into destination
@@ -164,19 +160,19 @@ func mlkemDecapsulate(paramSet string, keyBytes []byte, ciphertext []byte, expec
 
 	alg, err := loadMLKEM()
 	if err != nil {
-		return nil, errors.New("mlkem: failed to open algorithm provider")
+		return nil, err
 	}
 
 	// Construct blob from raw key bytes
 	blob, err := newMLKEMKeyBlob(paramSet, keyBytes, bcrypt.MLKEM_PRIVATE_MAGIC)
 	if err != nil {
-		return nil, fmt.Errorf("mlkem: failed to construct key blob: %w", err)
+		return nil, err
 	}
 
 	var hKey bcrypt.KEY_HANDLE
 	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_BLOB), &hKey, blob, 0)
 	if err != nil {
-		return nil, fmt.Errorf("mlkem: failed to import key: %w", err)
+		return nil, err
 	}
 	defer bcrypt.DestroyKey(hKey)
 
@@ -185,7 +181,7 @@ func mlkemDecapsulate(paramSet string, keyBytes []byte, ciphertext []byte, expec
 
 	err = bcrypt.Decapsulate(hKey, ciphertext, sharedKey, &cbResult, 0)
 	if err != nil {
-		return nil, fmt.Errorf("mlkem: decapsulation failed: %w", err)
+		return nil, err
 	}
 	return sharedKey[:cbResult], nil
 }
