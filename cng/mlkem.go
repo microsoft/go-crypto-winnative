@@ -81,7 +81,7 @@ func SupportsMLKEM() bool {
 func generateMLKEMKey(paramSet string, dst []byte) error {
 	alg, err := loadMLKEM()
 	if err != nil {
-		return errors.New("mlkem: failed to open algorithm provider")
+		return err
 	}
 
 	var hKey bcrypt.KEY_HANDLE
@@ -92,12 +92,9 @@ func generateMLKEMKey(paramSet string, dst []byte) error {
 	defer bcrypt.DestroyKey(hKey)
 
 	// Set the parameter set
-	paramSetUTF16 := utf16FromString(paramSet)
-	paramSetBytes := make([]byte, len(paramSetUTF16)*2)
-	for i, v := range paramSetUTF16 {
-		putUint16LE(paramSetBytes[i*2:], v)
+	if err := setString(bcrypt.HANDLE(hKey), bcrypt.PARAMETER_SET_NAME, paramSet); err != nil {
+		return err
 	}
-	err = bcrypt.SetProperty(bcrypt.HANDLE(hKey), utf16PtrFromString(bcrypt.PARAMETER_SET_NAME), paramSetBytes, 0)
 	if err != nil {
 		return errors.New("mlkem: failed to set parameter set")
 	}
