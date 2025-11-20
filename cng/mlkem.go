@@ -121,38 +121,19 @@ func generateMLKEMKey(paramSet string, dst []byte) error {
 	return extractMLKEMKeyBytes(blob, dst)
 }
 
-// newMLKEMDecapsulationKeyFromBytes creates a decapsulation key blob from raw key bytes.
-func newMLKEMDecapsulationKeyFromBytes(paramSet string, keyBytes []byte, magic bcrypt.KeyBlobMagicNumber) ([]byte, error) {
+// newMLKEMKeyBlob creates a key blob from raw key bytes.
+func newMLKEMKeyBlob(paramSet string, keyBytes []byte, magic bcrypt.KeyBlobMagicNumber) ([]byte, error) {
 	paramSetUTF16 := utf16FromString(paramSet)
-	paramSetBytes := make([]byte, len(paramSetUTF16)*2)
-	for i, v := range paramSetUTF16 {
-		putUint16LE(paramSetBytes[i*2:], v)
-	}
+	paramSetByteLen := len(paramSetUTF16) * 2
 
-	blob := make([]byte, 12+len(paramSetBytes)+len(keyBytes))
+	blob := make([]byte, 12+paramSetByteLen+len(keyBytes))
 	putUint32LE(blob[0:4], uint32(magic))
-	putUint32LE(blob[4:8], uint32(len(paramSetBytes))) // cbParameterSet
-	putUint32LE(blob[8:12], uint32(len(keyBytes)))     // cbKey
-	copy(blob[12:], paramSetBytes)
-	copy(blob[12+len(paramSetBytes):], keyBytes)
-
-	return blob, nil
-}
-
-// newMLKEMEncapsulationKeyFromBytes creates an encapsulation key blob from raw key bytes.
-func newMLKEMEncapsulationKeyFromBytes(paramSet string, keyBytes []byte, magic bcrypt.KeyBlobMagicNumber) ([]byte, error) {
-	paramSetUTF16 := utf16FromString(paramSet)
-	paramSetBytes := make([]byte, len(paramSetUTF16)*2)
+	putUint32LE(blob[4:8], uint32(paramSetByteLen)) // cbParameterSet
+	putUint32LE(blob[8:12], uint32(len(keyBytes)))  // cbKey
 	for i, v := range paramSetUTF16 {
-		putUint16LE(paramSetBytes[i*2:], v)
+		putUint16LE(blob[12+i*2:], v)
 	}
-
-	blob := make([]byte, 12+len(paramSetBytes)+len(keyBytes))
-	putUint32LE(blob[0:4], uint32(magic))
-	putUint32LE(blob[4:8], uint32(len(paramSetBytes))) // cbParameterSet
-	putUint32LE(blob[8:12], uint32(len(keyBytes)))     // cbKey
-	copy(blob[12:], paramSetBytes)
-	copy(blob[12+len(paramSetBytes):], keyBytes)
+	copy(blob[12+paramSetByteLen:], keyBytes)
 
 	return blob, nil
 }
@@ -187,7 +168,7 @@ func mlkemDecapsulate(paramSet string, keyBytes []byte, ciphertext []byte, expec
 	}
 
 	// Construct blob from raw key bytes
-	blob, err := newMLKEMDecapsulationKeyFromBytes(paramSet, keyBytes, bcrypt.MLKEM_PRIVATE_MAGIC)
+	blob, err := newMLKEMKeyBlob(paramSet, keyBytes, bcrypt.MLKEM_PRIVATE_MAGIC)
 	if err != nil {
 		return nil, fmt.Errorf("mlkem: failed to construct key blob: %w", err)
 	}
@@ -217,7 +198,7 @@ func mlkemEncapsulationKey(paramSet string, keyBytes []byte, dst []byte) error {
 	}
 
 	// Construct blob from raw key bytes
-	blob, err := newMLKEMDecapsulationKeyFromBytes(paramSet, keyBytes, bcrypt.MLKEM_PRIVATE_MAGIC)
+	blob, err := newMLKEMKeyBlob(paramSet, keyBytes, bcrypt.MLKEM_PRIVATE_MAGIC)
 	if err != nil {
 		return err
 	}
@@ -254,7 +235,7 @@ func mlkemEncapsulate(paramSet string, keyBytes []byte, expectedCiphertextSize i
 	}
 
 	// Construct blob from raw key bytes
-	blob, err := newMLKEMEncapsulationKeyFromBytes(paramSet, keyBytes, bcrypt.MLKEM_PUBLIC_MAGIC)
+	blob, err := newMLKEMKeyBlob(paramSet, keyBytes, bcrypt.MLKEM_PUBLIC_MAGIC)
 	if err != nil {
 		return nil, nil, err
 	}
