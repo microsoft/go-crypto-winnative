@@ -30,6 +30,7 @@ func TestMLKEMRoundTrip(t *testing.T) {
 	if !cng.SupportsMLKEM() {
 		t.Skip("ML-KEM not supported on this platform")
 	}
+	t.Parallel()
 	t.Run("768", func(t *testing.T) {
 		testRoundTrip(t, cng.GenerateKeyMLKEM768, cng.NewEncapsulationKeyMLKEM768, cng.NewDecapsulationKeyMLKEM768)
 	})
@@ -42,6 +43,7 @@ func testRoundTrip[E encapsulationKey, D decapsulationKey[E]](
 	t *testing.T, generateKey func() (D, error),
 	newEncapsulationKey func([]byte) (E, error),
 	newDecapsulationKey func([]byte) (D, error)) {
+	t.Parallel()
 	dk, err := generateKey()
 	if err != nil {
 		t.Fatal(err)
@@ -103,6 +105,7 @@ func TestMLKEMBadLengths(t *testing.T) {
 	if !cng.SupportsMLKEM() {
 		t.Skip("ML-KEM not supported on this platform")
 	}
+	t.Parallel()
 	t.Run("768", func(t *testing.T) {
 		testBadLengths(t, cng.GenerateKeyMLKEM768, cng.NewEncapsulationKeyMLKEM768, cng.NewDecapsulationKeyMLKEM768)
 	})
@@ -115,6 +118,7 @@ func testBadLengths[E encapsulationKey, D decapsulationKey[E]](
 	t *testing.T, generateKey func() (D, error),
 	newEncapsulationKey func([]byte) (E, error),
 	newDecapsulationKey func([]byte) (D, error)) {
+	t.Parallel()
 	dk, err := generateKey()
 	dkBytes := dk.Bytes()
 	if err != nil {
@@ -269,6 +273,7 @@ func BenchmarkMLKEMRoundTrip(b *testing.B) {
 
 // Test that the constants match the ML-KEM specification (NIST FIPS 203).
 func TestMLKEMConstantSizes(t *testing.T) {
+	t.Parallel()
 	if cng.SharedKeySizeMLKEM != mlkem.SharedKeySize {
 		t.Errorf("SharedKeySize mismatch: got %d, want %d", cng.SharedKeySizeMLKEM, mlkem.SharedKeySize)
 	}
@@ -299,8 +304,10 @@ func TestMLKEMInteropWithStdlib(t *testing.T) {
 	if !cng.SupportsMLKEM() {
 		t.Skip("ML-KEM not supported on this platform")
 	}
+	t.Parallel()
 
 	t.Run("768_CNG_to_Stdlib", func(t *testing.T) {
+		t.Parallel()
 		// Generate key with CNG
 		cngDK, err := cng.GenerateKeyMLKEM768()
 		if err != nil {
@@ -330,6 +337,7 @@ func TestMLKEMInteropWithStdlib(t *testing.T) {
 	})
 
 	t.Run("768_Stdlib_to_CNG", func(t *testing.T) {
+		t.Parallel()
 		// Generate key with stdlib
 		stdlibDK, err := mlkem.GenerateKey768()
 		if err != nil {
@@ -359,6 +367,7 @@ func TestMLKEMInteropWithStdlib(t *testing.T) {
 	})
 
 	t.Run("768_Bidirectional", func(t *testing.T) {
+		t.Parallel()
 		// Generate keys with both implementations
 		cngDK, err := cng.GenerateKeyMLKEM768()
 		if err != nil {
@@ -414,6 +423,7 @@ func TestMLKEMInteropWithStdlib(t *testing.T) {
 	})
 
 	t.Run("1024_CNG_to_Stdlib", func(t *testing.T) {
+		t.Parallel()
 		// Generate key with CNG
 		cngDK, err := cng.GenerateKeyMLKEM1024()
 		if err != nil {
@@ -443,6 +453,7 @@ func TestMLKEMInteropWithStdlib(t *testing.T) {
 	})
 
 	t.Run("1024_Stdlib_to_CNG", func(t *testing.T) {
+		t.Parallel()
 		// Generate key with stdlib
 		stdlibDK, err := mlkem.GenerateKey1024()
 		if err != nil {
@@ -472,6 +483,7 @@ func TestMLKEMInteropWithStdlib(t *testing.T) {
 	})
 
 	t.Run("1024_Bidirectional", func(t *testing.T) {
+		t.Parallel()
 		// Generate keys with both implementations
 		cngDK, err := cng.GenerateKeyMLKEM1024()
 		if err != nil {
