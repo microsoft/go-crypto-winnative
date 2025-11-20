@@ -9,7 +9,7 @@ package cng_test
 import (
 	"bytes"
 	"crypto/mlkem"
-	"math/rand"
+	"crypto/rand"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
@@ -369,6 +369,10 @@ func TestMLKEMInteropWithStdlib(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		if len(cngDK.Bytes()) != len(stdlibDK.Bytes()) {
+			t.Fatalf("decapsulation key sizes don't match: CNG=%d, stdlib=%d", len(cngDK.Bytes()), len(stdlibDK.Bytes()))
+		}
+
 		// Test CNG encapsulation key -> stdlib
 		cngEKBytes := cngDK.EncapsulationKey().Bytes()
 		stdlibEK, err := mlkem.NewEncapsulationKey768(cngEKBytes)
@@ -476,6 +480,9 @@ func TestMLKEMInteropWithStdlib(t *testing.T) {
 		stdlibDK, err := mlkem.GenerateKey1024()
 		if err != nil {
 			t.Fatal(err)
+		}
+		if len(cngDK.Bytes()) != len(stdlibDK.Bytes()) {
+			t.Fatalf("decapsulation key sizes don't match: CNG=%d, stdlib=%d", len(cngDK.Bytes()), len(stdlibDK.Bytes()))
 		}
 
 		// Test CNG encapsulation key -> stdlib
