@@ -353,8 +353,6 @@ func GenerateKeyMLKEM1024() (DecapsulationKeyMLKEM1024, error) {
 }
 
 // NewDecapsulationKeyMLKEM1024 constructs a decapsulation key from its serialized form.
-// Note: Unlike the stdlib crypto/mlkem which expects a 64-byte seed, this function
-// expects the full 3168-byte expanded key material as returned by Bytes().
 func NewDecapsulationKeyMLKEM1024(seed []byte) (DecapsulationKeyMLKEM1024, error) {
 	if len(seed) != seedSizeMLKEM {
 		return DecapsulationKeyMLKEM1024{}, errors.New("mlkem: invalid decapsulation key size")
@@ -366,8 +364,6 @@ func NewDecapsulationKeyMLKEM1024(seed []byte) (DecapsulationKeyMLKEM1024, error
 }
 
 // Bytes returns the decapsulation key in its serialized form.
-// Note: Unlike the stdlib crypto/mlkem which returns a 64-byte seed, this returns
-// the full 3168-byte expanded key material.
 //
 // The decapsulation key must be kept secret.
 func (dk DecapsulationKeyMLKEM1024) Bytes() []byte {
