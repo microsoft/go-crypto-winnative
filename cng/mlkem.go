@@ -33,8 +33,8 @@ const (
 )
 
 const (
-	sizeOfPrivateSeedMLKEM1024 = 4 + 4 + 4 + 10 + seedSizeMLKEM                 // dwMagic (4) + cbParameterSet (4) + cbKey (4) + ParameterSet (8 "1024\0") + Key (64)
-	sizeOfPublicKeyMLKEM1024   = 4 + 4 + 4 + 10 + encapsulationKeySizeMLKEM1024 // dwMagic (4) + cbParameterSet (4) + cbKey (4) + ParameterSet (8 "1024\0") + Key (1184)
+	sizeOfPrivateSeedMLKEM1024 = 4 + 4 + 4 + 10 + seedSizeMLKEM                 // dwMagic (4) + cbParameterSet (4) + cbKey (4) + ParameterSet (10 "1024\0") + Key (64)
+	sizeOfPublicKeyMLKEM1024   = 4 + 4 + 4 + 10 + encapsulationKeySizeMLKEM1024 // dwMagic (4) + cbParameterSet (4) + cbKey (4) + ParameterSet (10 "1024\0") + Key (1568)
 )
 
 // putUint32LE puts a uint32 in little-endian byte order.
