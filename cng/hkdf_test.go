@@ -361,6 +361,26 @@ func TestExpandHKDFOneShotLimit(t *testing.T) {
 	}
 }
 
+func TestExpandHKDFZeroLengthKey(t *testing.T) {
+	if !cng.SupportsHKDF() {
+		t.Skip("HKDF is not supported")
+	}
+	hash := cng.NewSHA256
+	master := []byte{0x00, 0x01, 0x02, 0x03}
+	info := []byte{}
+	prk, err := cng.ExtractHKDF(hash, master, nil)
+	if err != nil {
+		t.Fatalf("error extracting HKDF: %v.", err)
+	}
+	out, err := cng.ExpandHKDF(hash, prk, info, 0)
+	if err != nil {
+		t.Errorf("error expanding HKDF zero-length key: %v.", err)
+	}
+	if len(out) != 0 {
+		t.Errorf("incorrect output length for zero-length key: have %d, need 0.", len(out))
+	}
+}
+
 func BenchmarkHKDF32ByteSHA256Single(b *testing.B) {
 	master := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}
 	salt := []byte{0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17}
