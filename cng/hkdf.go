@@ -26,7 +26,7 @@ func loadHKDF() (bcrypt.ALG_HANDLE, error) {
 	})
 }
 
-func newHKDF(h func() hash.Hash, secret, salt []byte, info []byte) (bcrypt.KEY_HANDLE, error) {
+func newHKDF(h func() hash.Hash, secret, salt []byte) (bcrypt.KEY_HANDLE, error) {
 	ch := h()
 	hashID := hashToID(ch)
 	if hashID == "" {
@@ -63,7 +63,7 @@ func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
 		// Replicate x/crypto/hkdf behavior.
 		salt = make([]byte, h().Size())
 	}
-	kh, err := newHKDF(h, secret, salt, nil)
+	kh, err := newHKDF(h, secret, salt)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +93,17 @@ func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
 
 // ExpandHKDF derives a key from the given hash, key, and optional context info.
 func ExpandHKDF(h func() hash.Hash, pseudorandomKey, info []byte, keyLength int) ([]byte, error) {
-	kh, err := newHKDF(h, pseudorandomKey, nil, info)
+	kh, err := newHKDF(h, pseudorandomKey, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer bcrypt.DestroyKey(kh)
 	out := make([]byte, keyLength)
+	if len(out) == 0 {
+		// Nothing to do, and CNG doesn't like zero-length output buffers.
+		// Call newHKDF, though, to validate parameters.
+		return out, nil
+	}
 	var params *bcrypt.BufferDesc
 	if len(info) > 0 {
 		params = &bcrypt.BufferDesc{
