@@ -89,7 +89,7 @@ func (c *chacha20poly1305) Open(dst, nonce, ciphertext, additionalData []byte) (
 	if len(nonce) != chacha20Poly1305NonceSize {
 		panic("chacha20poly1305: bad nonce length passed to Open")
 	}
-	if len(ciphertext) < 16 {
+	if len(ciphertext) < chacha20Poly1305Overhead {
 		return nil, errOpen
 	}
 	if uint64(len(ciphertext)) > (1<<38)-48 {
