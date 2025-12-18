@@ -21,6 +21,13 @@ const (
 	nonceSizeX = 24
 )
 
+func TestSupportsChaCha20Poly1305(t *testing.T) {
+	if !cng.SupportsChaCha20Poly1305() {
+		// Should be supports since Windows 10 20H2, and we don't test on older versions.
+		t.Error("ChaCha20-Poly1305 should be supported but is not")
+	}
+}
+
 func TestChacha20Poly1305Vectors(t *testing.T) {
 	for i, test := range chacha20Poly1305Tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

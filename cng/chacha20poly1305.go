@@ -22,6 +22,11 @@ const (
 	chacha20Poly1305Overhead  = 16
 )
 
+func SupportsChaCha20Poly1305() bool {
+	_, err := loadCipher(bcrypt.CHACHA20_POLY1305_ALGORITHM, "")
+	return err == nil
+}
+
 type chacha20poly1305 struct {
 	kh bcrypt.KEY_HANDLE
 }
