@@ -113,20 +113,12 @@ func Decapsulate(hKey KEY_HANDLE, pbCiphertext []byte, pbSecret []byte, pcbResul
 	return
 }
 
-func Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+func _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
 	var _p0 *byte
-	if len(pbInput) > 0 {
-		_p0 = &pbInput[0]
-	}
-	var _p1 *byte
 	if len(pbIV) > 0 {
-		_p1 = &pbIV[0]
+		_p0 = &pbIV[0]
 	}
-	var _p2 *byte
-	if len(pbOutput) > 0 {
-		_p2 = &pbOutput[0]
-	}
-	r0, _, _ := syscall.SyscallN(procBCryptDecrypt.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	r0, _, _ := syscall.SyscallN(procBCryptDecrypt.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}

@@ -328,7 +328,7 @@ type MLKEM_KEY_BLOB struct {
 	Magic KeyBlobMagicNumber
 }
 
-func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, ciphertext []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
 	var pInput *byte
 	if len(plaintext) > 0 {
 		pInput = &plaintext[0]
@@ -338,7 +338,25 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 		// It won't be encrypted anyway because the plaintext length is zero.
 		pInput = new(byte)
 	}
-	return _Encrypt(hKey, pInput, uint32(len(plaintext)), pPaddingInfo, pbIV, pbOutput, pcbResult, dwFlags)
+	return _Encrypt(hKey, pInput, uint32(len(plaintext)), pPaddingInfo, pbIV, ciphertext, pcbResult, dwFlags)
+}
+
+func Decrypt(hKey KEY_HANDLE, ciphertext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, plaintext []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+	// Previous to Windows 2025, BCryptDescrypt did not validate the padding info when ciphertext and plaintext were both zero-length.
+	// To maintain compatibility with those versions, we allocate a zero byte when ciphertext is empty.
+	var pInput, pOutput *byte
+	if len(ciphertext) == 0 && len(plaintext) == 0 {
+		pOutput = new(byte)
+		pInput = pOutput
+	} else {
+		if len(plaintext) > 0 {
+			pOutput = &plaintext[0]
+		}
+		if len(ciphertext) > 0 {
+			pInput = &ciphertext[0]
+		}
+	}
+	return _Decrypt(hKey, pInput, uint32(len(ciphertext)), pPaddingInfo, pbIV, pOutput, uint32(len(plaintext)), pcbResult, dwFlags)
 }
 
 //sys	GetFipsAlgorithmMode(enabled *bool) (ntstatus error) = bcrypt.BCryptGetFipsAlgorithmMode
@@ -370,7 +388,7 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 //sys   ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptExportKey
 //sys   DestroyKey(hKey KEY_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyKey
 //sys   _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptEncrypt
-//sys   Decrypt(hKey KEY_HANDLE, pbInput []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptDecrypt
+//sys   _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptDecrypt
 //sys   SignHash (hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptSignHash
 //sys   VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptVerifySignature
 //sys   SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SECRET_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSecretAgreement
