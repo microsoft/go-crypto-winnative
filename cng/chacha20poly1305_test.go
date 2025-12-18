@@ -92,7 +92,7 @@ func TestChacha20Poly1305Vectors(t *testing.T) {
 	}
 }
 
-func TestRandom(t *testing.T) {
+func TestChacha20Poly1305Random(t *testing.T) {
 	// Some random tests to verify Open(Seal) == Plaintext
 	f := func(t *testing.T, nonceSize int) {
 		for i := 0; i < 256; i++ {
