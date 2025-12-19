@@ -338,3 +338,147 @@ func TestSignWithPSSSaltLengthAuto(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestRSAPSS(t *testing.T) {
+	privGo, err := rsa.GenerateKey(cng.RandReader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	priv, err := cng.NewPrivateKeyRSA(
+		bbig.Enc(privGo.N), bbig.Enc(big.NewInt(int64(privGo.E))), bbig.Enc(privGo.D),
+		bbig.Enc(privGo.Primes[0]), bbig.Enc(privGo.Primes[1]), nil, nil, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, err := cng.NewPublicKeyRSA(bbig.Enc(privGo.N), bbig.Enc(big.NewInt(int64(privGo.E))))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, hash := range hashes {
+		t.Run(hash.String(), func(t *testing.T) {
+			if !cng.SupportsHash(hash) {
+				t.Skipf("Hash %v not supported", hash)
+			}
+			h := cryptoToHash(hash)()
+			h.Write([]byte("message"))
+			digest := h.Sum(nil)
+			signature, err := cng.SignRSAPSS(priv, hash, digest, rsa.PSSSaltLengthEqualsHash)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(signature) == 0 {
+				t.Fatal("empty signature returned")
+			}
+			err = cng.VerifyRSAPSS(pub, hash, digest, signature, rsa.PSSSaltLengthEqualsHash)
+			if err != nil {
+				t.Error(err)
+			}
+			if hash.Available() {
+				// Verify with crypto/rsa
+				err = rsa.VerifyPSS(&privGo.PublicKey, hash, digest, signature, &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash})
+				if err != nil {
+					t.Error(err)
+				}
+			}
+		})
+	}
+}
+
+func TestRSAPKCS1Signature(t *testing.T) {
+	privGo, err := rsa.GenerateKey(cng.RandReader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	priv, err := cng.NewPrivateKeyRSA(
+		bbig.Enc(privGo.N), bbig.Enc(big.NewInt(int64(privGo.E))), bbig.Enc(privGo.D),
+		bbig.Enc(privGo.Primes[0]), bbig.Enc(privGo.Primes[1]), nil, nil, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, err := cng.NewPublicKeyRSA(bbig.Enc(privGo.N), bbig.Enc(big.NewInt(int64(privGo.E))))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, hash := range hashes {
+		t.Run(hash.String(), func(t *testing.T) {
+			if !cng.SupportsHash(hash) {
+				t.Skipf("Hash %v not supported", hash)
+			}
+			h := cryptoToHash(hash)()
+			h.Write([]byte("message"))
+			digest := h.Sum(nil)
+			signature, err := cng.SignRSAPKCS1v15(priv, hash, digest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(signature) == 0 {
+				t.Fatal("empty signature returned")
+			}
+			err = cng.VerifyRSAPKCS1v15(pub, hash, digest, signature)
+			if err != nil {
+				t.Error(err)
+			}
+			if hash.Available() {
+				// Verify with crypto/rsa
+				err = rsa.VerifyPKCS1v15(&privGo.PublicKey, hash, digest, signature)
+				if err != nil {
+					t.Error(err)
+				}
+			}
+		})
+	}
+}
+
+func TestRSAOAEP(t *testing.T) {
+	privGo, err := rsa.GenerateKey(cng.RandReader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	priv, err := cng.NewPrivateKeyRSA(
+		bbig.Enc(privGo.N), bbig.Enc(big.NewInt(int64(privGo.E))), bbig.Enc(privGo.D),
+		bbig.Enc(privGo.Primes[0]), bbig.Enc(privGo.Primes[1]), nil, nil, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, err := cng.NewPublicKeyRSA(bbig.Enc(privGo.N), bbig.Enc(big.NewInt(int64(privGo.E))))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, hash := range hashes {
+		t.Run(hash.String(), func(t *testing.T) {
+			if !cng.SupportsHash(hash) {
+				t.Skipf("Hash %v not supported", hash)
+			}
+			msg := []byte("hi!")
+			label := []byte("ho!")
+			h := cryptoToHash(hash)()
+			ciphertext, err := cng.EncryptRSAOAEP(h, pub, msg, label)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(ciphertext) == 0 {
+				t.Fatal("empty ciphertext returned")
+			}
+			plaintext, err := cng.DecryptRSAOAEP(h, priv, ciphertext, label)
+			if err != nil {
+				t.Error(err)
+			}
+			if !bytes.Equal(plaintext, msg) {
+				t.Errorf("got:%x want:%x", plaintext, msg)
+			}
+			if hash.Available() {
+				// Decrypt with crypto/rsa
+				plaintext, err = rsa.DecryptOAEP(h, cng.RandReader, privGo, ciphertext, label)
+				if err != nil {
+					t.Error(err)
+				}
+				if !bytes.Equal(plaintext, msg) {
+					t.Errorf("got:%x want:%x", plaintext, msg)
+				}
+			}
+		})
+	}
+}
