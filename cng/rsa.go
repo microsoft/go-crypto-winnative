@@ -381,6 +381,8 @@ func newPKCS1_PADDING_INFO(h crypto.Hash) (bcrypt.PKCS1_PADDING_INFO, error) {
 
 func cryptoHashToID(ch crypto.Hash) string {
 	switch ch {
+	case crypto.MD4:
+		return bcrypt.MD4_ALGORITHM
 	case crypto.MD5:
 		return bcrypt.MD5_ALGORITHM
 	case crypto.SHA1:
@@ -391,6 +393,12 @@ func cryptoHashToID(ch crypto.Hash) string {
 		return bcrypt.SHA384_ALGORITHM
 	case crypto.SHA512:
 		return bcrypt.SHA512_ALGORITHM
+	case crypto.SHA3_256:
+		return bcrypt.SHA3_256_ALGORITHM
+	case crypto.SHA3_384:
+		return bcrypt.SHA3_384_ALGORITHM
+	case crypto.SHA3_512:
+		return bcrypt.SHA3_512_ALGORITHM
 	}
 	return ""
 }
