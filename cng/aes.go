@@ -91,7 +91,15 @@ func (c *aesCipher) NewCBCEncrypter(iv []byte) cipher.BlockMode {
 	return newCBC(true, bcrypt.AES_ALGORITHM, c.key, iv)
 }
 
+func (c *aesCipher) NewFIPSCBCEncrypter(iv []byte) cipher.BlockMode {
+	return newCBC(true, bcrypt.AES_ALGORITHM, c.key, iv)
+}
+
 func (c *aesCipher) NewCBCDecrypter(iv []byte) cipher.BlockMode {
+	return newCBC(false, bcrypt.AES_ALGORITHM, c.key, iv)
+}
+
+func (c *aesCipher) NewFIPSCBCDecrypter(iv []byte) cipher.BlockMode {
 	return newCBC(false, bcrypt.AES_ALGORITHM, c.key, iv)
 }
 
