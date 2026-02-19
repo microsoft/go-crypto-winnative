@@ -164,12 +164,12 @@ func TestChacha20Poly1305Random(t *testing.T) {
 	t.Run("Standard", func(t *testing.T) { f(t, 12) })
 }
 
-func benchmarkChaCha20Poly1305Seal(b *testing.B, buf []byte, nonceSize int) {
+func benchmarkChaCha20Poly1305Seal(b *testing.B, buf []byte, testNonceSize int) {
 	b.ReportAllocs()
 	b.SetBytes(int64(len(buf)))
 
 	var key [32]byte
-	var nonce = make([]byte, nonceSize)
+	var nonce = make([]byte, testNonceSize)
 	var ad [13]byte
 	var out []byte
 
@@ -187,12 +187,12 @@ func benchmarkChaCha20Poly1305Seal(b *testing.B, buf []byte, nonceSize int) {
 	}
 }
 
-func benchmarkChaCha20Poly1305Open(b *testing.B, buf []byte, nonceSize int) {
+func benchmarkChaCha20Poly1305Open(b *testing.B, buf []byte, testNonceSize int) {
 	b.ReportAllocs()
 	b.SetBytes(int64(len(buf)))
 
 	var key [32]byte
-	var nonce = make([]byte, nonceSize)
+	var nonce = make([]byte, testNonceSize)
 	var ad [13]byte
 	var ct []byte
 	var out []byte
