@@ -13,6 +13,11 @@ import (
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
+// destroyKey is a cleanup function for releasing bcrypt key handles.
+func destroyKey(kh bcrypt.KEY_HANDLE) {
+	bcrypt.DestroyKey(kh)
+}
+
 const (
 	sizeOfECCBlobHeader     = uint32(unsafe.Sizeof(bcrypt.ECCKEY_BLOB{}))
 	sizeOfRSABlobHeader     = uint32(unsafe.Sizeof(bcrypt.RSAKEY_BLOB{}))
