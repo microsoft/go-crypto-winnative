@@ -158,3 +158,107 @@ func hexDecode(t *testing.T, s string) []byte {
 	}
 	return b
 }
+
+func BenchmarkGenerateKeyECDH(b *testing.B) {
+	for _, curve := range []string{"P-256", "P-384", "P-521", "X25519"} {
+		b.Run(curve, func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _, err := cng.GenerateKeyECDH(curve)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkECDH(b *testing.B) {
+	for _, curve := range []string{"P-256", "P-384", "P-521", "X25519"} {
+		b.Run(curve, func(b *testing.B) {
+			aliceKey, _, err := cng.GenerateKeyECDH(curve)
+			if err != nil {
+				b.Fatal(err)
+			}
+			bobKey, _, err := cng.GenerateKeyECDH(curve)
+			if err != nil {
+				b.Fatal(err)
+			}
+			bobPub, err := bobKey.PublicKey()
+			if err != nil {
+				b.Fatal(err)
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, err := cng.ECDH(aliceKey, bobPub)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkNewPrivateKeyECDH(b *testing.B) {
+	for _, curve := range []string{"P-256", "P-384", "P-521", "X25519"} {
+		b.Run(curve, func(b *testing.B) {
+			_, privBytes, err := cng.GenerateKeyECDH(curve)
+			if err != nil {
+				b.Fatal(err)
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, err := cng.NewPrivateKeyECDH(curve, privBytes)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkNewPublicKeyECDH(b *testing.B) {
+	for _, curve := range []string{"P-256", "P-384", "P-521", "X25519"} {
+		b.Run(curve, func(b *testing.B) {
+			key, _, err := cng.GenerateKeyECDH(curve)
+			if err != nil {
+				b.Fatal(err)
+			}
+			pub, err := key.PublicKey()
+			if err != nil {
+				b.Fatal(err)
+			}
+			pubBytes := pub.Bytes()
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, err := cng.NewPublicKeyECDH(curve, pubBytes)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkPublicKeyECDH(b *testing.B) {
+	for _, curve := range []string{"P-256", "P-384", "P-521", "X25519"} {
+		b.Run(curve, func(b *testing.B) {
+			key, _, err := cng.GenerateKeyECDH(curve)
+			if err != nil {
+				b.Fatal(err)
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, err := key.PublicKey()
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
