@@ -90,7 +90,7 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 		return nil, err
 	}
 	k := &PublicKeyECDSA{hkey}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, nil
 }
 
@@ -108,7 +108,7 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 		return nil, err
 	}
 	k := &PrivateKeyECDSA{hkey}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, nil
 }
 

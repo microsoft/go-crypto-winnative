@@ -128,7 +128,7 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	bytes = bytes[hdr.KeySize*2:]
 
 	k := &PrivateKeyECDH{hkey, isNIST(curve)}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, bytes, nil
 }
 
@@ -163,7 +163,7 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 		return nil, err
 	}
 	k := &PublicKeyECDH{hkey, append([]byte(nil), bytes...), nil}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, nil
 }
 
@@ -192,7 +192,7 @@ func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
 		return nil, err
 	}
 	k := &PrivateKeyECDH{hkey, nist}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, nil
 }
 
@@ -210,6 +210,8 @@ func (k *PrivateKeyECDH) PublicKey() (*PublicKeyECDH, error) {
 		// Only include X.
 		bytes = data[:hdr.KeySize]
 	}
+	// No cleanup needed: pub.priv prevents k from being garbage collected,
+	// so k's cleanup will destroy the shared hkey when both are unreachable.
 	pub := &PublicKeyECDH{k.hkey, bytes, k}
 	return pub, nil
 }

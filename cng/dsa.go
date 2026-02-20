@@ -147,7 +147,7 @@ func NewPrivateKeyDSA(params DSAParameters, X, Y BigInt) (*PrivateKeyDSA, error)
 		return nil, err
 	}
 	k := &PrivateKeyDSA{params, X, Y, hkey}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, nil
 }
 
@@ -166,7 +166,7 @@ func NewPublicKeyDSA(params DSAParameters, Y BigInt) (*PublicKeyDSA, error) {
 		return nil, err
 	}
 	k := &PublicKeyDSA{params, Y, hkey}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, nil
 }
 

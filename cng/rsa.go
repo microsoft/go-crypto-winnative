@@ -95,7 +95,7 @@ func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 		return nil, err
 	}
 	k := &PublicKeyRSA{hkey, uint32(N.bitLen())}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, nil
 }
 
@@ -117,7 +117,7 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 		return nil, err
 	}
 	k := &PrivateKeyRSA{hkey, uint32(N.bitLen())}
-	runtime.AddCleanup(k, destroyKey, hkey)
+	addCleanupKey(k, hkey)
 	return k, nil
 }
 

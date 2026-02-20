@@ -110,7 +110,7 @@ func newShake(id string, N, S []byte) *SHAKE {
 			panic(err)
 		}
 	}
-	runtime.AddCleanup(h, destroyHash, h.ctx)
+	addCleanupHash(h, h.ctx)
 	return h
 }
 

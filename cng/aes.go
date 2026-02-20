@@ -30,7 +30,7 @@ func NewAESCipher(key []byte) (cipher.Block, error) {
 		return nil, err
 	}
 	c := &aesCipher{kh: kh, key: bytes.Clone(key)}
-	runtime.AddCleanup(c, destroyKey, kh)
+	addCleanupKey(c, kh)
 	return c, nil
 }
 
@@ -161,7 +161,7 @@ func newCBC(encrypt bool, alg string, key, iv []byte) *cbcCipher {
 		panic(err)
 	}
 	x := &cbcCipher{kh: kh, encrypt: encrypt, blockSize: blockSize}
-	runtime.AddCleanup(x, destroyKey, kh)
+	addCleanupKey(x, kh)
 	x.SetIV(iv)
 	return x
 }
@@ -245,7 +245,7 @@ func newGCM(key []byte, tls cipherGCMTLS) (*aesGCM, error) {
 		return nil, err
 	}
 	g := &aesGCM{kh: kh, tls: tls}
-	runtime.AddCleanup(g, destroyKey, kh)
+	addCleanupKey(g, kh)
 	return g, nil
 }
 

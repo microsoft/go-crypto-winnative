@@ -20,9 +20,11 @@ import (
 // maxHashSize is the size of SHA512 and SHA3_512, the largest hashes we support.
 const maxHashSize = 64
 
-// destroyHash is a cleanup function for releasing bcrypt hash handles.
-func destroyHash(ctx bcrypt.HASH_HANDLE) {
-	bcrypt.DestroyHash(ctx)
+// addCleanupHash attaches a cleanup function to ptr that will destroy ctx.
+func addCleanupHash[T any](ptr *T, ctx bcrypt.HASH_HANDLE) {
+	runtime.AddCleanup(ptr, func(ctx bcrypt.HASH_HANDLE) {
+		bcrypt.DestroyHash(ctx)
+	}, ctx)
 }
 
 // SupportsHash returns true if a hash.Hash implementation is supported for h.
@@ -202,7 +204,7 @@ func (h *Hash) init() {
 	if err != nil {
 		panic(err)
 	}
-	runtime.AddCleanup(h, destroyHash, h.ctx)
+	addCleanupHash(h, h.ctx)
 }
 
 func (h *Hash) Clone() (HashCloner, error) {
@@ -210,7 +212,7 @@ func (h *Hash) Clone() (HashCloner, error) {
 	h2 := &Hash{alg: h.alg, key: bytes.Clone(h.key)}
 	if h.ctx != 0 {
 		hashClone(h.ctx, &h2.ctx)
-		runtime.AddCleanup(h2, destroyHash, h2.ctx)
+		addCleanupHash(h2, h2.ctx)
 	}
 	return h2, nil
 }

@@ -25,7 +25,7 @@ func NewRC4Cipher(key []byte) (*RC4Cipher, error) {
 		return nil, err
 	}
 	c := &RC4Cipher{kh: kh}
-	runtime.AddCleanup(c, destroyKey, kh)
+	addCleanupKey(c, kh)
 	return c, nil
 }
 

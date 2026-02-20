@@ -8,14 +8,17 @@ package cng
 
 import (
 	"errors"
+	"runtime"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
 )
 
-// destroyKey is a cleanup function for releasing bcrypt key handles.
-func destroyKey(kh bcrypt.KEY_HANDLE) {
-	bcrypt.DestroyKey(kh)
+// addCleanupKey attaches a cleanup function to ptr that will destroy kh.
+func addCleanupKey[T any](ptr *T, kh bcrypt.KEY_HANDLE) {
+	runtime.AddCleanup(ptr, func(kh bcrypt.KEY_HANDLE) {
+		bcrypt.DestroyKey(kh)
+	}, kh)
 }
 
 const (

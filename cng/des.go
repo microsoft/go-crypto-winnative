@@ -29,7 +29,7 @@ func NewDESCipher(key []byte) (cipher.Block, error) {
 		return nil, err
 	}
 	c := &desCipher{kh: kh, alg: bcrypt.DES_ALGORITHM, key: bytes.Clone(key)}
-	runtime.AddCleanup(c, destroyKey, kh)
+	addCleanupKey(c, kh)
 	return c, nil
 }
 
@@ -39,7 +39,7 @@ func NewTripleDESCipher(key []byte) (cipher.Block, error) {
 		return nil, err
 	}
 	c := &desCipher{kh: kh, alg: bcrypt.DES3_ALGORITHM, key: bytes.Clone(key)}
-	runtime.AddCleanup(c, destroyKey, kh)
+	addCleanupKey(c, kh)
 	return c, nil
 }
 
