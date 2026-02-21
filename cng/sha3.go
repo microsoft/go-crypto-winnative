@@ -110,7 +110,7 @@ func newShake(id string, N, S []byte) *SHAKE {
 			panic(err)
 		}
 	}
-	runtime.SetFinalizer(h, (*SHAKE).finalize)
+	addCleanupHash(h, h.ctx)
 	return h
 }
 
@@ -140,10 +140,6 @@ func NewCSHAKE128(N, S []byte) *SHAKE {
 // separation. When N and S are both empty, this is equivalent to NewSHAKE256.
 func NewCSHAKE256(N, S []byte) *SHAKE {
 	return newShake(bcrypt.CSHAKE256_ALGORITHM, N, S)
-}
-
-func (h *SHAKE) finalize() {
-	bcrypt.DestroyHash(h.ctx)
 }
 
 // Write absorbs more data into the XOF's state.

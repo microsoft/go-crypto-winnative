@@ -20,6 +20,13 @@ import (
 // maxHashSize is the size of SHA512 and SHA3_512, the largest hashes we support.
 const maxHashSize = 64
 
+// addCleanupHash attaches a cleanup function to ptr that will destroy ctx.
+func addCleanupHash[T any](ptr *T, ctx bcrypt.HASH_HANDLE) {
+	runtime.AddCleanup(ptr, func(ctx bcrypt.HASH_HANDLE) {
+		bcrypt.DestroyHash(ctx)
+	}, ctx)
+}
+
 // SupportsHash returns true if a hash.Hash implementation is supported for h.
 func SupportsHash(h crypto.Hash) bool {
 	switch h {
@@ -188,10 +195,6 @@ func newHash(id string) *Hash {
 	return &Hash{alg: mustLoadHash(id, bcrypt.ALG_NONE_FLAG)}
 }
 
-func (h *Hash) finalize() {
-	bcrypt.DestroyHash(h.ctx)
-}
-
 func (h *Hash) init() {
 	defer runtime.KeepAlive(h)
 	if h.ctx != 0 {
@@ -201,7 +204,7 @@ func (h *Hash) init() {
 	if err != nil {
 		panic(err)
 	}
-	runtime.SetFinalizer(h, (*Hash).finalize)
+	addCleanupHash(h, h.ctx)
 }
 
 func (h *Hash) Clone() (HashCloner, error) {
@@ -209,7 +212,7 @@ func (h *Hash) Clone() (HashCloner, error) {
 	h2 := &Hash{alg: h.alg, key: bytes.Clone(h.key)}
 	if h.ctx != 0 {
 		hashClone(h.ctx, &h2.ctx)
-		runtime.SetFinalizer(h2, (*Hash).finalize)
+		addCleanupHash(h2, h2.ctx)
 	}
 	return h2, nil
 }

@@ -40,14 +40,8 @@ func NewChaCha20Poly1305(key []byte) (cipher.AEAD, error) {
 		return nil, err
 	}
 	c := &chacha20poly1305{kh: kh}
-	runtime.SetFinalizer(c, (*chacha20poly1305).finalize)
+	addCleanupKey(c, kh)
 	return c, nil
-}
-
-func (c *chacha20poly1305) finalize() {
-	if c.kh != 0 {
-		bcrypt.DestroyKey(c.kh)
-	}
 }
 
 func (c *chacha20poly1305) NonceSize() int {

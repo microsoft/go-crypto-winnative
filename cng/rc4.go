@@ -25,14 +25,8 @@ func NewRC4Cipher(key []byte) (*RC4Cipher, error) {
 		return nil, err
 	}
 	c := &RC4Cipher{kh: kh}
-	runtime.SetFinalizer(c, (*RC4Cipher).finalize)
+	addCleanupKey(c, kh)
 	return c, nil
-}
-
-func (c *RC4Cipher) finalize() {
-	if c.kh != 0 {
-		bcrypt.DestroyKey(c.kh)
-	}
 }
 
 // Reset zeros the key data and makes the Cipher unusable.

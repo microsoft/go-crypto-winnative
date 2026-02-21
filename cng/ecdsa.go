@@ -90,12 +90,8 @@ func NewPublicKeyECDSA(curve string, X, Y BigInt) (*PublicKeyECDSA, error) {
 		return nil, err
 	}
 	k := &PublicKeyECDSA{hkey}
-	runtime.SetFinalizer(k, (*PublicKeyECDSA).finalize)
+	addCleanupKey(k, hkey)
 	return k, nil
-}
-
-func (k *PublicKeyECDSA) finalize() {
-	bcrypt.DestroyKey(k.hkey)
 }
 
 type PrivateKeyECDSA struct {
@@ -112,12 +108,8 @@ func NewPrivateKeyECDSA(curve string, X, Y, D BigInt) (*PrivateKeyECDSA, error) 
 		return nil, err
 	}
 	k := &PrivateKeyECDSA{hkey}
-	runtime.SetFinalizer(k, (*PrivateKeyECDSA).finalize)
+	addCleanupKey(k, hkey)
 	return k, nil
-}
-
-func (k *PrivateKeyECDSA) finalize() {
-	bcrypt.DestroyKey(k.hkey)
 }
 
 // SignECDSA signs a hash (which should be the result of hashing a larger message),

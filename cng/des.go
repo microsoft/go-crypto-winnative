@@ -29,7 +29,7 @@ func NewDESCipher(key []byte) (cipher.Block, error) {
 		return nil, err
 	}
 	c := &desCipher{kh: kh, alg: bcrypt.DES_ALGORITHM, key: bytes.Clone(key)}
-	runtime.SetFinalizer(c, (*desCipher).finalize)
+	addCleanupKey(c, kh)
 	return c, nil
 }
 
@@ -39,12 +39,8 @@ func NewTripleDESCipher(key []byte) (cipher.Block, error) {
 		return nil, err
 	}
 	c := &desCipher{kh: kh, alg: bcrypt.DES3_ALGORITHM, key: bytes.Clone(key)}
-	runtime.SetFinalizer(c, (*desCipher).finalize)
+	addCleanupKey(c, kh)
 	return c, nil
-}
-
-func (c *desCipher) finalize() {
-	bcrypt.DestroyKey(c.kh)
 }
 
 func (c *desCipher) BlockSize() int { return desBlockSize }
