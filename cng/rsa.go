@@ -95,13 +95,21 @@ func NewPublicKeyRSA(N, E BigInt) (*PublicKeyRSA, error) {
 		return nil, err
 	}
 	k := &PublicKeyRSA{hkey, uint32(N.bitLen())}
-	addCleanupKey(k, hkey)
+	runtime.SetFinalizer(k, (*PublicKeyRSA).finalize)
 	return k, nil
+}
+
+func (k *PublicKeyRSA) finalize() {
+	bcrypt.DestroyKey(k.hkey)
 }
 
 type PrivateKeyRSA struct {
 	hkey bcrypt.KEY_HANDLE
 	bits uint32
+}
+
+func (k *PrivateKeyRSA) finalize() {
+	bcrypt.DestroyKey(k.hkey)
 }
 
 func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error) {
@@ -117,7 +125,7 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 		return nil, err
 	}
 	k := &PrivateKeyRSA{hkey, uint32(N.bitLen())}
-	addCleanupKey(k, hkey)
+	runtime.SetFinalizer(k, (*PrivateKeyRSA).finalize)
 	return k, nil
 }
 

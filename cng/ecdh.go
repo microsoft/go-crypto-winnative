@@ -58,9 +58,19 @@ type PublicKeyECDH struct {
 	priv *PrivateKeyECDH
 }
 
+func (k *PublicKeyECDH) finalize() {
+	if k.priv == nil {
+		bcrypt.DestroyKey(k.hkey)
+	}
+}
+
 type PrivateKeyECDH struct {
 	hkey   bcrypt.KEY_HANDLE
 	isNIST bool
+}
+
+func (k *PrivateKeyECDH) finalize() {
+	bcrypt.DestroyKey(k.hkey)
 }
 
 func ECDH(priv *PrivateKeyECDH, pub *PublicKeyECDH) ([]byte, error) {
@@ -128,7 +138,7 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	bytes = bytes[hdr.KeySize*2:]
 
 	k := &PrivateKeyECDH{hkey, isNIST(curve)}
-	addCleanupKey(k, hkey)
+	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
 	return k, bytes, nil
 }
 
@@ -163,7 +173,7 @@ func NewPublicKeyECDH(curve string, bytes []byte) (*PublicKeyECDH, error) {
 		return nil, err
 	}
 	k := &PublicKeyECDH{hkey, append([]byte(nil), bytes...), nil}
-	addCleanupKey(k, hkey)
+	runtime.SetFinalizer(k, (*PublicKeyECDH).finalize)
 	return k, nil
 }
 
@@ -192,7 +202,7 @@ func NewPrivateKeyECDH(curve string, key []byte) (*PrivateKeyECDH, error) {
 		return nil, err
 	}
 	k := &PrivateKeyECDH{hkey, nist}
-	addCleanupKey(k, hkey)
+	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
 	return k, nil
 }
 
@@ -210,9 +220,8 @@ func (k *PrivateKeyECDH) PublicKey() (*PublicKeyECDH, error) {
 		// Only include X.
 		bytes = data[:hdr.KeySize]
 	}
-	// No cleanup needed: pub.priv prevents k from being garbage collected,
-	// so k's cleanup will destroy the shared hkey when both are unreachable.
 	pub := &PublicKeyECDH{k.hkey, bytes, k}
+	runtime.SetFinalizer(pub, (*PublicKeyECDH).finalize)
 	return pub, nil
 }
 
