@@ -237,15 +237,15 @@ func TestHashAllocations(t *testing.T) {
 func TestHashStructAllocations(t *testing.T) {
 	msg := []byte("testing")
 
-	md4Hash := cng.NewMD4()
-	md5Hash := cng.NewMD5()
-	sha1Hash := cng.NewSHA1()
-	sha256Hash := cng.NewSHA256()
-	sha384Hash := cng.NewSHA384()
-	sha512Hash := cng.NewSHA512()
-
-	sum := make([]byte, sha512Hash.Size())
+	sum := make([]byte, cng.NewSHA512().Size())
 	n := int(testing.AllocsPerRun(10, func() {
+		md4Hash := cng.NewMD4()
+		md5Hash := cng.NewMD5()
+		sha1Hash := cng.NewSHA1()
+		sha256Hash := cng.NewSHA256()
+		sha384Hash := cng.NewSHA384()
+		sha512Hash := cng.NewSHA512()
+
 		md4Hash.Write(msg)
 		md5Hash.Write(msg)
 		sha1Hash.Write(msg)
@@ -267,7 +267,9 @@ func TestHashStructAllocations(t *testing.T) {
 		sha384Hash.Reset()
 		sha512Hash.Reset()
 	}))
-	want := 0
+	// Each hash allocates 3 times: once for the hash struct, and twice
+	// for the SetFinalizer call (argument and func).
+	want := 18
 	if n > want {
 		t.Errorf("allocs = %d, want %d", n, want)
 	}
