@@ -160,9 +160,13 @@ func hashToID(h hash.Hash) string {
 var _ hash.Hash = (*Hash)(nil)
 var _ HashCloner = (*Hash)(nil)
 
-// FIPSApproved reports whether this hash algorithm is FIPS 140-3 approved.
-func (h *Hash) FIPSApproved() bool {
-	switch h.alg.id {
+// FIPSApprovedHash reports whether this hash algorithm is FIPS 140-3 approved.
+func FIPSApprovedHash(h hash.Hash) bool {
+	xh, ok := h.(*Hash)
+	if !ok {
+		return false
+	}
+	switch xh.alg.id {
 	case bcrypt.SHA256_ALGORITHM, bcrypt.SHA384_ALGORITHM, bcrypt.SHA512_ALGORITHM,
 		bcrypt.SHA3_256_ALGORITHM, bcrypt.SHA3_384_ALGORITHM, bcrypt.SHA3_512_ALGORITHM:
 		return true
