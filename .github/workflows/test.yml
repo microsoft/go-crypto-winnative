@@ -5,7 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: [1.24.x, 1.25.x]
+        go-version: [1.25.x, 1.26.x]
         venv: [windows-2022, windows-2025, windows-11-arm]
         fips: [1, 0]
     runs-on: ${{ matrix.venv }}
