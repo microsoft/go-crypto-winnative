@@ -20,6 +20,8 @@ import (
 // maxHashSize is the size of SHA512 and SHA3_512, the largest hashes we support.
 const maxHashSize = 64
 
+type HashCloner = hash.Cloner
+
 // SupportsHash returns true if a hash.Hash implementation is supported for h.
 func SupportsHash(h crypto.Hash) bool {
 	switch h {
