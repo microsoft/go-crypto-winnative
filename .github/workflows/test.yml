@@ -5,29 +5,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: [1.25.x, 1.26.x]
+        go-version: [1.25, 1.26]
         venv: [windows-2022, windows-2025, windows-11-arm]
         fips: [1, 0]
     runs-on: ${{ matrix.venv }}
     steps:
-    - name: Install Go
-      uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
       with:
         go-version: ${{ matrix.go-version }}
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        # There's not a Mirosoft build of Go 1.25 for Windows 11 ARM, so use the stdlib instead.
+        go-download-base-url: ${{ (matrix.venv != 'windows-11-arm' || matrix.go-version != 1.25) && 'https://aka.ms/golang/release/latest' || '' }}
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
     - name: Set FIPS mode
       run: REG ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy /v Enabled /t REG_DWORD /f /d ${{ matrix.fips }}
+
     - name: Run Test - Short
       run: go test -v -gcflags=all=-d=checkptr -count 1 -shuffle=on ./...
       env:
+        MS_GO_NOSYSTEMCRYPTO: "1" # Don't use systemcrypto for testing parity with stdlib
         GO_TEST_FIPS: ${{ matrix.fips }}
+
     - name: Run Test - Long
       # Run each test 10 times so the garbage collector chimes in 
       # and exercises the multiple finalizers we use.
       # This can detect use-after-free and double-free issues.
       run: go test -v -gcflags=all=-d=checkptr -count 10 -short -shuffle=on ./...
       env:
+        MS_GO_NOSYSTEMCRYPTO: "1" # Don't use systemcrypto for testing parity with stdlib
         GO_TEST_FIPS: ${{ matrix.fips }}
 
   conclusion:
