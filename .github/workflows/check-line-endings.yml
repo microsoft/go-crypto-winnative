@@ -1,0 +1,14 @@
+name: Check Line Endings
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  check-line-endings:
+    uses: microsoft/go-infra/.github/workflows/check-line-endings.yml@944d1d054c1265bf35b6632d42682217330907c4 # main
