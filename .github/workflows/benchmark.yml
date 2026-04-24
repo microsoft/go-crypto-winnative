@@ -27,7 +27,7 @@ concurrency:
 # microsoft/go-infra. Repin to the merge-commit SHA before merging this PR.
 jobs:
   setup:
-    uses: microsoft/go-infra/.github/workflows/benchmark-setup.yml@afe5d5b790efe90fd4531a895b4d4ba034280318
+    uses: microsoft/go-infra/.github/workflows/benchmark-setup.yml@7ae6224604e62c88b95d8647cb391d8a2d1635a5
     with:
       default-base-ref: main
       dispatch-base-ref: ${{ inputs.base-ref }}
@@ -88,14 +88,14 @@ jobs:
           go test -run='^$' -bench=. -count=10 -benchmem -timeout 60m ./... 2>&1 | tee ../head.txt || true
 
       - name: "Compare and check"
-        uses: microsoft/go-infra/.github/actions/benchcheck-compare@afe5d5b790efe90fd4531a895b4d4ba034280318
+        uses: microsoft/go-infra/.github/actions/benchcheck-compare@7ae6224604e62c88b95d8647cb391d8a2d1635a5
         with:
           artifact-name: benchstat-${{ matrix.venv }}-fips${{ matrix.fips }}-go${{ matrix.go-version }}
 
   conclusion:
     needs: [setup, bench]
     if: always() && needs.setup.result == 'success'
-    uses: microsoft/go-infra/.github/workflows/benchmark-conclusion.yml@afe5d5b790efe90fd4531a895b4d4ba034280318
+    uses: microsoft/go-infra/.github/workflows/benchmark-conclusion.yml@7ae6224604e62c88b95d8647cb391d8a2d1635a5
     permissions:
       actions: read
       contents: read
@@ -104,4 +104,4 @@ jobs:
       head-ref: ${{ needs.setup.outputs.head-ref }}
       pr-number: ${{ needs.setup.outputs.pr-number }}
       bench-result: ${{ needs.bench.result }}
-      infra-ref: afe5d5b790efe90fd4531a895b4d4ba034280318
+      infra-ref: 7ae6224604e62c88b95d8647cb391d8a2d1635a5
