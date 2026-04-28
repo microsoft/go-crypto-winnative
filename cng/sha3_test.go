@@ -8,6 +8,7 @@ package cng_test
 
 import (
 	"bytes"
+	"crypto"
 	"encoding/hex"
 	"hash"
 	"io"
@@ -244,13 +245,39 @@ func benchmarkCSHAKE(b *testing.B, h *cng.SHAKE, size, num int) {
 	}
 }
 
-func BenchmarkSHA3_512_MTU(b *testing.B) { benchmarkHash(b, cng.NewSHA3_512(), 1350, 1) }
-func BenchmarkSHA3_384_MTU(b *testing.B) { benchmarkHash(b, cng.NewSHA3_384(), 1350, 1) }
-func BenchmarkSHA3_256_MTU(b *testing.B) { benchmarkHash(b, cng.NewSHA3_256(), 1350, 1) }
+func benchHashSHA3(b *testing.B, h crypto.Hash, ctor func() hash.Hash, size, num int) {
+	b.Helper()
+	if !cng.SupportsHash(h) {
+		b.Skipf("skipping: %v not supported", h)
+	}
+	benchmarkHash(b, ctor(), size, num)
+}
 
-func BenchmarkCSHAKE128_MTU(b *testing.B)  { benchmarkCSHAKE(b, cng.NewSHAKE128(), 1350, 1) }
-func BenchmarkCSHAKE256_MTU(b *testing.B)  { benchmarkCSHAKE(b, cng.NewSHAKE256(), 1350, 1) }
-func BenchmarkCSHAKE256_16x(b *testing.B)  { benchmarkCSHAKE(b, cng.NewSHAKE256(), 16, 1024) }
-func BenchmarkCSHAKE256_1MiB(b *testing.B) { benchmarkCSHAKE(b, cng.NewSHAKE256(), 1024, 1024) }
+func benchCSHAKE(b *testing.B, security int, ctor func() *cng.SHAKE, size, num int) {
+	b.Helper()
+	if !cng.SupportsSHAKE(security) {
+		b.Skipf("skipping: SHAKE%d not supported", security)
+	}
+	benchmarkCSHAKE(b, ctor(), size, num)
+}
 
-func BenchmarkCSHA3_512_1MiB(b *testing.B) { benchmarkHash(b, cng.NewSHA3_512(), 1024, 1024) }
+func BenchmarkSHA3_512_MTU(b *testing.B) {
+	benchHashSHA3(b, crypto.SHA3_512, func() hash.Hash { return cng.NewSHA3_512() }, 1350, 1)
+}
+
+func BenchmarkSHA3_384_MTU(b *testing.B) {
+	benchHashSHA3(b, crypto.SHA3_384, func() hash.Hash { return cng.NewSHA3_384() }, 1350, 1)
+}
+
+func BenchmarkSHA3_256_MTU(b *testing.B) {
+	benchHashSHA3(b, crypto.SHA3_256, func() hash.Hash { return cng.NewSHA3_256() }, 1350, 1)
+}
+
+func BenchmarkCSHAKE128_MTU(b *testing.B)  { benchCSHAKE(b, 128, cng.NewSHAKE128, 1350, 1) }
+func BenchmarkCSHAKE256_MTU(b *testing.B)  { benchCSHAKE(b, 256, cng.NewSHAKE256, 1350, 1) }
+func BenchmarkCSHAKE256_16x(b *testing.B)  { benchCSHAKE(b, 256, cng.NewSHAKE256, 16, 1024) }
+func BenchmarkCSHAKE256_1MiB(b *testing.B) { benchCSHAKE(b, 256, cng.NewSHAKE256, 1024, 1024) }
+
+func BenchmarkCSHA3_512_1MiB(b *testing.B) {
+	benchHashSHA3(b, crypto.SHA3_512, func() hash.Hash { return cng.NewSHA3_512() }, 1024, 1024)
+}
