@@ -23,46 +23,34 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Pinned to the SHA of the add-benchcheck-and-benchmark-workflows branch in
+# Pinned to the SHA of the add-benchmark-workflow branch in
 # microsoft/go-infra. Repin to the merge-commit SHA before merging this PR.
 jobs:
-  setup:
-    uses: microsoft/go-infra/.github/workflows/benchmark-setup.yml@ac07251bf61c20b3ec1f090f519c546a7f9807ff
-    with:
-      default-base-ref: main
-      dispatch-base-ref: ${{ inputs.base-ref }}
-
-  bench:
-    needs: setup
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version: [1.25, 1.26]
-        venv: [windows-2022, windows-2025, windows-11-arm]
-        fips: [0, 1]
-    name: bench (${{ matrix.venv }}, fips${{ matrix.fips }}, go${{ matrix.go-version }})
-    uses: microsoft/go-infra/.github/workflows/benchmark-run.yml@ac07251bf61c20b3ec1f090f519c546a7f9807ff
-    with:
-      runs-on: ${{ matrix.venv }}
-      go-version: ${{ matrix.go-version }}
-      # No Microsoft build of Go 1.25 for Windows 11 ARM; fall back to upstream.
-      go-download-base-url: ${{ (matrix.venv != 'windows-11-arm' || matrix.go-version != 1.25) && 'https://aka.ms/golang/release/latest' || '' }}
-      head-ref: ${{ needs.setup.outputs.head-ref }}
-      base-ref: ${{ needs.setup.outputs.base-ref }}
-      artifact-name: benchstat-${{ matrix.venv }}-fips${{ matrix.fips }}-go${{ matrix.go-version }}
-      infra-ref: ac07251bf61c20b3ec1f090f519c546a7f9807ff
-      fips-mode: ${{ matrix.fips }}
-
-  conclusion:
-    needs: [setup, bench]
-    if: always() && needs.setup.result == 'success'
-    uses: microsoft/go-infra/.github/workflows/benchmark-conclusion.yml@ac07251bf61c20b3ec1f090f519c546a7f9807ff
+  benchmark:
+    uses: microsoft/go-infra/.github/workflows/benchmark.yml@990af0e5fc05600480d042f3aee26298e1924c86
     permissions:
       actions: read
       contents: read
       pull-requests: write
     with:
-      head-ref: ${{ needs.setup.outputs.head-ref }}
-      pr-number: ${{ needs.setup.outputs.pr-number }}
-      bench-result: ${{ needs.bench.result }}
-      infra-ref: ac07251bf61c20b3ec1f090f519c546a7f9807ff
+      default-base-ref: main
+      dispatch-base-ref: ${{ inputs.base-ref }}
+      # No Microsoft build of Go 1.25 for Windows 11 ARM; fall back to
+      # upstream by pointing those cells at https://go.dev/dl/.
+      matrix: |
+        {
+          "include": [
+            { "label": "windows-2022-fips0-go1.25",   "runs-on": "windows-2022",   "go-version": "1.25", "fips-mode": "0" },
+            { "label": "windows-2022-fips1-go1.25",   "runs-on": "windows-2022",   "go-version": "1.25", "fips-mode": "1" },
+            { "label": "windows-2022-fips0-go1.26",   "runs-on": "windows-2022",   "go-version": "1.26", "fips-mode": "0" },
+            { "label": "windows-2022-fips1-go1.26",   "runs-on": "windows-2022",   "go-version": "1.26", "fips-mode": "1" },
+            { "label": "windows-2025-fips0-go1.25",   "runs-on": "windows-2025",   "go-version": "1.25", "fips-mode": "0" },
+            { "label": "windows-2025-fips1-go1.25",   "runs-on": "windows-2025",   "go-version": "1.25", "fips-mode": "1" },
+            { "label": "windows-2025-fips0-go1.26",   "runs-on": "windows-2025",   "go-version": "1.26", "fips-mode": "0" },
+            { "label": "windows-2025-fips1-go1.26",   "runs-on": "windows-2025",   "go-version": "1.26", "fips-mode": "1" },
+            { "label": "windows-11-arm-fips0-go1.25", "runs-on": "windows-11-arm", "go-version": "1.25", "fips-mode": "0", "go-download-base-url": "https://go.dev/dl/" },
+            { "label": "windows-11-arm-fips1-go1.25", "runs-on": "windows-11-arm", "go-version": "1.25", "fips-mode": "1", "go-download-base-url": "https://go.dev/dl/" },
+            { "label": "windows-11-arm-fips0-go1.26", "runs-on": "windows-11-arm", "go-version": "1.26", "fips-mode": "0" },
+            { "label": "windows-11-arm-fips1-go1.26", "runs-on": "windows-11-arm", "go-version": "1.26", "fips-mode": "1" }
+          ]
+        }
