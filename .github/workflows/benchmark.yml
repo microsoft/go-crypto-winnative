@@ -27,7 +27,7 @@ concurrency:
 # microsoft/go-infra. Repin to the merge-commit SHA before merging this PR.
 jobs:
   setup:
-    uses: microsoft/go-infra/.github/workflows/benchmark-setup.yml@ac07251bf61c20b3ec1f090f519c546a7f9807ff
+    uses: microsoft/go-infra/.github/workflows/benchmark-setup.yml@33a011307ae47f2be60b450e43e02396f6d734df
     with:
       default-base-ref: main
       dispatch-base-ref: ${{ inputs.base-ref }}
@@ -41,7 +41,7 @@ jobs:
         venv: [windows-2022, windows-2025, windows-11-arm]
         fips: [0, 1]
     name: bench (${{ matrix.venv }}, fips${{ matrix.fips }}, go${{ matrix.go-version }})
-    uses: microsoft/go-infra/.github/workflows/benchmark-run.yml@ac07251bf61c20b3ec1f090f519c546a7f9807ff
+    uses: microsoft/go-infra/.github/workflows/benchmark-run.yml@33a011307ae47f2be60b450e43e02396f6d734df
     with:
       runs-on: ${{ matrix.venv }}
       go-version: ${{ matrix.go-version }}
@@ -50,13 +50,13 @@ jobs:
       head-ref: ${{ needs.setup.outputs.head-ref }}
       base-ref: ${{ needs.setup.outputs.base-ref }}
       artifact-name: benchstat-${{ matrix.venv }}-fips${{ matrix.fips }}-go${{ matrix.go-version }}
-      infra-ref: ac07251bf61c20b3ec1f090f519c546a7f9807ff
+      infra-ref: 33a011307ae47f2be60b450e43e02396f6d734df
       fips-mode: ${{ matrix.fips }}
 
   conclusion:
     needs: [setup, bench]
     if: always() && needs.setup.result == 'success'
-    uses: microsoft/go-infra/.github/workflows/benchmark-conclusion.yml@ac07251bf61c20b3ec1f090f519c546a7f9807ff
+    uses: microsoft/go-infra/.github/workflows/benchmark-conclusion.yml@33a011307ae47f2be60b450e43e02396f6d734df
     permissions:
       actions: read
       contents: read
@@ -65,4 +65,4 @@ jobs:
       head-ref: ${{ needs.setup.outputs.head-ref }}
       pr-number: ${{ needs.setup.outputs.pr-number }}
       bench-result: ${{ needs.bench.result }}
-      infra-ref: ac07251bf61c20b3ec1f090f519c546a7f9807ff
+      infra-ref: 33a011307ae47f2be60b450e43e02396f6d734df
