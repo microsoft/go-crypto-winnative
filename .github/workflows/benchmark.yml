@@ -27,30 +27,25 @@ concurrency:
 # microsoft/go-infra. Repin to the merge-commit SHA before merging this PR.
 jobs:
   benchmark:
-    uses: microsoft/go-infra/.github/workflows/benchmark.yml@990af0e5fc05600480d042f3aee26298e1924c86
+    uses: microsoft/go-infra/.github/workflows/benchmark.yml@6159d42301b70b81263c8c1c9f7091b0ddbe3b19
     permissions:
       actions: read
       contents: read
       pull-requests: write
     with:
+      infra-ref: 6159d42301b70b81263c8c1c9f7091b0ddbe3b19
       default-base-ref: main
       dispatch-base-ref: ${{ inputs.base-ref }}
-      # No Microsoft build of Go 1.25 for Windows 11 ARM; fall back to
-      # upstream by pointing those cells at https://go.dev/dl/.
+      # Cross product of runs-on × go-version × fips-mode, with an `include`
+      # exception: there is no Microsoft build of Go 1.25 for Windows 11 ARM,
+      # so those cells fall back to upstream Go.
       matrix: |
         {
+          "runs-on": ["windows-2022", "windows-2025", "windows-11-arm"],
+          "go-version": ["1.25", "1.26"],
+          "fips-mode": ["0", "1"],
           "include": [
-            { "label": "windows-2022-fips0-go1.25",   "runs-on": "windows-2022",   "go-version": "1.25", "fips-mode": "0" },
-            { "label": "windows-2022-fips1-go1.25",   "runs-on": "windows-2022",   "go-version": "1.25", "fips-mode": "1" },
-            { "label": "windows-2022-fips0-go1.26",   "runs-on": "windows-2022",   "go-version": "1.26", "fips-mode": "0" },
-            { "label": "windows-2022-fips1-go1.26",   "runs-on": "windows-2022",   "go-version": "1.26", "fips-mode": "1" },
-            { "label": "windows-2025-fips0-go1.25",   "runs-on": "windows-2025",   "go-version": "1.25", "fips-mode": "0" },
-            { "label": "windows-2025-fips1-go1.25",   "runs-on": "windows-2025",   "go-version": "1.25", "fips-mode": "1" },
-            { "label": "windows-2025-fips0-go1.26",   "runs-on": "windows-2025",   "go-version": "1.26", "fips-mode": "0" },
-            { "label": "windows-2025-fips1-go1.26",   "runs-on": "windows-2025",   "go-version": "1.26", "fips-mode": "1" },
-            { "label": "windows-11-arm-fips0-go1.25", "runs-on": "windows-11-arm", "go-version": "1.25", "fips-mode": "0", "go-download-base-url": "https://go.dev/dl/" },
-            { "label": "windows-11-arm-fips1-go1.25", "runs-on": "windows-11-arm", "go-version": "1.25", "fips-mode": "1", "go-download-base-url": "https://go.dev/dl/" },
-            { "label": "windows-11-arm-fips0-go1.26", "runs-on": "windows-11-arm", "go-version": "1.26", "fips-mode": "0" },
-            { "label": "windows-11-arm-fips1-go1.26", "runs-on": "windows-11-arm", "go-version": "1.26", "fips-mode": "1" }
+            { "runs-on": "windows-11-arm", "go-version": "1.25", "fips-mode": "0", "go-download-base-url": "https://go.dev/dl/" },
+            { "runs-on": "windows-11-arm", "go-version": "1.25", "fips-mode": "1", "go-download-base-url": "https://go.dev/dl/" }
           ]
         }
