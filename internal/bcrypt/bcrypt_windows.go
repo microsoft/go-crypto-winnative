@@ -38,6 +38,7 @@ const (
 	TLS1_1_KDF_ALGORITHM = "TLS1_1_KDF"
 	TLS1_2_KDF_ALGORITHM = "TLS1_2_KDF"
 	DSA_ALGORITHM        = "DSA"
+	MLDSA_ALGORITHM      = "ML-DSA"
 	MLKEM_ALGORITHM      = "ML-KEM"
 
 	CHACHA20_POLY1305_ALGORITHM = "CHACHA20_POLY1305"
@@ -74,6 +75,9 @@ const (
 	ECCPRIVATE_BLOB         = "ECCPRIVATEBLOB"
 	DSA_PUBLIC_BLOB         = "DSAPUBLICBLOB"
 	DSA_PRIVATE_BLOB        = "DSAPRIVATEBLOB"
+	PQDSA_PUBLIC_BLOB       = "PQDSAPUBLICBLOB"
+	PQDSA_PRIVATE_BLOB      = "PQDSAPRIVATEBLOB"
+	PQDSA_PRIVATE_SEED_BLOB = "PQDSAPRIVATESEEDBLOB"
 	MLKEM_PUBLIC_BLOB       = "MLKEMPUBLICBLOB"
 	MLKEM_PRIVATE_SEED_BLOB = "MLKEMPRIVATESEEDBLOB"
 )
@@ -136,8 +140,11 @@ const (
 )
 
 const (
-	// ML-KEM related properties and constants
+	// Post-quantum related properties and constants
 	PARAMETER_SET_NAME       = "ParameterSetName"
+	MLDSA_PARAMETER_SET_44   = "44"
+	MLDSA_PARAMETER_SET_65   = "65"
+	MLDSA_PARAMETER_SET_87   = "87"
 	MLKEM_PARAMETER_SET_768  = "768"
 	MLKEM_PARAMETER_SET_1024 = "1024"
 )
@@ -180,11 +187,13 @@ type DSA_PARAMETER_HEADER_V2 struct {
 type PadMode uint32
 
 const (
-	PAD_UNDEFINED PadMode = 0x0
-	PAD_NONE      PadMode = 0x1
-	PAD_PKCS1     PadMode = 0x2
-	PAD_OAEP      PadMode = 0x4
-	PAD_PSS       PadMode = 0x8
+	PAD_UNDEFINED     PadMode = 0x0
+	PAD_NONE          PadMode = 0x1
+	PAD_PKCS1         PadMode = 0x2
+	PAD_OAEP          PadMode = 0x4
+	PAD_PSS           PadMode = 0x8
+	PAD_PQDSA         PadMode = 0x20
+	MLDSA_EXTERNAL_MU PadMode = 0x40
 )
 
 type AlgorithmProviderFlags uint32
@@ -213,6 +222,10 @@ const (
 	DSA_PARAMETERS_MAGIC_V2 KeyBlobMagicNumber = 0x324d5044
 	DSA_PUBLIC_MAGIC_V2     KeyBlobMagicNumber = 0x32425044
 	DSA_PRIVATE_MAGIC_V2    KeyBlobMagicNumber = 0x32565044
+
+	MLDSA_PUBLIC_MAGIC       KeyBlobMagicNumber = 0x4B505344
+	MLDSA_PRIVATE_MAGIC      KeyBlobMagicNumber = 0x4B535344
+	MLDSA_PRIVATE_SEED_MAGIC KeyBlobMagicNumber = 0x53535344
 
 	MLKEM_PUBLIC_MAGIC       KeyBlobMagicNumber = 0x504B4C4D
 	MLKEM_PRIVATE_MAGIC      KeyBlobMagicNumber = 0x524B4C4D
@@ -285,6 +298,13 @@ type PKCS1_PADDING_INFO struct {
 type PSS_PADDING_INFO struct {
 	AlgId *uint16
 	Salt  uint32
+}
+
+// https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptsignhash
+type PQDSA_PADDING_INFO struct {
+	Context      *byte
+	ContextSize  uint32
+	PrehashAlgID *uint16
 }
 
 // https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_rsakey_blob
