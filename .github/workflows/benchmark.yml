@@ -27,13 +27,12 @@ concurrency:
 # microsoft/go-infra. Repin to the merge-commit SHA before merging this PR.
 jobs:
   benchmark:
-    uses: microsoft/go-infra/.github/workflows/benchmark.yml@6159d42301b70b81263c8c1c9f7091b0ddbe3b19
+    uses: microsoft/go-infra/.github/workflows/benchmark.yml@20f44911f27a3ec701312153cfc23cfa10155e50
     permissions:
       actions: read
       contents: read
       pull-requests: write
     with:
-      infra-ref: 6159d42301b70b81263c8c1c9f7091b0ddbe3b19
       default-base-ref: main
       dispatch-base-ref: ${{ inputs.base-ref }}
       # Cross product of runs-on × go-version × fips-mode, with an `include`
