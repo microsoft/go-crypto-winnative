@@ -35,14 +35,13 @@ jobs:
       dispatch-base-ref: ${{ inputs.base-ref }}
       # Cross product of runs-on × go-version × fips-mode, with an `include`
       # exception: there is no Microsoft build of Go 1.25 for Windows 11 ARM,
-      # so those cells fall back to upstream Go.
+      # so those entries fall back to upstream Go.
       matrix: |
         {
           "runs-on": ["windows-2022", "windows-2025", "windows-11-arm"],
           "go-version": ["1.25", "1.26"],
           "fips-mode": ["0", "1"],
           "include": [
-            { "runs-on": "windows-11-arm", "go-version": "1.25", "fips-mode": "0", "go-download-base-url": "https://go.dev/dl/" },
-            { "runs-on": "windows-11-arm", "go-version": "1.25", "fips-mode": "1", "go-download-base-url": "https://go.dev/dl/" }
+            { "runs-on": "windows-11-arm", "go-version": "1.25", "go-download-base-url": "https://go.dev/dl/" }
           ]
         }
