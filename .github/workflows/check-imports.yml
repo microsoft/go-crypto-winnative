@@ -9,6 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 name: Check Vendored Imports
+permissions:
+   contents: read
 jobs:
   check-imports:
     # Verify that packages vendored into Go's standard library only use
@@ -24,6 +26,7 @@ jobs:
           go-download-base-url: "https://aka.ms/golang/release/latest"
 
       - name: Check vendored package imports
+        shell: bash
         run: |
           go run github.com/microsoft/go-infra/cmd/check-imports@c07184b670d012f640e1bcd37a0672b8a6526971 \
             -pkg ./internal/bcrypt \
