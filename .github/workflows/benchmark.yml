@@ -1,0 +1,47 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+name: Benchmark
+
+on:
+  pull_request:
+    paths-ignore:
+      - '.github/**'
+  workflow_dispatch:
+    inputs:
+      base-ref:
+        description: 'Base ref to compare against (branch, tag, or SHA)'
+        required: true
+        default: 'main'
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    uses: microsoft/go-infra/.github/workflows/benchmark.yml@5e6a5b28f97bcd009df177f658149009d29d1b1c # v0.0.11
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    with:
+      default-base-ref: main
+      dispatch-base-ref: ${{ inputs.base-ref }}
+      # Cross product of runs-on × go-version × fips-mode, with an `include`
+      # exception: there is no Microsoft build of Go 1.25 for Windows 11 ARM,
+      # so those entries fall back to upstream Go.
+      matrix: |
+        {
+          "runs-on": ["windows-2022", "windows-2025", "windows-11-arm"],
+          "go-version": ["1.25", "1.26"],
+          "fips-mode": ["0", "1"],
+          "include": [
+            { "runs-on": "windows-11-arm", "go-version": "1.25", "go-download-base-url": "https://go.dev/dl/" }
+          ]
+        }
