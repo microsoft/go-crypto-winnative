@@ -28,11 +28,11 @@ jobs:
       - name: Check vendored package imports
         shell: bash
         run: |
-          go run github.com/microsoft/go-infra/cmd/check-imports@c07184b670d012f640e1bcd37a0672b8a6526971 \
+          go run github.com/microsoft/go-infra/cmd/check-imports@v0.0.12 \
             -pkg ./internal/bcrypt \
-            -allow '' \
+            -allow strconv,syscall,unicode/utf16,unsafe \
             -pkg ./internal/sysdll \
-            -allow '' \
+            -allow syscall,unsafe \
             -pkg ./internal/subtle \
             -allow unsafe \
             -pkg ./cng/bbig \
