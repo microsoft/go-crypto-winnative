@@ -15,7 +15,7 @@ jobs:
         go-version: ${{ matrix.go-version }}
         # There's not a Mirosoft build of Go 1.25 for Windows 11 ARM, so use the stdlib instead.
         go-download-base-url: ${{ (matrix.venv != 'windows-11-arm' || matrix.go-version != 1.25) && 'https://aka.ms/golang/release/latest' || '' }}
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
     - name: Set FIPS mode
       run: REG ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy /v Enabled /t REG_DWORD /f /d ${{ matrix.fips }}
