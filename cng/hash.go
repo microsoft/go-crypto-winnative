@@ -20,8 +20,6 @@ import (
 // maxHashSize is the size of SHA512 and SHA3_512, the largest hashes we support.
 const maxHashSize = 64
 
-type HashCloner = hash.Cloner
-
 // SupportsHash returns true if a hash.Hash implementation is supported for h.
 func SupportsHash(h crypto.Hash) bool {
 	switch h {
@@ -91,32 +89,32 @@ func SHA512(p []byte) (sum [64]byte) {
 }
 
 // NewMD4 returns a new MD4 hash.
-func NewMD4() hash.Hash {
+func NewMD4() *Hash {
 	return newHash(bcrypt.MD4_ALGORITHM)
 }
 
 // NewMD5 returns a new MD5 hash.
-func NewMD5() hash.Hash {
+func NewMD5() *Hash {
 	return newHash(bcrypt.MD5_ALGORITHM)
 }
 
 // NewSHA1 returns a new SHA1 hash.
-func NewSHA1() hash.Hash {
+func NewSHA1() *Hash {
 	return newHash(bcrypt.SHA1_ALGORITHM)
 }
 
 // NewSHA256 returns a new SHA256 hash.
-func NewSHA256() hash.Hash {
+func NewSHA256() *Hash {
 	return newHash(bcrypt.SHA256_ALGORITHM)
 }
 
 // NewSHA384 returns a new SHA384 hash.
-func NewSHA384() hash.Hash {
+func NewSHA384() *Hash {
 	return newHash(bcrypt.SHA384_ALGORITHM)
 }
 
 // NewSHA512 returns a new SHA512 hash.
-func NewSHA512() hash.Hash {
+func NewSHA512() *Hash {
 	return newHash(bcrypt.SHA512_ALGORITHM)
 }
 
@@ -160,7 +158,7 @@ func hashToID(h hash.Hash) string {
 }
 
 var _ hash.Hash = (*Hash)(nil)
-var _ HashCloner = (*Hash)(nil)
+var _ hash.Cloner = (*Hash)(nil)
 
 // FIPSApprovedHash reports whether this hash algorithm is FIPS 140-3 approved.
 func FIPSApprovedHash(h hash.Hash) bool {
@@ -189,7 +187,7 @@ func newHash(id string) *Hash {
 	// Don't call bcrypt.CreateHash yet, it would be wasteful
 	// if the caller only wants to know the hash type. This
 	// is a common pattern in this package, as some functions
-	// accept a `func() hash.Hash` parameter and call it just
+	// accept a hash constructor parameter and call it just
 	// to know the hash type.
 	return &Hash{alg: mustLoadHash(id, bcrypt.ALG_NONE_FLAG)}
 }
@@ -210,7 +208,7 @@ func (h *Hash) init() {
 	runtime.SetFinalizer(h, (*Hash).finalize)
 }
 
-func (h *Hash) Clone() (HashCloner, error) {
+func (h *Hash) Clone() (hash.Cloner, error) {
 	defer runtime.KeepAlive(h)
 	h2 := &Hash{alg: h.alg, key: bytes.Clone(h.key)}
 	if h.ctx != 0 {

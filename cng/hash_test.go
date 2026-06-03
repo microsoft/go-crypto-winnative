@@ -10,14 +10,13 @@ import (
 	"bytes"
 	"crypto"
 	"hash"
-	"io"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
 	"github.com/microsoft/go-crypto-winnative/internal/cryptotest"
 )
 
-func cryptoToHash(h crypto.Hash) func() hash.Hash {
+func cryptoToHash(h crypto.Hash) func() *cng.Hash {
 	switch h {
 	case crypto.MD4:
 		return cng.NewMD4
@@ -32,11 +31,11 @@ func cryptoToHash(h crypto.Hash) func() hash.Hash {
 	case crypto.SHA512:
 		return cng.NewSHA512
 	case crypto.SHA3_256:
-		return func() hash.Hash { return cng.NewSHA3_256() }
+		return cng.NewSHA3_256
 	case crypto.SHA3_384:
-		return func() hash.Hash { return cng.NewSHA3_384() }
+		return cng.NewSHA3_384
 	case crypto.SHA3_512:
-		return func() hash.Hash { return cng.NewSHA3_512() }
+		return cng.NewSHA3_512
 	}
 	return nil
 }
@@ -79,9 +78,8 @@ func TestHash(t *testing.T) {
 				t.Error("Write didn't change internal hash state")
 			}
 
-			bw := h.(io.ByteWriter)
 			for i := 0; i < len(msg); i++ {
-				bw.WriteByte(msg[i])
+				h.WriteByte(msg[i])
 			}
 			h.Reset()
 			sum = h.Sum(nil)
@@ -89,7 +87,7 @@ func TestHash(t *testing.T) {
 				t.Errorf("got:%x want:%x", sum, initSum)
 			}
 
-			h.(io.StringWriter).WriteString(string(msg))
+			h.WriteString(string(msg))
 			h.Reset()
 			sum = h.Sum(nil)
 			if !bytes.Equal(sum, initSum) {
@@ -106,7 +104,7 @@ func TestHash_Clone(t *testing.T) {
 			if !cng.SupportsHash(tt) {
 				t.Skip("skipping: not supported")
 			}
-			h := cryptoToHash(tt)().(cng.HashCloner)
+			h := cryptoToHash(tt)()
 
 			_, err := h.Write(msg)
 			if err != nil {
