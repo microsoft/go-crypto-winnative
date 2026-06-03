@@ -13,11 +13,11 @@ import (
 	"time"
 )
 
-type MakeHash func() hash.Hash
+type MakeHash[H hash.Hash] func() H
 
 // TestHash performs a set of tests on hash.Hash implementations, checking the
 // documented requirements of Write, Sum, Reset, Size, and BlockSize.
-func TestHash(t *testing.T, mh MakeHash) {
+func TestHash[H hash.Hash](t *testing.T, mh MakeHash[H]) {
 
 	// Test that Sum returns an appended digest matching output of Size
 	t.Run("SumAppend", func(t *testing.T) {

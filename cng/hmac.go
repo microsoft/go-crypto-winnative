@@ -14,11 +14,11 @@ import (
 )
 
 // NewHMAC returns a new HMAC using BCrypt.
-// The function h must return a hash implemented by
-// CNG (for example, h could be cng.NewSHA256).
-// If h is not recognized, NewHMAC returns nil.
-func NewHMAC(h func() hash.Hash, key []byte) hash.Hash {
-	ch := h()
+// The function fh must return a hash implemented by
+// CNG (for example, [NewSHA256]).
+// If fh is not recognized, NewHMAC returns nil.
+func NewHMAC[H hash.Hash](fh func() H, key []byte) hash.Hash {
+	ch := fh()
 	id := hashToID(ch)
 	if id == "" {
 		return nil
@@ -61,7 +61,7 @@ func (h hmacWrapper) BlockSize() int {
 	return h.hashX.BlockSize()
 }
 
-func (h hmacWrapper) Clone() (HashCloner, error) {
+func (h hmacWrapper) Clone() (hash.Cloner, error) {
 	clone, err := h.hashX.Clone()
 	if err != nil {
 		return nil, err

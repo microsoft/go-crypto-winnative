@@ -9,7 +9,6 @@ package cng_test
 import (
 	"bytes"
 	"fmt"
-	"hash"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
@@ -19,7 +18,7 @@ func TestHMAC_EmptyKey(t *testing.T) {
 	const payload = "message"
 	var tests = []struct {
 		name string
-		fn   func() hash.Hash
+		fn   func() *cng.Hash
 		out  string
 	}{
 		{"sha1", cng.NewSHA1, "d5d1ed05121417247616cfc8378f360a39da7cfa"},
@@ -43,7 +42,7 @@ func TestHMAC(t *testing.T) {
 	key := []byte{1, 2, 3}
 	var tests = []struct {
 		name string
-		fn   func() hash.Hash
+		fn   func() *cng.Hash
 		key  []byte
 	}{
 		{"sha1", cng.NewSHA1, key},
