@@ -73,6 +73,82 @@ var mldsaExternalMuTestCases = []mldsaExternalMuTestCase{
 	{"CAST/ML-DSA-65", cng.MLDSA65(), "F215BA2280D86F142012FC05FFC04F2C7D22FF5DD7D69AA0EFB081E3A53E9318", "35cdb7dddbed44af4641bac659f46598ed769ea9693fd4ed2152b84c45811d2e66eded1eb20cde1c1f4b82642a330d8e86ac432a2aefaa56cd9b2b5f4affd450"},
 }
 
+func TestMLDSAEqual(t *testing.T) {
+	if !cng.SupportsMLDSA() {
+		t.Skip("ML-DSA not supported on this platform")
+	}
+	t.Parallel()
+	for _, test := range mldsaParameterTests {
+		t.Run(test.name, func(t *testing.T) {
+			testMLDSAEqual(t, test.params)
+		})
+	}
+}
+
+func testMLDSAEqual(t *testing.T, params cng.MLDSAParameters) {
+	t.Parallel()
+
+	key, err := cng.GenerateKeyMLDSA(params)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A key must be equal to itself.
+	if !key.Equal(key) {
+		t.Error("private key is not equal to itself")
+	}
+	if !key.PublicKey().Equal(key.PublicKey()) {
+		t.Error("public key is not equal to itself")
+	}
+	// A key reconstructed from the same seed must compare equal.
+	same, err := cng.NewPrivateKeyMLDSA(params, key.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !key.Equal(same) {
+		t.Error("private keys from the same seed are not equal")
+	}
+	if !key.PublicKey().Equal(same.PublicKey()) {
+		t.Error("public keys from the same seed are not equal")
+	}
+
+	// An independently generated key must not compare equal.
+	other, err := cng.GenerateKeyMLDSA(params)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if key.Equal(other) {
+		t.Error("private keys from different seeds are equal")
+	}
+	if key.PublicKey().Equal(other.PublicKey()) {
+		t.Error("public keys from different seeds are equal")
+	}
+
+	if key.Equal(nil) {
+		t.Error("private key equal to nil")
+	}
+	if key.PublicKey().Equal(nil) {
+		t.Error("public key equal to nil")
+	}
+
+	// Keys of a different parameter set built from the same seed must not
+	// compare equal.
+	for _, otherTest := range mldsaParameterTests {
+		if otherTest.params.String() == params.String() {
+			continue
+		}
+		crossParams, err := cng.NewPrivateKeyMLDSA(otherTest.params, key.Bytes())
+		if err != nil {
+			t.Fatalf("NewPrivateKeyMLDSA(%s): %v", otherTest.params, err)
+		}
+		if key.Equal(crossParams) {
+			t.Errorf("private keys of %s and %s are equal", params, otherTest.params)
+		}
+		if key.PublicKey().Equal(crossParams.PublicKey()) {
+			t.Errorf("public keys of %s and %s are equal", params, otherTest.params)
+		}
+	}
+}
+
 func TestMLDSARoundTrip(t *testing.T) {
 	if !cng.SupportsMLDSA() {
 		t.Skip("ML-DSA not supported on this platform")
