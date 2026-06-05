@@ -20,8 +20,8 @@ func loadPBKDF2() (bcrypt.ALG_HANDLE, error) {
 	})
 }
 
-func PBKDF2(password, salt []byte, iter, keyLen int, h func() hash.Hash) ([]byte, error) {
-	ch := h()
+func PBKDF2[H hash.Hash](password, salt []byte, iter, keyLen int, fh func() H) ([]byte, error) {
+	ch := fh()
 	hashID := hashToID(ch)
 	if hashID == "" {
 		return nil, errors.New("cng: unsupported hash function")

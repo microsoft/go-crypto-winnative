@@ -26,7 +26,7 @@ func loadHKDF() (bcrypt.ALG_HANDLE, error) {
 	})
 }
 
-func newHKDF(h func() hash.Hash, secret, salt []byte) (bcrypt.KEY_HANDLE, error) {
+func newHKDF[H hash.Hash](h func() H, secret, salt []byte) (bcrypt.KEY_HANDLE, error) {
 	ch := h()
 	hashID := hashToID(ch)
 	if hashID == "" {
@@ -58,7 +58,7 @@ func newHKDF(h func() hash.Hash, secret, salt []byte) (bcrypt.KEY_HANDLE, error)
 	return kh, nil
 }
 
-func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
+func ExtractHKDF[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
 	if salt == nil {
 		// Replicate x/crypto/hkdf behavior.
 		salt = make([]byte, h().Size())
@@ -92,7 +92,7 @@ func ExtractHKDF(h func() hash.Hash, secret, salt []byte) ([]byte, error) {
 }
 
 // ExpandHKDF derives a key from the given hash, key, and optional context info.
-func ExpandHKDF(h func() hash.Hash, pseudorandomKey, info []byte, keyLength int) ([]byte, error) {
+func ExpandHKDF[H hash.Hash](h func() H, pseudorandomKey, info []byte, keyLength int) ([]byte, error) {
 	kh, err := newHKDF(h, pseudorandomKey, nil)
 	if err != nil {
 		return nil, err

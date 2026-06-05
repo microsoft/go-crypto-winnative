@@ -20,17 +20,19 @@ func loadTLS1PRF(id string) (bcrypt.ALG_HANDLE, error) {
 	})
 }
 
-// TLS1PRF implements the TLS 1.0/1.1 pseudo-random function if h is nil,
+// TLS1PRF implements the TLS 1.0/1.1 pseudo-random function if fh is nil,
 // else it implements the TLS 1.2 pseudo-random function.
+// To use TLS 1.0/1.1 mode with nil fh, specify the type parameter explicitly,
+// for example TLS1PRF[hash.Hash](result, secret, label, seed, nil).
 // The pseudo-random number will be written to result and will be of length len(result).
-func TLS1PRF(result, secret, label, seed []byte, h func() hash.Hash) error {
+func TLS1PRF[H hash.Hash](result, secret, label, seed []byte, fh func() H) error {
 	// TLS 1.0/1.1 PRF uses MD5SHA1.
 	algID := bcrypt.TLS1_1_KDF_ALGORITHM
 	var hashID string
-	if h != nil {
-		// If h is specified, assume the caller wants to use TLS 1.2 PRF.
+	if fh != nil {
+		// If fh is specified, assume the caller wants to use TLS 1.2 PRF.
 		// TLS 1.0/1.1 PRF doesn't allow specifying the hash function.
-		if hashID = hashToID(h()); hashID == "" {
+		if hashID = hashToID(fh()); hashID == "" {
 			return errors.New("cng: unsupported hash function")
 		}
 		algID = bcrypt.TLS1_2_KDF_ALGORITHM

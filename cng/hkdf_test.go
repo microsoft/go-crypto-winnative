@@ -8,14 +8,13 @@ package cng_test
 
 import (
 	"bytes"
-	"hash"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
 )
 
 type hkdfTest struct {
-	hash   func() hash.Hash
+	hash   func() *cng.Hash
 	master []byte
 	salt   []byte
 	prk    []byte
@@ -294,7 +293,7 @@ var hkdfTests = []hkdfTest{
 	},
 }
 
-func newHKDF(hash func() hash.Hash, secret, salt, info []byte, keyLength int) ([]byte, error) {
+func newHKDF(hash func() *cng.Hash, secret, salt, info []byte, keyLength int) ([]byte, error) {
 	prk, err := cng.ExtractHKDF(hash, secret, salt)
 	if err != nil {
 		return nil, err

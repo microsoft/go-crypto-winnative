@@ -141,7 +141,7 @@ var sha256TestVectors = []testVector{
 	},
 }
 
-func testHash(t *testing.T, h func() hash.Hash, hashName string, vectors []testVector) {
+func testHash[H hash.Hash](t *testing.T, h func() H, hashName string, vectors []testVector) {
 	for i, v := range vectors {
 		o, err := cng.PBKDF2([]byte(v.password), []byte(v.salt), v.iter, len(v.output), h)
 		if err != nil {
@@ -179,7 +179,7 @@ func TestPBKDF2NoSalt(t *testing.T) {
 
 var sink uint8
 
-func benchmarkPBKDF2(b *testing.B, h func() hash.Hash) {
+func benchmarkPBKDF2[H hash.Hash](b *testing.B, h func() H) {
 	password := make([]byte, h().Size())
 	salt := make([]byte, 8)
 	var err error

@@ -8,14 +8,13 @@ package cng_test
 
 import (
 	"bytes"
-	"hash"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
 )
 
 type tls1prfTest struct {
-	hash   func() hash.Hash
+	hash   func() *cng.Hash
 	secret []byte
 	label  []byte
 	seed   []byte
@@ -156,7 +155,7 @@ func TestTLS1PRF(t *testing.T) {
 		result := make([]byte, len(tt.out))
 		err := cng.TLS1PRF(result, tt.secret, tt.label, tt.seed, tt.hash)
 		if err != nil {
-			t.Errorf("test %d: error deriving TLS 1.2 PRF: %v.", i, err)
+			t.Errorf("test %d: error deriving TLS PRF: %v.", i, err)
 		}
 		if !bytes.Equal(result, tt.out) {
 			t.Errorf("test %d: incorrect key output: have %v, need %v.", i, result, tt.out)
