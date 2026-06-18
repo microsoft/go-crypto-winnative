@@ -8,6 +8,7 @@ package cng_test
 
 import (
 	"bytes"
+	"crypto"
 	"fmt"
 	"testing"
 
@@ -33,6 +34,39 @@ func TestHMAC_EmptyKey(t *testing.T) {
 			sum := fmt.Sprintf("%x", h.Sum(nil))
 			if sum != tt.out {
 				t.Errorf("have %s want %s\n", sum, tt.out)
+			}
+		})
+	}
+}
+
+// TestHMACSHA3 verifies HMAC with SHA-3 on Windows versions where CNG exposes
+// SHA-3 (Windows 11 24H2 / Server 2025+); it skips on older Windows, where
+// sha3.New* is not backend-backed. The expected tags were generated with Go's
+// crypto/hmac over crypto/sha3.
+func TestHMACSHA3(t *testing.T) {
+	if !cng.SupportsHash(crypto.SHA3_256) {
+		t.Skip("SHA-3 not supported on this Windows version")
+	}
+	const payload = "message"
+	var tests = []struct {
+		name string
+		fn   func() *cng.Hash
+		out  string
+	}{
+		{"sha3-256", cng.NewSHA3_256, "87bab4787b2681ec9a121f3d57677e90f227bcd71a97fe198e794eff5a12468b"},
+		{"sha3-384", cng.NewSHA3_384, "d63a431dbb6b8e87451683527c561cc983cd3c93d2122cdbe2a89906233731a61e111109df38c24daa503a14aaa4e331"},
+		{"sha3-512", cng.NewSHA3_512, "ed089cb5b29ac6ba3736f5c106f14fea11dac27e9984f111f0f2e47a5a48d1eee91ec5d17615cd7853247bfac98483e3bb9e0f1fc48a0768ae914235d2ac96f7"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := cng.NewHMAC(tt.fn, nil)
+			if h == nil {
+				t.Fatal("NewHMAC returned nil for SHA-3")
+			}
+			h.Write([]byte(payload))
+			sum := fmt.Sprintf("%x", h.Sum(nil))
+			if sum != tt.out {
+				t.Errorf("have %s want %s", sum, tt.out)
 			}
 		})
 	}
