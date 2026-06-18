@@ -341,7 +341,7 @@ func TestHKDFSHA3(t *testing.T) {
 	if !cng.SupportsHKDF() {
 		t.Skip("HKDF is not supported")
 	}
-	if !cng.SupportsHash(crypto.SHA3_256) {
+	if !cng.SupportsHash(crypto.SHA3_256) || !cng.SupportsHash(crypto.SHA3_384) || !cng.SupportsHash(crypto.SHA3_512) {
 		t.Skip("SHA-3 not supported on this Windows version")
 	}
 	master := []byte{

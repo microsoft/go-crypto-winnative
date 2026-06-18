@@ -40,11 +40,11 @@ func TestHMAC_EmptyKey(t *testing.T) {
 }
 
 // TestHMACSHA3 verifies HMAC with SHA-3 on Windows versions where CNG exposes
-// SHA-3 (Windows 11 24H2 / Server 2025+); it skips on older Windows, where
-// sha3.New* is not backend-backed. The expected tags were generated with Go's
-// crypto/hmac over crypto/sha3.
+// SHA-3 (Windows 11 24H2 / Server 2025+); it skips on older Windows where CNG
+// does not expose SHA-3. The expected tags were generated with Go's crypto/hmac
+// over crypto/sha3.
 func TestHMACSHA3(t *testing.T) {
-	if !cng.SupportsHash(crypto.SHA3_256) {
+	if !cng.SupportsHash(crypto.SHA3_256) || !cng.SupportsHash(crypto.SHA3_384) || !cng.SupportsHash(crypto.SHA3_512) {
 		t.Skip("SHA-3 not supported on this Windows version")
 	}
 	const payload = "message"
