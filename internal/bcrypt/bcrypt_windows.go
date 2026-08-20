@@ -247,23 +247,6 @@ type KEY_LENGTHS_STRUCT struct {
 	Increment uint32
 }
 
-// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_authenticated_cipher_mode_info
-type AUTHENTICATED_CIPHER_MODE_INFO struct {
-	Size           uint32
-	InfoVersion    uint32
-	Nonce          *byte
-	NonceSize      uint32
-	AuthData       *byte
-	AuthDataSize   uint32
-	Tag            *byte
-	TagSize        uint32
-	MacContext     *byte
-	MacContextSize uint32
-	AADSize        uint32
-	DataSize       uint64
-	Flags          uint32
-}
-
 func NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag []byte) *AUTHENTICATED_CIPHER_MODE_INFO {
 	var aad *byte
 	if len(additionalData) > 0 {

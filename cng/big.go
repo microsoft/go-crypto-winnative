@@ -16,15 +16,13 @@ import "math/bits"
 // Conversion between BigInt and *big.Int is in cng/bbig.
 type BigInt []byte
 
-const _S = bits.UintSize / 8 // word size in bytes
-
 // Length of x in bits.
 func (x BigInt) bitLen() int {
 	if len(x) == 0 {
 		return 0
 	}
 	// x is normalized, so the length in bits is
-	// the length in bits of x minus one byte (_S),
+	// the length in bits of x minus one byte,
 	// plus the minimum number of bits to represent the first byte.
-	return (len(x)-1)*_S + bits.Len(uint(x[0]))
+	return (len(x)-1)*8 + bits.Len8(x[0])
 }
