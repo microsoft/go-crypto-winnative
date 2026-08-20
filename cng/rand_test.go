@@ -8,6 +8,7 @@ package cng_test
 
 import (
 	"io"
+	"runtime"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
@@ -29,7 +30,11 @@ func TestRandBig(t *testing.T) {
 		// This test can take ~20s to complete.
 		t.Skip("skipping test in short mode.")
 	}
-	b := make([]byte, 1<<32+60)
+	if runtime.GOARCH == "386" {
+		t.Skip("skipping test on windows/386")
+	}
+	size := uint64(1)<<32 + 60
+	b := make([]byte, int(size))
 	n, err := io.ReadFull(cng.RandReader, b)
 	if err != nil {
 		t.Fatal(err)

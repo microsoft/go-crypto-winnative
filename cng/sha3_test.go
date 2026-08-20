@@ -13,6 +13,7 @@ import (
 	"hash"
 	"io"
 	"math/rand"
+	"runtime"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
@@ -156,6 +157,9 @@ func testCSHAKEAccumulated(t *testing.T, newCSHAKE func(N, S []byte) *cng.SHAKE,
 }
 
 func TestCSHAKELargeS(t *testing.T) {
+	if runtime.GOARCH == "386" {
+		t.Skip("skipping test on windows/386")
+	}
 	if !cng.SupportsSHAKE(128) {
 		t.Skip("skipping: not supported")
 	}
