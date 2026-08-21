@@ -9,6 +9,7 @@ package cng_test
 import (
 	"bytes"
 	"hash"
+	"runtime"
 	"testing"
 
 	"github.com/microsoft/go-crypto-winnative/cng"
@@ -175,6 +176,62 @@ func TestPBKDF2NoSalt(t *testing.T) {
 		},
 	}
 	testHash(t, cng.NewSHA256, "SHA256", vectors)
+}
+
+type pbkdf2SaltOwner struct {
+	bytes [32]byte
+}
+
+func newPBKDF2SaltOwner() *pbkdf2SaltOwner {
+	owner := new(pbkdf2SaltOwner)
+	copy(owner.bytes[:], "pbkdf2-output-regression-salt")
+	return owner
+}
+
+func deriveWithCollectableSalt(owner *pbkdf2SaltOwner, keyLength int) ([]byte, error) {
+	salt := owner.bytes[:]
+	owner = nil
+	return cng.PBKDF2([]byte("password"), salt, 1, keyLength, cng.NewSHA256)
+}
+
+func TestPBKDF2KeepsSaltAlive(t *testing.T) {
+	const keyLength = 4 << 20
+	referenceOwner := newPBKDF2SaltOwner()
+	expected, err := cng.PBKDF2([]byte("password"), referenceOwner.bytes[:], 1, keyLength, cng.NewSHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.KeepAlive(referenceOwner)
+
+	owner := newPBKDF2SaltOwner()
+	runtime.SetFinalizer(owner, func(owner *pbkdf2SaltOwner) {
+		for i := range owner.bytes {
+			owner.bytes[i] = 0xff
+		}
+	})
+
+	stopGC := make(chan struct{})
+	gcDone := make(chan struct{})
+	go func() {
+		defer close(gcDone)
+		for {
+			select {
+			case <-stopGC:
+				return
+			default:
+				runtime.GC()
+			}
+		}
+	}()
+	actual, err := deriveWithCollectableSalt(owner, keyLength)
+	close(stopGC)
+	<-gcDone
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(actual, expected) {
+		t.Fatal("PBKDF2 output changed when GC ran during derivation")
+	}
 }
 
 var sink uint8

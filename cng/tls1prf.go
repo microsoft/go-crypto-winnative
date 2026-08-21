@@ -9,6 +9,7 @@ package cng
 import (
 	"errors"
 	"hash"
+	"runtime"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -52,14 +53,14 @@ func TLS1PRF[H hash.Hash](result, secret, label, seed []byte, fh func() H) error
 	if len(label) > 0 {
 		buffers = append(buffers, bcrypt.Buffer{
 			Type:   bcrypt.KDF_TLS_PRF_LABEL,
-			Data:   uintptr(unsafe.Pointer(&label[0])),
+			Data:   unsafe.Pointer(&label[0]),
 			Length: uint32(len(label)),
 		})
 	}
 	if len(seed) > 0 {
 		buffers = append(buffers, bcrypt.Buffer{
 			Type:   bcrypt.KDF_TLS_PRF_SEED,
-			Data:   uintptr(unsafe.Pointer(&seed[0])),
+			Data:   unsafe.Pointer(&seed[0]),
 			Length: uint32(len(seed)),
 		})
 	}
@@ -67,16 +68,19 @@ func TLS1PRF[H hash.Hash](result, secret, label, seed []byte, fh func() H) error
 		u16HashID := utf16FromString(hashID)
 		buffers = append(buffers, bcrypt.Buffer{
 			Type:   bcrypt.KDF_HASH_ALGORITHM,
-			Data:   uintptr(unsafe.Pointer(&u16HashID[0])),
+			Data:   unsafe.Pointer(&u16HashID[0]),
 			Length: uint32(len(u16HashID) * 2),
 		})
 	}
 	params := &bcrypt.BufferDesc{
-		Count:   uint32(len(buffers)),
-		Buffers: &buffers[0],
+		Count: uint32(len(buffers)),
+	}
+	if len(buffers) > 0 {
+		params.Buffers = &buffers[0]
 	}
 	var size uint32
 	err = bcrypt.KeyDerivation(kh, params, result, &size, 0)
+	runtime.KeepAlive(params)
 	if err != nil {
 		return err
 	}

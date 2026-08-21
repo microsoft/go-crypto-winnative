@@ -113,7 +113,7 @@ type KEY_DATA_BLOB_HEADER struct {
 type Buffer struct {
 	Length uint32
 	Type   uint32
-	Data   uintptr
+	Data   unsafe.Pointer
 }
 
 type BufferDesc struct {
