@@ -111,13 +111,13 @@ func ExpandHKDF(h func() hash.Hash, pseudorandomKey, info []byte, keyLength int)
 			Buffers: &bcrypt.Buffer{
 				Length: uint32(len(info)),
 				Type:   bcrypt.KDF_HKDF_INFO,
-				Data:   uintptr(unsafe.Pointer(&info[0])),
+				Data:   unsafe.Pointer(&info[0]),
 			},
 		}
-		defer runtime.KeepAlive(params)
 	}
 	var n uint32
 	err = bcrypt.KeyDerivation(kh, params, out, &n, 0)
+	runtime.KeepAlive(params)
 	if err != nil {
 		return nil, err
 	}

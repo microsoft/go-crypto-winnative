@@ -9,6 +9,7 @@ package cng
 import (
 	"errors"
 	"hash"
+	"runtime"
 	"unsafe"
 
 	"github.com/microsoft/go-crypto-winnative/internal/bcrypt"
@@ -40,19 +41,19 @@ func PBKDF2(password, salt []byte, iter, keyLen int, h func() hash.Hash) ([]byte
 	buffers = append(buffers,
 		bcrypt.Buffer{
 			Type:   bcrypt.KDF_ITERATION_COUNT,
-			Data:   uintptr(unsafe.Pointer(&iter)),
+			Data:   unsafe.Pointer(&iter),
 			Length: 8,
 		},
 		bcrypt.Buffer{
 			Type:   bcrypt.KDF_HASH_ALGORITHM,
-			Data:   uintptr(unsafe.Pointer(&u16HashID[0])),
+			Data:   unsafe.Pointer(&u16HashID[0]),
 			Length: uint32(len(u16HashID) * 2),
 		})
 	if len(salt) > 0 {
 		// The salt is optional.
 		buffers = append(buffers, bcrypt.Buffer{
 			Type:   bcrypt.KDF_SALT,
-			Data:   uintptr(unsafe.Pointer(&salt[0])),
+			Data:   unsafe.Pointer(&salt[0]),
 			Length: uint32(len(salt)),
 		})
 	}
@@ -63,6 +64,7 @@ func PBKDF2(password, salt []byte, iter, keyLen int, h func() hash.Hash) ([]byte
 	out := make([]byte, keyLen)
 	var size uint32
 	err = bcrypt.KeyDerivation(kh, params, out, &size, 0)
+	runtime.KeepAlive(params)
 	if err != nil {
 		return nil, err
 	}
