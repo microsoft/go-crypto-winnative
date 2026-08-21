@@ -73,8 +73,10 @@ func TLS1PRF[H hash.Hash](result, secret, label, seed []byte, fh func() H) error
 		})
 	}
 	params := &bcrypt.BufferDesc{
-		Count:   uint32(len(buffers)),
-		Buffers: &buffers[0],
+		Count: uint32(len(buffers)),
+	}
+	if len(buffers) > 0 {
+		params.Buffers = &buffers[0]
 	}
 	var size uint32
 	err = bcrypt.KeyDerivation(kh, params, result, &size, 0)
