@@ -28,6 +28,7 @@ func main() {
 	args := []string{"run", goWinMDModule + "/cmd/gowinmd@" + goWinMDVersion, "-source", source}
 	args = append(args, os.Args[1:]...)
 	cmd := exec.Command(goTool, args...)
+	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -38,6 +39,7 @@ func main() {
 
 func downloadModule(goTool string) string {
 	cmd := exec.Command(goTool, "mod", "download", "-json", goWinMDModule+"@"+goWinMDVersion)
+	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	output, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
