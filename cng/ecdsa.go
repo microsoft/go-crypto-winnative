@@ -70,9 +70,9 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 		data = data[size:]
 		return b
 	}
-	X = consumeBigInt(hdr.KeySize)
-	Y = consumeBigInt(hdr.KeySize)
-	D = consumeBigInt(hdr.KeySize)
+	X = consumeBigInt(hdr.CbKey)
+	Y = consumeBigInt(hdr.CbKey)
+	D = consumeBigInt(hdr.CbKey)
 	return
 }
 

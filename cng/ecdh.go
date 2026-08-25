@@ -135,7 +135,7 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	}
 	// Only take the private component of the key,
 	// which is the last of the three equally-sized chunks.
-	bytes = bytes[hdr.KeySize*2:]
+	bytes = bytes[hdr.CbKey*2:]
 
 	k := &PrivateKeyECDH{hkey, isNIST(curve)}
 	runtime.SetFinalizer(k, (*PrivateKeyECDH).finalize)
@@ -218,7 +218,7 @@ func (k *PrivateKeyECDH) PublicKey() (*PublicKeyECDH, error) {
 		bytes = append([]byte{ecdhUncompressedPrefix}, data...)
 	} else {
 		// Only include X.
-		bytes = data[:hdr.KeySize]
+		bytes = data[:hdr.CbKey]
 	}
 	pub := &PublicKeyECDH{k.hkey, bytes, k}
 	runtime.SetFinalizer(pub, (*PublicKeyECDH).finalize)

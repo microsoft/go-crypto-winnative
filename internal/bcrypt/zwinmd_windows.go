@@ -53,6 +53,21 @@ const (
 	BCRYPT_HASH_REUSABLE_FLAG   BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS = 0x20
 )
 
+type BCRYPT_DSA_MAGIC uint32
+
+const (
+	BCRYPT_DSA_PUBLIC_MAGIC  BCRYPT_DSA_MAGIC = 0x42505344
+	BCRYPT_DSA_PRIVATE_MAGIC BCRYPT_DSA_MAGIC = 0x56505344
+)
+
+type BCRYPT_RSAKEY_BLOB_MAGIC uint32
+
+const (
+	BCRYPT_RSAPUBLIC_MAGIC      BCRYPT_RSAKEY_BLOB_MAGIC = 0x31415352
+	BCRYPT_RSAPRIVATE_MAGIC     BCRYPT_RSAKEY_BLOB_MAGIC = 0x32415352
+	BCRYPT_RSAFULLPRIVATE_MAGIC BCRYPT_RSAKEY_BLOB_MAGIC = 0x33415352
+)
+
 type BCRYPTGENRANDOM_FLAGS uint32
 
 const (
@@ -70,10 +85,95 @@ type BCRYPT_SECRET_HANDLE unsafe.Pointer
 
 type BCRYPT_HANDLE unsafe.Pointer
 
+type KEY_LENGTHS_STRUCT struct {
+	DwMinLength uint32
+	DwMaxLength uint32
+	DwIncrement uint32
+}
+
 type BCryptBufferDesc struct {
 	UlVersion uint32
 	CBuffers  uint32
 	PBuffers  *BCryptBuffer
+}
+
+type RSAKEY_BLOB struct {
+	Magic       BCRYPT_RSAKEY_BLOB_MAGIC
+	BitLength   uint32
+	CbPublicExp uint32
+	CbModulus   uint32
+	CbPrime1    uint32
+	CbPrime2    uint32
+}
+
+type ECCKEY_BLOB struct {
+	DwMagic uint32
+	CbKey   uint32
+}
+
+type DSA_KEY_BLOB struct {
+	DwMagic BCRYPT_DSA_MAGIC
+	CbKey   uint32
+	Count   [4]uint8
+	Seed    [20]uint8
+	Q       [20]uint8
+}
+
+type HASHALGORITHM_ENUM int32
+
+const (
+	DSA_HASH_ALGORITHM_SHA1   HASHALGORITHM_ENUM = 0x0
+	DSA_HASH_ALGORITHM_SHA256 HASHALGORITHM_ENUM = 0x1
+	DSA_HASH_ALGORITHM_SHA512 HASHALGORITHM_ENUM = 0x2
+)
+
+type DSAFIPSVERSION_ENUM int32
+
+const (
+	DSA_FIPS186_2 DSAFIPSVERSION_ENUM = 0x0
+	DSA_FIPS186_3 DSAFIPSVERSION_ENUM = 0x1
+)
+
+type DSA_KEY_BLOB_V2 struct {
+	DwMagic         BCRYPT_DSA_MAGIC
+	CbKey           uint32
+	HashAlgorithm   HASHALGORITHM_ENUM
+	StandardVersion DSAFIPSVERSION_ENUM
+	CbSeedLength    uint32
+	CbGroupSize     uint32
+	Count           [4]uint8
+}
+
+type KEY_DATA_BLOB_HEADER struct {
+	DwMagic   uint32
+	DwVersion uint32
+	CbKeyData uint32
+}
+
+type MLKEM_KEY_BLOB struct {
+	DwMagic        uint32
+	CbParameterSet uint32
+	CbKey          uint32
+}
+
+type DSA_PARAMETER_HEADER struct {
+	CbLength    uint32
+	DwMagic     uint32
+	CbKeyLength uint32
+	Count       [4]uint8
+	Seed        [20]uint8
+	Q           [20]uint8
+}
+
+type DSA_PARAMETER_HEADER_V2 struct {
+	CbLength        uint32
+	DwMagic         uint32
+	CbKeyLength     uint32
+	HashAlgorithm   HASHALGORITHM_ENUM
+	StandardVersion DSAFIPSVERSION_ENUM
+	CbSeedLength    uint32
+	CbGroupSize     uint32
+	Count           [4]uint8
 }
 
 type BCryptBuffer struct {

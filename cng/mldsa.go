@@ -182,8 +182,8 @@ func mldsaPadding(context string) (bcrypt.PQDSA_PADDING_INFO, []byte, bcrypt.Pad
 	}
 	contextBytes := []byte(context)
 	return bcrypt.PQDSA_PADDING_INFO{
-		Context:     &contextBytes[0],
-		ContextSize: uint32(len(contextBytes)),
+		PbCtx: &contextBytes[0],
+		CbCtx: uint32(len(contextBytes)),
 	}, contextBytes, bcrypt.PAD_PQDSA, nil
 }
 

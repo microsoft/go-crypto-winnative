@@ -58,7 +58,7 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 	if err != nil {
 		return bad(err)
 	}
-	if hdr.Magic != bcrypt.RSAFULLPRIVATE_MAGIC || hdr.BitLength != uint32(bits) {
+	if hdr.Magic != bcrypt.BCRYPT_RSAKEY_BLOB_MAGIC(bcrypt.RSAFULLPRIVATE_MAGIC) || hdr.BitLength != uint32(bits) {
 		return bad(errors.New("crypto/rsa: exported key is corrupted"))
 	}
 	consumeBigInt := func(size uint32) BigInt {
@@ -66,14 +66,14 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 		data = data[size:]
 		return b
 	}
-	E = consumeBigInt(hdr.PublicExpSize)
-	N = consumeBigInt(hdr.ModulusSize)
-	P = consumeBigInt(hdr.Prime1Size)
-	Q = consumeBigInt(hdr.Prime2Size)
-	Dp = consumeBigInt(hdr.Prime1Size)
-	Dq = consumeBigInt(hdr.Prime2Size)
-	Qinv = consumeBigInt(hdr.Prime1Size)
-	D = consumeBigInt(hdr.ModulusSize)
+	E = consumeBigInt(hdr.CbPublicExp)
+	N = consumeBigInt(hdr.CbModulus)
+	P = consumeBigInt(hdr.CbPrime1)
+	Q = consumeBigInt(hdr.CbPrime2)
+	Dp = consumeBigInt(hdr.CbPrime1)
+	Dq = consumeBigInt(hdr.CbPrime2)
+	Qinv = consumeBigInt(hdr.CbPrime1)
+	D = consumeBigInt(hdr.CbModulus)
 	return
 }
 
@@ -150,32 +150,32 @@ func importRSAKey(h bcrypt.ALG_HANDLE, N, E, D, P, Q, Dp, Dq, Qinv BigInt) (bcry
 
 func encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv BigInt) ([]byte, error) {
 	hdr := bcrypt.RSAKEY_BLOB{
-		BitLength:     uint32(len(N) * 8),
-		PublicExpSize: uint32(len(E)),
-		ModulusSize:   uint32(len(N)),
+		BitLength:   uint32(len(N) * 8),
+		CbPublicExp: uint32(len(E)),
+		CbModulus:   uint32(len(N)),
 	}
 	var blob []byte
 	if D == nil {
-		hdr.Magic = bcrypt.RSAPUBLIC_MAGIC
-		blob = make([]byte, sizeOfRSABlobHeader+hdr.PublicExpSize+hdr.ModulusSize)
+		hdr.Magic = bcrypt.BCRYPT_RSAKEY_BLOB_MAGIC(bcrypt.RSAPUBLIC_MAGIC)
+		blob = make([]byte, sizeOfRSABlobHeader+hdr.CbPublicExp+hdr.CbModulus)
 	} else {
 		if P == nil || Q == nil {
 			// This case can happen when the key has been generated with more than 2 primes.
 			// CNG only supports 2-prime keys.
 			return nil, errors.New("crypto/rsa: unsupported private key")
 		}
-		hdr.Magic = bcrypt.RSAFULLPRIVATE_MAGIC
-		hdr.Prime1Size = uint32(len(P))
-		hdr.Prime2Size = uint32(len(Q))
-		blob = make([]byte, sizeOfRSABlobHeader+hdr.PublicExpSize+hdr.ModulusSize*2+hdr.Prime1Size*3+hdr.Prime2Size*2)
+		hdr.Magic = bcrypt.BCRYPT_RSAKEY_BLOB_MAGIC(bcrypt.RSAFULLPRIVATE_MAGIC)
+		hdr.CbPrime1 = uint32(len(P))
+		hdr.CbPrime2 = uint32(len(Q))
+		blob = make([]byte, sizeOfRSABlobHeader+hdr.CbPublicExp+hdr.CbModulus*2+hdr.CbPrime1*3+hdr.CbPrime2*2)
 	}
 	copy(blob, (*(*[sizeOfRSABlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
 	data := blob[sizeOfRSABlobHeader:]
 	err := encodeBigInt(data, []sizedBigInt{
-		{E, hdr.PublicExpSize}, {N, hdr.ModulusSize},
-		{P, hdr.Prime1Size}, {Q, hdr.Prime2Size},
-		{Dp, hdr.Prime1Size}, {Dq, hdr.Prime2Size},
-		{Qinv, hdr.Prime1Size}, {D, hdr.ModulusSize},
+		{E, hdr.CbPublicExp}, {N, hdr.CbModulus},
+		{P, hdr.CbPrime1}, {Q, hdr.CbPrime2},
+		{Dp, hdr.CbPrime1}, {Dq, hdr.CbPrime2},
+		{Qinv, hdr.CbPrime1}, {D, hdr.CbModulus},
 	})
 	if err != nil {
 		return nil, err
@@ -297,11 +297,11 @@ func rsaOAEP(h hash.Hash, pkey bcrypt.KEY_HANDLE, in, label []byte, encrypt bool
 		return nil, errors.New("crypto/rsa: unsupported hash function")
 	}
 	info := bcrypt.OAEP_PADDING_INFO{
-		AlgId:     utf16PtrFromString(hashID),
-		LabelSize: uint32(len(label)),
+		PszAlgId: (*bcrypt.PWSTRElement)(unsafe.Pointer(utf16PtrFromString(hashID))),
+		CbLabel:  uint32(len(label)),
 	}
 	if len(label) > 0 {
-		info.Label = &label[0]
+		info.PbLabel = &label[0]
 	}
 	return rsaCrypt(pkey, unsafe.Pointer(&info), in, bcrypt.PAD_OAEP, encrypt)
 }
@@ -329,7 +329,7 @@ func newPSS_PADDING_INFO(h crypto.Hash, sizeBits uint32, saltLen int, sign bool)
 	if hashID == "" {
 		return info, errors.New("crypto/rsa: unsupported hash function")
 	}
-	info.AlgId = utf16PtrFromString(hashID)
+	info.PszAlgId = (*bcrypt.PWSTRElement)(unsafe.Pointer(utf16PtrFromString(hashID)))
 
 	// A salt length of -1 and 0 are valid Go sentinel values.
 	if saltLen <= -2 {
@@ -339,14 +339,14 @@ func newPSS_PADDING_INFO(h crypto.Hash, sizeBits uint32, saltLen int, sign bool)
 	// so we do a best-effort to resolve them.
 	switch saltLen {
 	case -1: // rsa.PSSSaltLengthEqualsHash
-		info.Salt = uint32(h.Size())
+		info.CbSalt = uint32(h.Size())
 	case 0: // rsa.PSSSaltLengthAuto
 		if sign {
 			// Algorithm taken from RFC 3447 Section 9.1.1, which is also implemented by Go at
 			// https://github.com/golang/go/blob/54182ff54a687272dd7632c3a963e036ce03cb7c/src/crypto/rsa/pss.go#L288.
 			emLen := (sizeBits - 1 + 7) / 8
 			hLen := uint32(h.Size())
-			info.Salt = emLen - hLen - 2
+			info.CbSalt = emLen - hLen - 2
 		} else {
 			// Go auto-detects the salt length from the signature structure when verifying.
 			// The auto-detection logic is deep in the verification process,
@@ -354,7 +354,7 @@ func newPSS_PADDING_INFO(h crypto.Hash, sizeBits uint32, saltLen int, sign bool)
 			err = errors.New("crypto/rsa: rsa.PSSSaltLengthAuto not supported")
 		}
 	default:
-		info.Salt = uint32(saltLen)
+		info.CbSalt = uint32(saltLen)
 	}
 	return
 }
@@ -376,7 +376,7 @@ func newPKCS1_PADDING_INFO(h crypto.Hash) (bcrypt.PKCS1_PADDING_INFO, error) {
 		}
 		alg = utf16PtrFromString(hashID)
 	}
-	return bcrypt.PKCS1_PADDING_INFO{AlgId: alg}, nil
+	return bcrypt.PKCS1_PADDING_INFO{PszAlgId: (*bcrypt.PWSTRElement)(unsafe.Pointer(alg))}, nil
 }
 
 func cryptoHashToID(ch crypto.Hash) string {

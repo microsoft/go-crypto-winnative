@@ -72,7 +72,7 @@ func ExtractHKDF[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if hdr.Version != bcrypt.KEY_DATA_BLOB_VERSION1 {
+	if hdr.DwVersion != bcrypt.KEY_DATA_BLOB_VERSION1 {
 		return nil, errors.New("cng: unknown key data blob version")
 	}
 	// KEY_DATA_BLOB_VERSION1 format is:
