@@ -1,20 +1,30 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// Command mkwinmd runs the pinned go-winmd generator with its bundled Win32 metadata.
+// Command mkwinmd runs the pinned go-winmd generator with Win32 metadata from NuGet.
 package main
 
 import (
-	"encoding/json"
+	"archive/zip"
+	"bytes"
+	"crypto/sha256"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
 
 const (
-	goWinMDModule  = "github.com/microsoft/go-winmd"
-	goWinMDVersion = "v0.0.0-20260805212740-c29d37683275"
+	goWinMDModule       = "github.com/microsoft/go-winmd"
+	goWinMDVersion      = "v0.0.0-20260805212740-c29d37683275"
+	metadataPackage     = "Microsoft.Windows.SDK.Win32Metadata"
+	metadataVersion     = "71.0.20-preview"
+	metadataURL         = "https://www.nuget.org/api/v2/package/" + metadataPackage + "/" + metadataVersion
+	metadataSHA256      = "64e7d92c8e08780570d5d1ce954d03f73e162f13e9b03fc5bb98f44edef26b9e"
+	metadataArchivePath = "Windows.Win32.winmd"
 )
 
 func main() {
@@ -22,8 +32,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	moduleDir := downloadModule(goTool)
-	source := filepath.Join(moduleDir, "winmd", "testdata", "Windows.Win32.winmd")
+	source := downloadMetadata()
 
 	args := []string{"run", goWinMDModule + "/cmd/gowinmd@" + goWinMDVersion, "-source", source}
 	args = append(args, os.Args[1:]...)
@@ -37,26 +46,60 @@ func main() {
 	}
 }
 
-func downloadModule(goTool string) string {
-	cmd := exec.Command(goTool, "mod", "download", "-json", goWinMDModule+"@"+goWinMDVersion)
-	cmd.Env = append(os.Environ(), "GO111MODULE=on")
-	output, err := cmd.Output()
+func downloadMetadata() string {
+	cacheDir, err := os.UserCacheDir()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	var module struct {
-		Dir   string
-		Error *struct{ Err string }
+	path := filepath.Join(cacheDir, "go-crypto-winnative", metadataPackage, metadataVersion, metadataArchivePath)
+	if data, err := os.ReadFile(path); err == nil && fmt.Sprintf("%x", sha256.Sum256(data)) == metadataSHA256 {
+		return path
 	}
-	if err := json.Unmarshal(output, &module); err != nil {
+
+	response, err := http.Get(metadataURL)
+	if err != nil {
 		log.Fatal(err)
 	}
-	if module.Error != nil {
-		log.Fatal(module.Error.Err)
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		log.Fatalf("download %s: %s", metadataURL, response.Status)
 	}
-	if module.Dir == "" {
-		log.Fatal("go-winmd module directory is missing")
+	packageData, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal(err)
 	}
-	return module.Dir
+	archive, err := zip.NewReader(bytes.NewReader(packageData), int64(len(packageData)))
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, file := range archive.File {
+		if file.Name != metadataArchivePath {
+			continue
+		}
+		metadata, err := readZipFile(file)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if checksum := fmt.Sprintf("%x", sha256.Sum256(metadata)); checksum != metadataSHA256 {
+			log.Fatalf("unexpected %s checksum: got %s, want %s", metadataArchivePath, checksum, metadataSHA256)
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			log.Fatal(err)
+		}
+		if err := os.WriteFile(path, metadata, 0o644); err != nil {
+			log.Fatal(err)
+		}
+		return path
+	}
+	log.Fatalf("%s not found in %s %s", metadataArchivePath, metadataPackage, metadataVersion)
+	return ""
+}
+
+func readZipFile(file *zip.File) ([]byte, error) {
+	reader, err := file.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	return io.ReadAll(reader)
 }
