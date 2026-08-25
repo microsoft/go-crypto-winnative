@@ -132,7 +132,7 @@ func NewPrivateKeyRSA(N, E, D, P, Q, Dp, Dq, Qinv BigInt) (*PrivateKeyRSA, error
 func importRSAKey(h bcrypt.ALG_HANDLE, N, E, D, P, Q, Dp, Dq, Qinv BigInt) (bcrypt.KEY_HANDLE, error) {
 	blob, err := encodeRSAKey(N, E, D, P, Q, Dp, Dq, Qinv)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var kind string
 	if D == nil {
@@ -141,9 +141,9 @@ func importRSAKey(h bcrypt.ALG_HANDLE, N, E, D, P, Q, Dp, Dq, Qinv BigInt) (bcry
 		kind = bcrypt.RSAFULLPRIVATE_BLOB
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(h, 0, utf16PtrFromString(kind), &hkey, blob, 0)
+	err = bcrypt.ImportKeyPair(h, nil, utf16PtrFromString(kind), &hkey, blob, 0)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	return hkey, nil
 }

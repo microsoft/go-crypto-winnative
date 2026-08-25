@@ -7,34 +7,31 @@ import "unsafe"
 var _ unsafe.Pointer
 
 // APIs for Windows.Win32.Security.Cryptography
-//sys	RawOpenAlgorithmProvider(phAlgorithm *BCRYPT_ALG_HANDLE, pszAlgId *PWSTRElement, pszImplementation *PWSTRElement, dwFlags BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS) (r NTSTATUS) = bcrypt.dll.BCryptOpenAlgorithmProvider
-//sys	RawGetProperty(hObject BCRYPT_HANDLE, pszProperty *PWSTRElement, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptGetProperty
-//sys	RawSetProperty(hObject BCRYPT_HANDLE, pszProperty *PWSTRElement, pbInput *uint8, cbInput uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptSetProperty
-//sys	RawCloseAlgorithmProvider(hAlgorithm BCRYPT_ALG_HANDLE, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptCloseAlgorithmProvider
-//sys	RawGenerateSymmetricKey(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, pbKeyObject *uint8, cbKeyObject uint32, pbSecret *uint8, cbSecret uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptGenerateSymmetricKey
-//sys	RawGenerateKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, dwLength uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptGenerateKeyPair
-//sys	RawEncrypt(hKey BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV *uint8, cbIV uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (r NTSTATUS) = bcrypt.dll.BCryptEncrypt
-//sys	RawDecrypt(hKey BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV *uint8, cbIV uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (r NTSTATUS) = bcrypt.dll.BCryptDecrypt
-//sys	RawExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *PWSTRElement, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptExportKey
-//sys	RawImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *PWSTRElement, phKey *BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptImportKeyPair
-//sys	RawFinalizeKeyPair(hKey BCRYPT_KEY_HANDLE, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptFinalizeKeyPair
-//sys	RawDestroyKey(hKey BCRYPT_KEY_HANDLE) (r NTSTATUS) = bcrypt.dll.BCryptDestroyKey
-//sys	RawDestroySecret(hSecret BCRYPT_SECRET_HANDLE) (r NTSTATUS) = bcrypt.dll.BCryptDestroySecret
-//sys	RawSignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput *uint8, cbInput uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (r NTSTATUS) = bcrypt.dll.BCryptSignHash
-//sys	RawVerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash *uint8, cbHash uint32, pbSignature *uint8, cbSignature uint32, dwFlags BCRYPT_FLAGS) (r NTSTATUS) = bcrypt.dll.BCryptVerifySignature
-//sys	RawSecretAgreement(hPrivKey BCRYPT_KEY_HANDLE, hPubKey BCRYPT_KEY_HANDLE, phAgreedSecret *BCRYPT_SECRET_HANDLE, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptSecretAgreement
-//sys	RawDeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *PWSTRElement, pParameterList *BCryptBufferDesc, pbDerivedKey *uint8, cbDerivedKey uint32, pcbResult *uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptDeriveKey
-//sys	RawKeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey *uint8, cbDerivedKey uint32, pcbResult *uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptKeyDerivation
-//sys	RawCreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject *uint8, cbHashObject uint32, pbSecret *uint8, cbSecret uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptCreateHash
-//sys	RawHashData(hHash BCRYPT_HASH_HANDLE, pbInput *uint8, cbInput uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptHashData
-//sys	RawFinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput *uint8, cbOutput uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptFinishHash
-//sys	RawDuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject *uint8, cbHashObject uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptDuplicateHash
-//sys	RawDestroyHash(hHash BCRYPT_HASH_HANDLE) (r NTSTATUS) = bcrypt.dll.BCryptDestroyHash
-//sys	RawHash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret *uint8, cbSecret uint32, pbInput *uint8, cbInput uint32, pbOutput *uint8, cbOutput uint32) (r NTSTATUS) = bcrypt.dll.BCryptHash
-//sys	RawGenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer *uint8, cbBuffer uint32, dwFlags BCRYPTGENRANDOM_FLAGS) (r NTSTATUS) = bcrypt.dll.BCryptGenRandom
-//sys	RawEncapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey *uint8, cbSecretKey uint32, pcbSecretKey *uint32, pbCipherText *uint8, cbCipherText uint32, pcbCipherText *uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptEncapsulate
-//sys	RawDecapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText *uint8, cbCipherText uint32, pbSecretKey *uint8, cbSecretKey uint32, pcbSecretKey *uint32, dwFlags uint32) (r NTSTATUS) = bcrypt.dll.BCryptDecapsulate
-//sys	RawGetFipsAlgorithmMode(pfEnabled *uint8) (r NTSTATUS) = bcrypt.dll.BCryptGetFipsAlgorithmMode
+//sys	OpenAlgorithmProvider(phAlgorithm *BCRYPT_ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS) (ntstatus error) = bcrypt.BCryptOpenAlgorithmProvider
+//sys	GetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty
+//sys	SetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSetProperty
+//sys	CloseAlgorithmProvider(hAlgorithm BCRYPT_ALG_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCloseAlgorithmProvider
+//sys	GenerateKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, dwLength uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenerateKeyPair
+//sys	ExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptExportKey
+//sys	ImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, phKey *BCRYPT_KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptImportKeyPair
+//sys	FinalizeKeyPair(hKey BCRYPT_KEY_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinalizeKeyPair
+//sys	DestroyKey(hKey BCRYPT_KEY_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyKey
+//sys	DestroySecret(hSecret BCRYPT_SECRET_HANDLE) (ntstatus error) = bcrypt.BCryptDestroySecret
+//sys	SignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (ntstatus error) = bcrypt.BCryptSignHash
+//sys	VerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags BCRYPT_FLAGS) (ntstatus error) = bcrypt.BCryptVerifySignature
+//sys	SecretAgreement(hPrivKey BCRYPT_KEY_HANDLE, hPubKey BCRYPT_KEY_HANDLE, phAgreedSecret *BCRYPT_SECRET_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSecretAgreement
+//sys	DeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *uint16, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDeriveKey
+//sys	KeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptKeyDerivation
+//sys	CreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCreateHash
+//sys	HashData(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
+//sys	FinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinishHash
+//sys	DuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDuplicateHash
+//sys	DestroyHash(hHash BCRYPT_HASH_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyHash
+//sys	Hash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) = bcrypt.BCryptHash
+//sys	GenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer []byte, dwFlags BCRYPTGENRANDOM_FLAGS) (ntstatus error) = bcrypt.BCryptGenRandom
+//sys	Encapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey []byte, pcbSecretKey *uint32, pbCipherText []byte, pcbCipherText *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptEncapsulate
+//sys	Decapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText []byte, pbSecretKey []byte, pcbSecretKey *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDecapsulate
+//sys	GetFipsAlgorithmMode(pfEnabled *uint8) (ntstatus error) = bcrypt.BCryptGetFipsAlgorithmMode
 
 // Types used in generated APIs for
 
@@ -70,10 +67,6 @@ type BCRYPT_KEY_HANDLE unsafe.Pointer
 type BCRYPT_HASH_HANDLE unsafe.Pointer
 
 type BCRYPT_SECRET_HANDLE unsafe.Pointer
-
-type NTSTATUS int32
-
-type PWSTRElement uint16
 
 type BCRYPT_HANDLE unsafe.Pointer
 

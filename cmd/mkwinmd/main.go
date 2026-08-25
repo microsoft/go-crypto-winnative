@@ -19,7 +19,7 @@ import (
 
 const (
 	goWinMDModule       = "github.com/microsoft/go-winmd"
-	goWinMDVersion      = "v0.0.0-20260805212740-c29d37683275"
+	goWinMDVersion      = "v0.0.0-20260825131323-f8f72ba7b114"
 	metadataPackage     = "Microsoft.Windows.SDK.Win32Metadata"
 	metadataVersion     = "71.0.20-preview"
 	metadataURL         = "https://www.nuget.org/api/v2/package/" + metadataPackage + "/" + metadataVersion

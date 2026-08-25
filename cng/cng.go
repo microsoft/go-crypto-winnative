@@ -17,12 +17,12 @@ import (
 )
 
 func FIPS() (bool, error) {
-	var enabled bool
+	var enabled uint8
 	err := bcrypt.GetFipsAlgorithmMode(&enabled)
 	if err != nil {
 		return false, err
 	}
-	return enabled, nil
+	return enabled != 0, nil
 }
 
 // len32 clamps s length so it can fit into a Win32 LONG,

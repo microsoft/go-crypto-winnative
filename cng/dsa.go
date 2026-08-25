@@ -262,7 +262,7 @@ func encodeDSAKey(h bcrypt.ALG_HANDLE, params DSAParameters, X, Y BigInt) (bcryp
 			{Y, keySize},
 			{X, groupSize},
 		}); err != nil {
-			return 0, err
+			return nil, err
 		}
 	} else {
 		size := sizeOfDSAV2BlobHeader + 3*keySize + 2*groupSize
@@ -291,7 +291,7 @@ func encodeDSAKey(h bcrypt.ALG_HANDLE, params DSAParameters, X, Y BigInt) (bcryp
 			{Y, keySize},
 			{X, groupSize},
 		}); err != nil {
-			return 0, err
+			return nil, err
 		}
 	}
 	kind := bcrypt.DSA_PUBLIC_BLOB
@@ -299,9 +299,9 @@ func encodeDSAKey(h bcrypt.ALG_HANDLE, params DSAParameters, X, Y BigInt) (bcryp
 		kind = bcrypt.DSA_PRIVATE_BLOB
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err := bcrypt.ImportKeyPair(h, 0, utf16PtrFromString(kind), &hkey, blob, 0)
+	err := bcrypt.ImportKeyPair(h, nil, utf16PtrFromString(kind), &hkey, blob, 0)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	return hkey, nil
 }

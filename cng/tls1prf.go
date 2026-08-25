@@ -52,31 +52,31 @@ func TLS1PRF[H hash.Hash](result, secret, label, seed []byte, fh func() H) error
 	buffers := make([]bcrypt.Buffer, 0, 3)
 	if len(label) > 0 {
 		buffers = append(buffers, bcrypt.Buffer{
-			Type:   bcrypt.KDF_TLS_PRF_LABEL,
-			Data:   unsafe.Pointer(&label[0]),
-			Length: uint32(len(label)),
+			BufferType: bcrypt.KDF_TLS_PRF_LABEL,
+			PvBuffer:   unsafe.Pointer(&label[0]),
+			CbBuffer:   uint32(len(label)),
 		})
 	}
 	if len(seed) > 0 {
 		buffers = append(buffers, bcrypt.Buffer{
-			Type:   bcrypt.KDF_TLS_PRF_SEED,
-			Data:   unsafe.Pointer(&seed[0]),
-			Length: uint32(len(seed)),
+			BufferType: bcrypt.KDF_TLS_PRF_SEED,
+			PvBuffer:   unsafe.Pointer(&seed[0]),
+			CbBuffer:   uint32(len(seed)),
 		})
 	}
 	if algID == bcrypt.TLS1_2_KDF_ALGORITHM {
 		u16HashID := utf16FromString(hashID)
 		buffers = append(buffers, bcrypt.Buffer{
-			Type:   bcrypt.KDF_HASH_ALGORITHM,
-			Data:   unsafe.Pointer(&u16HashID[0]),
-			Length: uint32(len(u16HashID) * 2),
+			BufferType: bcrypt.KDF_HASH_ALGORITHM,
+			PvBuffer:   unsafe.Pointer(&u16HashID[0]),
+			CbBuffer:   uint32(len(u16HashID) * 2),
 		})
 	}
 	params := &bcrypt.BufferDesc{
-		Count: uint32(len(buffers)),
+		CBuffers: uint32(len(buffers)),
 	}
 	if len(buffers) > 0 {
-		params.Buffers = &buffers[0]
+		params.PBuffers = &buffers[0]
 	}
 	var size uint32
 	err = bcrypt.KeyDerivation(kh, params, result, &size, 0)

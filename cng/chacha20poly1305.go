@@ -45,7 +45,7 @@ func NewChaCha20Poly1305(key []byte) (cipher.AEAD, error) {
 }
 
 func (c *chacha20poly1305) finalize() {
-	if c.kh != 0 {
+	if c.kh != nil {
 		bcrypt.DestroyKey(c.kh)
 	}
 }

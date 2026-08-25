@@ -119,12 +119,12 @@ func exportKeyData(hkey bcrypt.KEY_HANDLE) (bcrypt.KEY_DATA_BLOB_HEADER, []byte,
 func exportKey(hkey bcrypt.KEY_HANDLE, magic string) ([]byte, error) {
 	psBlobType := utf16PtrFromString(magic)
 	var size uint32
-	err := bcrypt.ExportKey(hkey, 0, psBlobType, nil, &size, 0)
+	err := bcrypt.ExportKey(hkey, nil, psBlobType, nil, &size, 0)
 	if err != nil {
 		return nil, err
 	}
 	blob := make([]byte, size)
-	err = bcrypt.ExportKey(hkey, 0, psBlobType, blob, &size, 0)
+	err = bcrypt.ExportKey(hkey, nil, psBlobType, blob, &size, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func exportKey(hkey bcrypt.KEY_HANDLE, magic string) ([]byte, error) {
 func importECCKey(h bcrypt.ALG_HANDLE, id string, bits uint32, X, Y, D BigInt) (bcrypt.KEY_HANDLE, error) {
 	blob, err := encodeECCKey(id, bits, X, Y, D)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var kind string
 	if D == nil {
@@ -145,9 +145,9 @@ func importECCKey(h bcrypt.ALG_HANDLE, id string, bits uint32, X, Y, D BigInt) (
 		kind = bcrypt.ECCPRIVATE_BLOB
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(h, 0, utf16PtrFromString(kind), &hkey, blob, 0)
+	err = bcrypt.ImportKeyPair(h, nil, utf16PtrFromString(kind), &hkey, blob, 0)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	return hkey, nil
 }

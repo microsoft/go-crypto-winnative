@@ -38,15 +38,15 @@ func loadCipher(id, mode string) (cipherAlgorithm, error) {
 func newCipherHandle(id, mode string, key []byte) (bcrypt.KEY_HANDLE, error) {
 	h, err := loadCipher(id, mode)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if !keyIsAllowed(h.allowedKeyLengths, uint32(len(key)*8)) {
-		return 0, errors.New("crypto/cipher: invalid key size")
+		return nil, errors.New("crypto/cipher: invalid key size")
 	}
 	var kh bcrypt.KEY_HANDLE
 	err = bcrypt.GenerateSymmetricKey(h.handle, &kh, nil, key, 0)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	return kh, nil
 }

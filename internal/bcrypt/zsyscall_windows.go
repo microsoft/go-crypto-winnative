@@ -37,207 +37,379 @@ func errnoErr(e syscall.Errno) error {
 }
 
 var (
-	modbcrypt_dll = syscall.NewLazyDLL(sysdll.Add("bcrypt.dll"))
-	modkernel32   = syscall.NewLazyDLL(sysdll.Add("kernel32.dll"))
-	modntdll      = syscall.NewLazyDLL(sysdll.Add("ntdll.dll"))
+	modbcrypt   = syscall.NewLazyDLL(sysdll.Add("bcrypt.dll"))
+	modkernel32 = syscall.NewLazyDLL(sysdll.Add("kernel32.dll"))
+	modntdll    = syscall.NewLazyDLL(sysdll.Add("ntdll.dll"))
 
-	procBCryptCloseAlgorithmProvider = modbcrypt_dll.NewProc("BCryptCloseAlgorithmProvider")
-	procBCryptCreateHash             = modbcrypt_dll.NewProc("BCryptCreateHash")
-	procBCryptDecapsulate            = modbcrypt_dll.NewProc("BCryptDecapsulate")
-	procBCryptDecrypt                = modbcrypt_dll.NewProc("BCryptDecrypt")
-	procBCryptDeriveKey              = modbcrypt_dll.NewProc("BCryptDeriveKey")
-	procBCryptDestroyHash            = modbcrypt_dll.NewProc("BCryptDestroyHash")
-	procBCryptDestroyKey             = modbcrypt_dll.NewProc("BCryptDestroyKey")
-	procBCryptDestroySecret          = modbcrypt_dll.NewProc("BCryptDestroySecret")
-	procBCryptDuplicateHash          = modbcrypt_dll.NewProc("BCryptDuplicateHash")
-	procBCryptEncapsulate            = modbcrypt_dll.NewProc("BCryptEncapsulate")
-	procBCryptEncrypt                = modbcrypt_dll.NewProc("BCryptEncrypt")
-	procBCryptExportKey              = modbcrypt_dll.NewProc("BCryptExportKey")
-	procBCryptFinalizeKeyPair        = modbcrypt_dll.NewProc("BCryptFinalizeKeyPair")
-	procBCryptFinishHash             = modbcrypt_dll.NewProc("BCryptFinishHash")
-	procBCryptGenRandom              = modbcrypt_dll.NewProc("BCryptGenRandom")
-	procBCryptGenerateKeyPair        = modbcrypt_dll.NewProc("BCryptGenerateKeyPair")
-	procBCryptGenerateSymmetricKey   = modbcrypt_dll.NewProc("BCryptGenerateSymmetricKey")
-	procBCryptGetFipsAlgorithmMode   = modbcrypt_dll.NewProc("BCryptGetFipsAlgorithmMode")
-	procBCryptGetProperty            = modbcrypt_dll.NewProc("BCryptGetProperty")
-	procBCryptHash                   = modbcrypt_dll.NewProc("BCryptHash")
-	procBCryptHashData               = modbcrypt_dll.NewProc("BCryptHashData")
-	procBCryptImportKeyPair          = modbcrypt_dll.NewProc("BCryptImportKeyPair")
-	procBCryptKeyDerivation          = modbcrypt_dll.NewProc("BCryptKeyDerivation")
-	procBCryptOpenAlgorithmProvider  = modbcrypt_dll.NewProc("BCryptOpenAlgorithmProvider")
-	procBCryptSecretAgreement        = modbcrypt_dll.NewProc("BCryptSecretAgreement")
-	procBCryptSetProperty            = modbcrypt_dll.NewProc("BCryptSetProperty")
-	procBCryptSignHash               = modbcrypt_dll.NewProc("BCryptSignHash")
-	procBCryptVerifySignature        = modbcrypt_dll.NewProc("BCryptVerifySignature")
+	procBCryptCloseAlgorithmProvider = modbcrypt.NewProc("BCryptCloseAlgorithmProvider")
+	procBCryptCreateHash             = modbcrypt.NewProc("BCryptCreateHash")
+	procBCryptDecapsulate            = modbcrypt.NewProc("BCryptDecapsulate")
+	procBCryptDecrypt                = modbcrypt.NewProc("BCryptDecrypt")
+	procBCryptDeriveKey              = modbcrypt.NewProc("BCryptDeriveKey")
+	procBCryptDestroyHash            = modbcrypt.NewProc("BCryptDestroyHash")
+	procBCryptDestroyKey             = modbcrypt.NewProc("BCryptDestroyKey")
+	procBCryptDestroySecret          = modbcrypt.NewProc("BCryptDestroySecret")
+	procBCryptDuplicateHash          = modbcrypt.NewProc("BCryptDuplicateHash")
+	procBCryptEncapsulate            = modbcrypt.NewProc("BCryptEncapsulate")
+	procBCryptEncrypt                = modbcrypt.NewProc("BCryptEncrypt")
+	procBCryptExportKey              = modbcrypt.NewProc("BCryptExportKey")
+	procBCryptFinalizeKeyPair        = modbcrypt.NewProc("BCryptFinalizeKeyPair")
+	procBCryptFinishHash             = modbcrypt.NewProc("BCryptFinishHash")
+	procBCryptGenRandom              = modbcrypt.NewProc("BCryptGenRandom")
+	procBCryptGenerateKeyPair        = modbcrypt.NewProc("BCryptGenerateKeyPair")
+	procBCryptGenerateSymmetricKey   = modbcrypt.NewProc("BCryptGenerateSymmetricKey")
+	procBCryptGetFipsAlgorithmMode   = modbcrypt.NewProc("BCryptGetFipsAlgorithmMode")
+	procBCryptGetProperty            = modbcrypt.NewProc("BCryptGetProperty")
+	procBCryptHash                   = modbcrypt.NewProc("BCryptHash")
+	procBCryptHashData               = modbcrypt.NewProc("BCryptHashData")
+	procBCryptImportKeyPair          = modbcrypt.NewProc("BCryptImportKeyPair")
+	procBCryptKeyDerivation          = modbcrypt.NewProc("BCryptKeyDerivation")
+	procBCryptOpenAlgorithmProvider  = modbcrypt.NewProc("BCryptOpenAlgorithmProvider")
+	procBCryptSecretAgreement        = modbcrypt.NewProc("BCryptSecretAgreement")
+	procBCryptSetProperty            = modbcrypt.NewProc("BCryptSetProperty")
+	procBCryptSignHash               = modbcrypt.NewProc("BCryptSignHash")
+	procBCryptVerifySignature        = modbcrypt.NewProc("BCryptVerifySignature")
 	procFormatMessageW               = modkernel32.NewProc("FormatMessageW")
 	procRtlNtStatusToDosErrorNoTeb   = modntdll.NewProc("RtlNtStatusToDosErrorNoTeb")
 )
 
-func RawCloseAlgorithmProvider(hAlgorithm BCRYPT_ALG_HANDLE, dwFlags uint32) (r NTSTATUS) {
+func CloseAlgorithmProvider(hAlgorithm BCRYPT_ALG_HANDLE, dwFlags uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptCloseAlgorithmProvider.Addr(), uintptr(hAlgorithm), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawCreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject *uint8, cbHashObject uint32, pbSecret *uint8, cbSecret uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptCreateHash.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phHash)), uintptr(unsafe.Pointer(pbHashObject)), uintptr(cbHashObject), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func CreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbHashObject) > 0 {
+		_p0 = &pbHashObject[0]
+	}
+	var _p1 *byte
+	if len(pbSecret) > 0 {
+		_p1 = &pbSecret[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptCreateHash.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecret)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawDecapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText *uint8, cbCipherText uint32, pbSecretKey *uint8, cbSecretKey uint32, pcbSecretKey *uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptDecapsulate.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pbCipherText)), uintptr(cbCipherText), uintptr(unsafe.Pointer(pbSecretKey)), uintptr(cbSecretKey), uintptr(unsafe.Pointer(pcbSecretKey)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func Decapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText []byte, pbSecretKey []byte, pcbSecretKey *uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbCipherText) > 0 {
+		_p0 = &pbCipherText[0]
+	}
+	var _p1 *byte
+	if len(pbSecretKey) > 0 {
+		_p1 = &pbSecretKey[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptDecapsulate.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbCipherText)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSecretKey)), uintptr(unsafe.Pointer(pcbSecretKey)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawDecrypt(hKey BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV *uint8, cbIV uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptDecrypt.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+	var _p0 *byte
+	if len(pbIV) > 0 {
+		_p0 = &pbIV[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptDecrypt.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawDeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *PWSTRElement, pParameterList *BCryptBufferDesc, pbDerivedKey *uint8, cbDerivedKey uint32, pcbResult *uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptDeriveKey.Addr(), uintptr(hSharedSecret), uintptr(unsafe.Pointer(pwszKDF)), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(pbDerivedKey)), uintptr(cbDerivedKey), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func DeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *uint16, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbDerivedKey) > 0 {
+		_p0 = &pbDerivedKey[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptDeriveKey.Addr(), uintptr(hSharedSecret), uintptr(unsafe.Pointer(pwszKDF)), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbDerivedKey)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawDestroyHash(hHash BCRYPT_HASH_HANDLE) (r NTSTATUS) {
+func DestroyHash(hHash BCRYPT_HASH_HANDLE) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptDestroyHash.Addr(), uintptr(hHash))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawDestroyKey(hKey BCRYPT_KEY_HANDLE) (r NTSTATUS) {
+func DestroyKey(hKey BCRYPT_KEY_HANDLE) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptDestroyKey.Addr(), uintptr(hKey))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawDestroySecret(hSecret BCRYPT_SECRET_HANDLE) (r NTSTATUS) {
+func DestroySecret(hSecret BCRYPT_SECRET_HANDLE) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptDestroySecret.Addr(), uintptr(hSecret))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawDuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject *uint8, cbHashObject uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptDuplicateHash.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(phNewHash)), uintptr(unsafe.Pointer(pbHashObject)), uintptr(cbHashObject), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func DuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbHashObject) > 0 {
+		_p0 = &pbHashObject[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptDuplicateHash.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(phNewHash)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHashObject)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawEncapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey *uint8, cbSecretKey uint32, pcbSecretKey *uint32, pbCipherText *uint8, cbCipherText uint32, pcbCipherText *uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptEncapsulate.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pbSecretKey)), uintptr(cbSecretKey), uintptr(unsafe.Pointer(pcbSecretKey)), uintptr(unsafe.Pointer(pbCipherText)), uintptr(cbCipherText), uintptr(unsafe.Pointer(pcbCipherText)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func Encapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey []byte, pcbSecretKey *uint32, pbCipherText []byte, pcbCipherText *uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbSecretKey) > 0 {
+		_p0 = &pbSecretKey[0]
+	}
+	var _p1 *byte
+	if len(pbCipherText) > 0 {
+		_p1 = &pbCipherText[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptEncapsulate.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbSecretKey)), uintptr(unsafe.Pointer(pcbSecretKey)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbCipherText)), uintptr(unsafe.Pointer(pcbCipherText)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawEncrypt(hKey BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV *uint8, cbIV uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptEncrypt.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(pbIV)), uintptr(cbIV), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+	var _p0 *byte
+	if len(pbIV) > 0 {
+		_p0 = &pbIV[0]
+	}
+	var _p1 *byte
+	if len(pbOutput) > 0 {
+		_p1 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptEncrypt.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbIV)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *PWSTRElement, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptExportKey.Addr(), uintptr(hKey), uintptr(hExportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func ExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbOutput) > 0 {
+		_p0 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptExportKey.Addr(), uintptr(hKey), uintptr(hExportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawFinalizeKeyPair(hKey BCRYPT_KEY_HANDLE, dwFlags uint32) (r NTSTATUS) {
+func FinalizeKeyPair(hKey BCRYPT_KEY_HANDLE, dwFlags uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptFinalizeKeyPair.Addr(), uintptr(hKey), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawFinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput *uint8, cbOutput uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptFinishHash.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func FinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbOutput) > 0 {
+		_p0 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptFinishHash.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawGenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer *uint8, cbBuffer uint32, dwFlags BCRYPTGENRANDOM_FLAGS) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptGenRandom.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(pbBuffer)), uintptr(cbBuffer), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func GenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer []byte, dwFlags BCRYPTGENRANDOM_FLAGS) (ntstatus error) {
+	var _p0 *byte
+	if len(pbBuffer) > 0 {
+		_p0 = &pbBuffer[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptGenRandom.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbBuffer)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawGenerateKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, dwLength uint32, dwFlags uint32) (r NTSTATUS) {
+func GenerateKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, dwLength uint32, dwFlags uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptGenerateKeyPair.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(dwLength), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawGenerateSymmetricKey(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, pbKeyObject *uint8, cbKeyObject uint32, pbSecret *uint8, cbSecret uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptGenerateSymmetricKey.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(pbKeyObject)), uintptr(cbKeyObject), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func _GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbKeyObject) > 0 {
+		_p0 = &pbKeyObject[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptGenerateSymmetricKey.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbKeyObject)), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawGetFipsAlgorithmMode(pfEnabled *uint8) (r NTSTATUS) {
+func GetFipsAlgorithmMode(pfEnabled *uint8) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptGetFipsAlgorithmMode.Addr(), uintptr(unsafe.Pointer(pfEnabled)))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawGetProperty(hObject BCRYPT_HANDLE, pszProperty *PWSTRElement, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptGetProperty.Addr(), uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func GetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbOutput) > 0 {
+		_p0 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptGetProperty.Addr(), uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawHash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret *uint8, cbSecret uint32, pbInput *uint8, cbInput uint32, pbOutput *uint8, cbOutput uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptHash.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(pbSecret)), uintptr(cbSecret), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput))
-	r = NTSTATUS(r0)
+func Hash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) {
+	var _p0 *byte
+	if len(pbSecret) > 0 {
+		_p0 = &pbSecret[0]
+	}
+	var _p1 *byte
+	if len(pbInput) > 0 {
+		_p1 = &pbInput[0]
+	}
+	var _p2 *byte
+	if len(pbOutput) > 0 {
+		_p2 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptHash.Addr(), uintptr(hAlgorithm), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbSecret)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(_p2)), uintptr(len(pbOutput)))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawHashData(hHash BCRYPT_HASH_HANDLE, pbInput *uint8, cbInput uint32, dwFlags uint32) (r NTSTATUS) {
+func HashData(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptHashData.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
+	return
+}
+
+func HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptHashData.Addr(), uintptr(hHash), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *PWSTRElement, phKey *BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptImportKeyPair.Addr(), uintptr(hAlgorithm), uintptr(hImportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func ImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, phKey *BCRYPT_KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptImportKeyPair.Addr(), uintptr(hAlgorithm), uintptr(hImportKey), uintptr(unsafe.Pointer(pszBlobType)), uintptr(unsafe.Pointer(phKey)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawKeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey *uint8, cbDerivedKey uint32, pcbResult *uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptKeyDerivation.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(pbDerivedKey)), uintptr(cbDerivedKey), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func KeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbDerivedKey) > 0 {
+		_p0 = &pbDerivedKey[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptKeyDerivation.Addr(), uintptr(hKey), uintptr(unsafe.Pointer(pParameterList)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbDerivedKey)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawOpenAlgorithmProvider(phAlgorithm *BCRYPT_ALG_HANDLE, pszAlgId *PWSTRElement, pszImplementation *PWSTRElement, dwFlags BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS) (r NTSTATUS) {
+func OpenAlgorithmProvider(phAlgorithm *BCRYPT_ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptOpenAlgorithmProvider.Addr(), uintptr(unsafe.Pointer(phAlgorithm)), uintptr(unsafe.Pointer(pszAlgId)), uintptr(unsafe.Pointer(pszImplementation)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawSecretAgreement(hPrivKey BCRYPT_KEY_HANDLE, hPubKey BCRYPT_KEY_HANDLE, phAgreedSecret *BCRYPT_SECRET_HANDLE, dwFlags uint32) (r NTSTATUS) {
+func SecretAgreement(hPrivKey BCRYPT_KEY_HANDLE, hPubKey BCRYPT_KEY_HANDLE, phAgreedSecret *BCRYPT_SECRET_HANDLE, dwFlags uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procBCryptSecretAgreement.Addr(), uintptr(hPrivKey), uintptr(hPubKey), uintptr(unsafe.Pointer(phAgreedSecret)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawSetProperty(hObject BCRYPT_HANDLE, pszProperty *PWSTRElement, pbInput *uint8, cbInput uint32, dwFlags uint32) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptSetProperty.Addr(), uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func SetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptSetProperty.Addr(), uintptr(hObject), uintptr(unsafe.Pointer(pszProperty)), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawSignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput *uint8, cbInput uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptSignHash.Addr(), uintptr(hKey), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(pbInput)), uintptr(cbInput), uintptr(unsafe.Pointer(pbOutput)), uintptr(cbOutput), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func SignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (ntstatus error) {
+	var _p0 *byte
+	if len(pbInput) > 0 {
+		_p0 = &pbInput[0]
+	}
+	var _p1 *byte
+	if len(pbOutput) > 0 {
+		_p1 = &pbOutput[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptSignHash.Addr(), uintptr(hKey), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbInput)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbOutput)), uintptr(unsafe.Pointer(pcbResult)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
-func RawVerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash *uint8, cbHash uint32, pbSignature *uint8, cbSignature uint32, dwFlags BCRYPT_FLAGS) (r NTSTATUS) {
-	r0, _, _ := syscall.SyscallN(procBCryptVerifySignature.Addr(), uintptr(hKey), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(pbHash)), uintptr(cbHash), uintptr(unsafe.Pointer(pbSignature)), uintptr(cbSignature), uintptr(dwFlags))
-	r = NTSTATUS(r0)
+func VerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags BCRYPT_FLAGS) (ntstatus error) {
+	var _p0 *byte
+	if len(pbHash) > 0 {
+		_p0 = &pbHash[0]
+	}
+	var _p1 *byte
+	if len(pbSignature) > 0 {
+		_p1 = &pbSignature[0]
+	}
+	r0, _, _ := syscall.SyscallN(procBCryptVerifySignature.Addr(), uintptr(hKey), uintptr(pPaddingInfo), uintptr(unsafe.Pointer(_p0)), uintptr(len(pbHash)), uintptr(unsafe.Pointer(_p1)), uintptr(len(pbSignature)), uintptr(dwFlags))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
 	return
 }
 
