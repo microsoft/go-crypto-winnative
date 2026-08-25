@@ -30,7 +30,7 @@ func NewRC4Cipher(key []byte) (*RC4Cipher, error) {
 }
 
 func (c *RC4Cipher) finalize() {
-	if c.kh != 0 {
+	if c.kh != nil {
 		bcrypt.DestroyKey(c.kh)
 	}
 }
@@ -38,13 +38,13 @@ func (c *RC4Cipher) finalize() {
 // Reset zeros the key data and makes the Cipher unusable.
 func (c *RC4Cipher) Reset() {
 	bcrypt.DestroyKey(c.kh)
-	c.kh = 0
+	c.kh = nil
 }
 
 // XORKeyStream sets dst to the result of XORing src with the key stream.
 // Dst and src must overlap entirely or not at all.
 func (c *RC4Cipher) XORKeyStream(dst, src []byte) {
-	if c.kh == 0 || len(src) == 0 {
+	if c.kh == nil || len(src) == 0 {
 		return
 	}
 	// rc4.Cipher.XORKeyStream throws an out of bounds panic if

@@ -1,7 +1,49 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//go:generate go run github.com/microsoft/go-crypto-winnative/cmd/mksyscall -output zsyscall_windows.go bcrypt_windows.go ntstatus_windows.go
+//go:generate go run ../../cmd/mkwinmd -format mkwinsyscall -projection idiomatic -output zwinmd_windows.go bcrypt_windows.go
+//go:generate go run ../../cmd/mksyscall -output zsyscall_windows.go zwinmd_windows.go bcrypt_windows.go ntstatus_windows.go
+
+//winmd:func bcrypt.dll.BCryptGetFipsAlgorithmMode -name GetFipsAlgorithmMode
+//winmd:func bcrypt.dll.BCryptSetProperty -name SetProperty
+//winmd:func bcrypt.dll.BCryptGetProperty -name GetProperty
+//winmd:func bcrypt.dll.BCryptOpenAlgorithmProvider -name OpenAlgorithmProvider
+//winmd:func bcrypt.dll.BCryptCloseAlgorithmProvider -name CloseAlgorithmProvider
+//winmd:func bcrypt.dll.BCryptHash -name Hash
+//winmd:func bcrypt.dll.BCryptCreateHash -name CreateHash
+//winmd:func bcrypt.dll.BCryptDestroyHash -name DestroyHash
+//winmd:func bcrypt.dll.BCryptHashData -name HashData
+//winmd:func bcrypt.dll.BCryptDuplicateHash -name DuplicateHash
+//winmd:func bcrypt.dll.BCryptFinishHash -name FinishHash
+//winmd:func bcrypt.dll.BCryptGenRandom -name GenRandom
+//winmd:func bcrypt.dll.BCryptGenerateKeyPair -name GenerateKeyPair
+//winmd:func bcrypt.dll.BCryptFinalizeKeyPair -name FinalizeKeyPair
+//winmd:func bcrypt.dll.BCryptImportKeyPair -name ImportKeyPair
+//winmd:func bcrypt.dll.BCryptExportKey -name ExportKey
+//winmd:func bcrypt.dll.BCryptDestroyKey -name DestroyKey
+//winmd:func bcrypt.dll.BCryptSignHash -name SignHash
+//winmd:func bcrypt.dll.BCryptVerifySignature -name VerifySignature
+//winmd:func bcrypt.dll.BCryptSecretAgreement -name SecretAgreement
+//winmd:func bcrypt.dll.BCryptDeriveKey -name DeriveKey
+//winmd:func bcrypt.dll.BCryptKeyDerivation -name KeyDerivation
+//winmd:func bcrypt.dll.BCryptDestroySecret -name DestroySecret
+//winmd:func bcrypt.dll.BCryptEncapsulate -name Encapsulate
+//winmd:func bcrypt.dll.BCryptDecapsulate -name Decapsulate
+
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_KEY_DATA_BLOB_HEADER -name KEY_DATA_BLOB_HEADER
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_DSA_PARAMETER_HEADER -name DSA_PARAMETER_HEADER
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_DSA_PARAMETER_HEADER_V2 -name DSA_PARAMETER_HEADER_V2
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_KEY_LENGTHS_STRUCT -name KEY_LENGTHS_STRUCT
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO -name AUTHENTICATED_CIPHER_MODE_INFO
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_OAEP_PADDING_INFO -name OAEP_PADDING_INFO
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_PKCS1_PADDING_INFO -name PKCS1_PADDING_INFO
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_PSS_PADDING_INFO -name PSS_PADDING_INFO
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_PQDSA_PADDING_INFO -name PQDSA_PADDING_INFO
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_RSAKEY_BLOB -name RSAKEY_BLOB
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_ECCKEY_BLOB -name ECCKEY_BLOB
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_DSA_KEY_BLOB -name DSA_KEY_BLOB
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_DSA_KEY_BLOB_V2 -name DSA_KEY_BLOB_V2
+//winmd:type Windows.Win32.Security.Cryptography.BCRYPT_MLKEM_KEY_BLOB -name MLKEM_KEY_BLOB
 
 // Package bcrypt implements interop with bcrypt.dll, a component of Windows CNG.
 // See https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/
@@ -10,7 +52,6 @@
 package bcrypt
 
 import (
-	"syscall"
 	"unsafe"
 )
 
@@ -104,23 +145,9 @@ const (
 	KEY_DATA_BLOB_VERSION1 = 1
 )
 
-type KEY_DATA_BLOB_HEADER struct {
-	Magic   uint32
-	Version uint32
-	Length  uint32
-}
+type Buffer = BCryptBuffer
 
-type Buffer struct {
-	Length uint32
-	Type   uint32
-	Data   unsafe.Pointer
-}
-
-type BufferDesc struct {
-	Version uint32
-	Count   uint32 // number of buffers
-	Buffers *Buffer
-}
+type BufferDesc = BCryptBufferDesc
 
 const (
 	USE_SYSTEM_PREFERRED_RNG = 0x00000002
@@ -149,42 +176,7 @@ const (
 	MLKEM_PARAMETER_SET_1024 = "1024"
 )
 
-type HASHALGORITHM_ENUM uint32
-
-const (
-	DSA_HASH_ALGORITHM_SHA1 HASHALGORITHM_ENUM = iota
-	DSA_HASH_ALGORITHM_SHA256
-	DSA_HASH_ALGORITHM_SHA512
-)
-
-type DSAFIPSVERSION_ENUM uint32
-
-const (
-	DSA_FIPS186_2 DSAFIPSVERSION_ENUM = iota
-	DSA_FIPS186_3
-)
-
-type DSA_PARAMETER_HEADER struct {
-	Length  uint32
-	Magic   KeyBlobMagicNumber
-	KeySize uint32
-	Count   [4]uint8
-	Seed    [20]uint8
-	Q       [20]uint8
-}
-
-type DSA_PARAMETER_HEADER_V2 struct {
-	Length          uint32
-	Magic           KeyBlobMagicNumber
-	KeySize         uint32
-	HashAlgorithm   HASHALGORITHM_ENUM
-	StandardVersion DSAFIPSVERSION_ENUM
-	SeedLength      uint32
-	GroupSize       uint32
-	Count           [4]uint8
-}
-
-type PadMode uint32
+type PadMode = BCRYPT_FLAGS
 
 const (
 	PAD_UNDEFINED     PadMode = 0x0
@@ -196,7 +188,7 @@ const (
 	MLDSA_EXTERNAL_MU PadMode = 0x40
 )
 
-type AlgorithmProviderFlags uint32
+type AlgorithmProviderFlags = BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS
 
 const (
 	ALG_NONE_FLAG        AlgorithmProviderFlags = 0x00000000
@@ -233,19 +225,12 @@ const (
 )
 
 type (
-	HANDLE        syscall.Handle
-	ALG_HANDLE    HANDLE
-	HASH_HANDLE   HANDLE
-	KEY_HANDLE    HANDLE
-	SECRET_HANDLE HANDLE
+	HANDLE        = BCRYPT_HANDLE
+	ALG_HANDLE    = BCRYPT_ALG_HANDLE
+	HASH_HANDLE   = BCRYPT_HASH_HANDLE
+	KEY_HANDLE    = BCRYPT_KEY_HANDLE
+	SECRET_HANDLE = BCRYPT_SECRET_HANDLE
 )
-
-// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_key_lengths_struct
-type KEY_LENGTHS_STRUCT struct {
-	MinLength uint32
-	MaxLength uint32
-	Increment uint32
-}
 
 func NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag []byte) *AUTHENTICATED_CIPHER_MODE_INFO {
 	var aad *byte
@@ -253,83 +238,22 @@ func NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag []byte) *AUTHE
 		aad = &additionalData[0]
 	}
 	info := AUTHENTICATED_CIPHER_MODE_INFO{
-		InfoVersion:  1,
-		Nonce:        &nonce[0],
-		NonceSize:    uint32(len(nonce)),
-		AuthData:     aad,
-		AuthDataSize: uint32(len(additionalData)),
-		Tag:          &tag[0],
-		TagSize:      uint32(len(tag)),
+		DwInfoVersion: 1,
+		PbNonce:       &nonce[0],
+		CbNonce:       uint32(len(nonce)),
+		PbAuthData:    aad,
+		CbAuthData:    uint32(len(additionalData)),
+		PbTag:         &tag[0],
+		CbTag:         uint32(len(tag)),
 	}
-	info.Size = uint32(unsafe.Sizeof(info))
+	info.CbSize = uint32(unsafe.Sizeof(info))
 	return &info
 }
 
-// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_oaep_padding_info
-type OAEP_PADDING_INFO struct {
-	AlgId     *uint16
-	Label     *byte
-	LabelSize uint32
-}
-
-// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_pkcs1_padding_info
-type PKCS1_PADDING_INFO struct {
-	AlgId *uint16
-}
-
-// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_pss_padding_info
-type PSS_PADDING_INFO struct {
-	AlgId *uint16
-	Salt  uint32
-}
-
-// https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptsignhash
-type PQDSA_PADDING_INFO struct {
-	Context      *byte
-	ContextSize  uint32
-	PrehashAlgID *uint16
-}
-
-// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_rsakey_blob
-type RSAKEY_BLOB struct {
-	Magic         KeyBlobMagicNumber
-	BitLength     uint32
-	PublicExpSize uint32
-	ModulusSize   uint32
-	Prime1Size    uint32
-	Prime2Size    uint32
-}
-
-// https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_ecckey_blob
-type ECCKEY_BLOB struct {
-	Magic   KeyBlobMagicNumber
-	KeySize uint32
-}
-
-// https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_dsa_key_blob
-type DSA_KEY_BLOB struct {
-	Magic   KeyBlobMagicNumber
-	KeySize uint32
-	Count   [4]uint8
-	Seed    [20]uint8
-	Q       [20]uint8
-}
-
-// https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_dsa_key_blob_v2
-type DSA_KEY_BLOB_V2 struct {
-	Magic           KeyBlobMagicNumber
-	KeySize         uint32
-	HashAlgorithm   HASHALGORITHM_ENUM
-	StandardVersion DSAFIPSVERSION_ENUM
-	SeedLength      uint32
-	GroupSize       uint32
-	Count           [4]uint8
-}
-
-// https://learn.microsoft.com/en-us/windows/win32/seccng/cng-mlkem
-type MLKEM_KEY_BLOB struct {
-	Magic KeyBlobMagicNumber
-}
+//sys _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptEncrypt
+//sys _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptDecrypt
+//sys _GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenerateSymmetricKey
+//sys HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
 
 func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, ciphertext []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
 	var pInput *byte
@@ -362,50 +286,6 @@ func Decrypt(hKey KEY_HANDLE, ciphertext []byte, pPaddingInfo unsafe.Pointer, pb
 	return _Decrypt(hKey, pInput, uint32(len(ciphertext)), pPaddingInfo, pbIV, pOutput, uint32(len(plaintext)), pcbResult, dwFlags)
 }
 
-//sys	GetFipsAlgorithmMode(enabled *bool) (ntstatus error) = bcrypt.BCryptGetFipsAlgorithmMode
-//sys	SetProperty(hObject HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSetProperty
-//sys	GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty
-//sys	OpenAlgorithmProvider(phAlgorithm *ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags AlgorithmProviderFlags) (ntstatus error) = bcrypt.BCryptOpenAlgorithmProvider
-//sys	CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCloseAlgorithmProvider
-
-// SHA and HMAC
-
-//sys	Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) = bcrypt.BCryptHash
-//sys	CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCreateHash
-//sys	DestroyHash(hHash HASH_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyHash
-//sys   HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
-//sys   HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
-//sys   DuplicateHash(hHash HASH_HANDLE,  phNewHash *HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDuplicateHash
-//sys   FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinishHash
-
-// Rand
-
-//sys   GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenRandom
-
-// Keys
-
-//sys   generateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenerateSymmetricKey
-//sys   GenerateKeyPair(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, dwLength uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenerateKeyPair
-//sys   FinalizeKeyPair(hKey KEY_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinalizeKeyPair
-//sys   ImportKeyPair (hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *uint16, phKey *KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptImportKeyPair
-//sys   ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptExportKey
-//sys   DestroyKey(hKey KEY_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyKey
-//sys   _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptEncrypt
-//sys   _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptDecrypt
-//sys   SignHash (hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptSignHash
-//sys   VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags PadMode) (ntstatus error) = bcrypt.BCryptVerifySignature
-//sys   SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SECRET_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSecretAgreement
-//sys   DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDeriveKey
-//sys   KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptKeyDerivation
-//sys   DestroySecret(hSecret SECRET_HANDLE) (ntstatus error) = bcrypt.BCryptDestroySecret
-
-// ML-KEM uses standard BCrypt functions
-// BCryptGenerateKeyPair, BCryptSetProperty, BCryptFinalizeKeyPair, BCryptExportKey, BCryptImportKeyPair
-// BCryptEncapsulate, BCryptDecapsulate
-
-//sys   Encapsulate(hKey KEY_HANDLE, pbSecret []byte, pcbResult *uint32, pbCiphertext []byte, pcbCiphertext *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptEncapsulate
-//sys   Decapsulate(hKey KEY_HANDLE, pbCiphertext []byte, pbSecret []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDecapsulate
-
 func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) error {
 	cbLen := uint32(len(pbSecret))
 	if cbLen == 0 {
@@ -413,5 +293,5 @@ func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject 
 		// stack-allocate a zero byte here just to make CNG happy.
 		pbSecret = make([]byte, 1)
 	}
-	return generateSymmetricKey(hAlgorithm, phKey, pbKeyObject, &pbSecret[0], cbLen, dwFlags)
+	return _GenerateSymmetricKey(hAlgorithm, phKey, pbKeyObject, &pbSecret[0], cbLen, dwFlags)
 }

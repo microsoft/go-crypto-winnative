@@ -30,19 +30,19 @@ func newHKDF[H hash.Hash](h func() H, secret, salt []byte) (bcrypt.KEY_HANDLE, e
 	ch := h()
 	hashID := hashToID(ch)
 	if hashID == "" {
-		return 0, errors.New("cng: unsupported hash function")
+		return nil, errors.New("cng: unsupported hash function")
 	}
 	alg, err := loadHKDF()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var kh bcrypt.KEY_HANDLE
 	if err := bcrypt.GenerateSymmetricKey(alg, &kh, nil, secret, 0); err != nil {
-		return 0, err
+		return nil, err
 	}
 	if err := setString(bcrypt.HANDLE(kh), bcrypt.HKDF_HASH_ALGORITHM, hashID); err != nil {
 		bcrypt.DestroyKey(kh)
-		return 0, err
+		return nil, err
 	}
 	if salt != nil {
 		// Used for Extract.
@@ -53,7 +53,7 @@ func newHKDF[H hash.Hash](h func() H, secret, salt []byte) (bcrypt.KEY_HANDLE, e
 	}
 	if err != nil {
 		bcrypt.DestroyKey(kh)
-		return 0, err
+		return nil, err
 	}
 	return kh, nil
 }
@@ -72,7 +72,7 @@ func ExtractHKDF[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if hdr.Version != bcrypt.KEY_DATA_BLOB_VERSION1 {
+	if hdr.DwVersion != bcrypt.KEY_DATA_BLOB_VERSION1 {
 		return nil, errors.New("cng: unknown key data blob version")
 	}
 	// KEY_DATA_BLOB_VERSION1 format is:
@@ -107,11 +107,11 @@ func ExpandHKDF[H hash.Hash](h func() H, pseudorandomKey, info []byte, keyLength
 	var params *bcrypt.BufferDesc
 	if len(info) > 0 {
 		params = &bcrypt.BufferDesc{
-			Count: 1,
-			Buffers: &bcrypt.Buffer{
-				Length: uint32(len(info)),
-				Type:   bcrypt.KDF_HKDF_INFO,
-				Data:   unsafe.Pointer(&info[0]),
+			CBuffers: 1,
+			PBuffers: &bcrypt.Buffer{
+				CbBuffer:   uint32(len(info)),
+				BufferType: bcrypt.KDF_HKDF_INFO,
+				PvBuffer:   unsafe.Pointer(&info[0]),
 			},
 		}
 	}

@@ -80,7 +80,7 @@ func generateMLDSAKey(paramSet string, dst []byte) error {
 
 	var blob [sizeOfPrivateSeedBlobMLDSA]byte
 	var size uint32
-	if err := bcrypt.ExportKey(hKey, 0, utf16PtrFromString(bcrypt.PQDSA_PRIVATE_SEED_BLOB), blob[:], &size, 0); err != nil {
+	if err := bcrypt.ExportKey(hKey, nil, utf16PtrFromString(bcrypt.PQDSA_PRIVATE_SEED_BLOB), blob[:], &size, 0); err != nil {
 		return err
 	}
 	return extractPQDSAKeyBytes(dst, blob[:size])
@@ -127,16 +127,16 @@ func extractPQDSAKeyBytes(dst, blob []byte) error {
 func importMLDSAPrivateKey(paramSet string, seed []byte) (bcrypt.KEY_HANDLE, error) {
 	alg, err := loadMLDSA()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var blobBuf [sizeOfPrivateSeedBlobMLDSA]byte
 	blob, err := newPQDSAKeyBlob(blobBuf[:], paramSet, seed, bcrypt.MLDSA_PRIVATE_SEED_MAGIC)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var hKey bcrypt.KEY_HANDLE
-	if err := bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.PQDSA_PRIVATE_SEED_BLOB), &hKey, blob, 0); err != nil {
-		return 0, err
+	if err := bcrypt.ImportKeyPair(alg.handle, nil, utf16PtrFromString(bcrypt.PQDSA_PRIVATE_SEED_BLOB), &hKey, blob, 0); err != nil {
+		return nil, err
 	}
 	return hKey, nil
 }
@@ -144,16 +144,16 @@ func importMLDSAPrivateKey(paramSet string, seed []byte) (bcrypt.KEY_HANDLE, err
 func importMLDSAPublicKey(paramSet string, publicKey []byte) (bcrypt.KEY_HANDLE, error) {
 	alg, err := loadMLDSA()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var blobBuf [sizeOfPublicKeyBlobMLDSA87]byte
 	blob, err := newPQDSAKeyBlob(blobBuf[:], paramSet, publicKey, bcrypt.MLDSA_PUBLIC_MAGIC)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var hKey bcrypt.KEY_HANDLE
-	if err := bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.PQDSA_PUBLIC_BLOB), &hKey, blob, 0); err != nil {
-		return 0, err
+	if err := bcrypt.ImportKeyPair(alg.handle, nil, utf16PtrFromString(bcrypt.PQDSA_PUBLIC_BLOB), &hKey, blob, 0); err != nil {
+		return nil, err
 	}
 	return hKey, nil
 }
@@ -167,7 +167,7 @@ func mldsaPublicKey(paramSet string, seed, dst []byte) error {
 
 	var blob [sizeOfPublicKeyBlobMLDSA87]byte
 	var size uint32
-	if err := bcrypt.ExportKey(hKey, 0, utf16PtrFromString(bcrypt.PQDSA_PUBLIC_BLOB), blob[:], &size, 0); err != nil {
+	if err := bcrypt.ExportKey(hKey, nil, utf16PtrFromString(bcrypt.PQDSA_PUBLIC_BLOB), blob[:], &size, 0); err != nil {
 		return err
 	}
 	return extractPQDSAKeyBytes(dst, blob[:size])
@@ -182,8 +182,8 @@ func mldsaPadding(context string) (bcrypt.PQDSA_PADDING_INFO, []byte, bcrypt.Pad
 	}
 	contextBytes := []byte(context)
 	return bcrypt.PQDSA_PADDING_INFO{
-		Context:     &contextBytes[0],
-		ContextSize: uint32(len(contextBytes)),
+		PbCtx: &contextBytes[0],
+		CbCtx: uint32(len(contextBytes)),
 	}, contextBytes, bcrypt.PAD_PQDSA, nil
 }
 

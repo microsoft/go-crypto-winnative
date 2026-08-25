@@ -17,12 +17,12 @@ import (
 )
 
 func FIPS() (bool, error) {
-	var enabled bool
+	var enabled uint8
 	err := bcrypt.GetFipsAlgorithmMode(&enabled)
 	if err != nil {
 		return false, err
 	}
-	return enabled, nil
+	return enabled != 0, nil
 }
 
 // len32 clamps s length so it can fit into a Win32 LONG,
@@ -122,7 +122,7 @@ func getKeyLengths(h bcrypt.HANDLE) (lengths bcrypt.KEY_LENGTHS_STRUCT, err erro
 	if err != nil {
 		return
 	}
-	if lengths.MinLength > lengths.MaxLength || (lengths.Increment == 0 && lengths.MinLength != lengths.MaxLength) {
+	if lengths.DwMinLength > lengths.DwMaxLength || (lengths.DwIncrement == 0 && lengths.DwMinLength != lengths.DwMaxLength) {
 		err = errors.New("invalid BCRYPT_KEY_LENGTHS_STRUCT")
 		return
 	}
@@ -130,11 +130,11 @@ func getKeyLengths(h bcrypt.HANDLE) (lengths bcrypt.KEY_LENGTHS_STRUCT, err erro
 }
 
 func keyIsAllowed(lengths bcrypt.KEY_LENGTHS_STRUCT, bits uint32) bool {
-	if bits < lengths.MinLength || bits > lengths.MaxLength {
+	if bits < lengths.DwMinLength || bits > lengths.DwMaxLength {
 		return false
 	}
-	if lengths.Increment == 0 {
-		return bits == lengths.MinLength
+	if lengths.DwIncrement == 0 {
+		return bits == lengths.DwMinLength
 	}
-	return (bits-lengths.MinLength)%lengths.Increment == 0
+	return (bits-lengths.DwMinLength)%lengths.DwIncrement == 0
 }
