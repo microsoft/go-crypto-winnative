@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 const mkwinsyscallVersion = "v0.37.0"
@@ -36,7 +37,10 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "%s\n\n", description)
 	}
 	flag.Parse()
-	goTool := filepath.Join(runtime.GOROOT(), "bin", "go")
+	goTool, err := exec.LookPath("go")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	listCmd := exec.Command(goTool, "list", "-m")
 	listCmd.Env = append(os.Environ(), "GO111MODULE=on")
@@ -47,8 +51,8 @@ func main() {
 		log.Fatal("WARNING: Please switch from using:\n    go run ./cmd/mksyscall\nto using:\n    go run golang.org/x/sys/windows/mkwinsyscall\n")
 	}
 
-	install(goTool)
-	zsys := generateSyscalls()
+	mkwinsyscall := install(goTool)
+	zsys := generateSyscalls(mkwinsyscall)
 
 	if *output == "" {
 		os.Stdout.Write(zsys)
@@ -62,7 +66,7 @@ func main() {
 
 // install makes sure mkwinsyscall can be called by
 // running go install golang.org/x/sys/windows/mkwinsyscall.
-func install(goTool string) {
+func install(goTool string) string {
 	// mkwinsyscall is hardcoded here instead of adding it to go.mod so
 	// it doesn't appear in go.sum, which will reduce the likelihood
 	// of having patch conflicts when vendoring go-crypto-winnative.
@@ -75,6 +79,29 @@ func install(goTool string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	binDir := goEnv(goTool, "GOBIN")
+	if binDir == "" {
+		goPaths := filepath.SplitList(goEnv(goTool, "GOPATH"))
+		if len(goPaths) == 0 {
+			log.Fatal("GOPATH is empty")
+		}
+		binDir = filepath.Join(goPaths[0], "bin")
+	}
+	binary := "mkwinsyscall"
+	if runtime.GOOS == "windows" {
+		binary += ".exe"
+	}
+	return filepath.Join(binDir, binary)
+}
+
+func goEnv(goTool, name string) string {
+	cmd := exec.Command(goTool, "env", name)
+	output, err := cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return strings.TrimSpace(string(output))
 }
 
 // generateSyscalls runs mkwinsyscall with GOROOT set to the current working directory.
@@ -84,7 +111,7 @@ func install(goTool string) {
 // to avoid DLL preloading attacks. As sysdll is a std internal package, this function
 // replaces the generated code's sysdll import with our own version located at
 // "./internal/sysdll".
-func generateSyscalls() []byte {
+func generateSyscalls(mkwinsyscall string) []byte {
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -92,7 +119,7 @@ func generateSyscalls() []byte {
 	args := flag.Args()
 	// We have intercepted the output argument, so we can be sure
 	// that mkwinsyscall will emit the generated file to the standard output.
-	cmd := exec.Command("mkwinsyscall", args...)
+	cmd := exec.Command(mkwinsyscall, args...)
 	var bout bytes.Buffer
 	cmd.Stdout = &bout
 	cmd.Stderr = os.Stderr
@@ -104,6 +131,7 @@ func generateSyscalls() []byte {
 	zsys := bout.Bytes()
 	zsys = bytes.ReplaceAll(zsys, []byte("\"internal/syscall/windows/sysdll\""), []byte("\"github.com/microsoft/go-crypto-winnative/internal/sysdll\""))
 	zsys = bytes.ReplaceAll(zsys, []byte("windows.NTStatus"), []byte("NTStatus"))
+	zsys = bytes.ReplaceAll(zsys, []byte(".dll.dll\""), []byte(".dll\""))
 
 	return zsys
 }

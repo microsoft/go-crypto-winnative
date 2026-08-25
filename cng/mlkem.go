@@ -101,7 +101,7 @@ func generateMLKEMKey(paramSet string, dst []byte) error {
 	// Export the private key blob
 	blob := make([]byte, sizeOfPrivateSeedMLKEM1024) // use the larger size to be safe and avoid an allocation
 	var size uint32
-	err = bcrypt.ExportKey(hKey, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_SEED_BLOB), blob, &size, 0)
+	err = bcrypt.ExportKey(hKey, nil, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_SEED_BLOB), blob, &size, 0)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func mlkemDecapsulate(paramSet string, seed []byte, ciphertext []byte, expectedC
 	}
 
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_SEED_BLOB), &hKey, blob, 0)
+	err = bcrypt.ImportKeyPair(alg.handle, nil, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_SEED_BLOB), &hKey, blob, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func mlkemEncapsulationKey(paramSet string, seed []byte, dst []byte) {
 	}
 
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_SEED_BLOB), &hKey, blob, 0)
+	err = bcrypt.ImportKeyPair(alg.handle, nil, utf16PtrFromString(bcrypt.MLKEM_PRIVATE_SEED_BLOB), &hKey, blob, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -206,7 +206,7 @@ func mlkemEncapsulationKey(paramSet string, seed []byte, dst []byte) {
 	// Export the public key blob
 	pubBlob := make([]byte, sizeOfPublicKeyMLKEM1024) // use the larger size to be safe and avoid an allocation
 	var size uint32
-	err = bcrypt.ExportKey(hKey, 0, utf16PtrFromString(bcrypt.MLKEM_PUBLIC_BLOB), pubBlob, &size, 0)
+	err = bcrypt.ExportKey(hKey, nil, utf16PtrFromString(bcrypt.MLKEM_PUBLIC_BLOB), pubBlob, &size, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -231,7 +231,7 @@ func mlkemEncapsulate(paramSet string, keyBytes []byte, expectedCiphertextSize i
 	}
 
 	var hKey bcrypt.KEY_HANDLE
-	err = bcrypt.ImportKeyPair(alg.handle, 0, utf16PtrFromString(bcrypt.MLKEM_PUBLIC_BLOB), &hKey, blob, 0)
+	err = bcrypt.ImportKeyPair(alg.handle, nil, utf16PtrFromString(bcrypt.MLKEM_PUBLIC_BLOB), &hKey, blob, 0)
 	if err != nil {
 		panic(err)
 	}

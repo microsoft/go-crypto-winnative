@@ -198,7 +198,7 @@ func (h *Hash) finalize() {
 
 func (h *Hash) init() {
 	defer runtime.KeepAlive(h)
-	if h.ctx != 0 {
+	if h.ctx != nil {
 		return
 	}
 	err := bcrypt.CreateHash(h.alg.handle, &h.ctx, nil, h.key, bcrypt.HASH_REUSABLE_FLAG)
@@ -211,7 +211,7 @@ func (h *Hash) init() {
 func (h *Hash) Clone() (hash.Cloner, error) {
 	defer runtime.KeepAlive(h)
 	h2 := &Hash{alg: h.alg, key: bytes.Clone(h.key)}
-	if h.ctx != 0 {
+	if h.ctx != nil {
 		hashClone(h.ctx, &h2.ctx)
 		runtime.SetFinalizer(h2, (*Hash).finalize)
 	}
@@ -220,7 +220,7 @@ func (h *Hash) Clone() (hash.Cloner, error) {
 
 func (h *Hash) Reset() {
 	defer runtime.KeepAlive(h)
-	if h.ctx != 0 {
+	if h.ctx != nil {
 		hashReset(h.ctx, h.Size())
 	}
 }

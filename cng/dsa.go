@@ -243,13 +243,13 @@ func encodeDSAKey(h bcrypt.ALG_HANDLE, params DSAParameters, X, Y BigInt) (bcryp
 	if keySize*8 <= 1024 {
 		size := sizeOfDSABlobHeader + keySize*3
 		hdr := bcrypt.DSA_KEY_BLOB{
-			Magic:   bcrypt.DSA_PUBLIC_MAGIC,
-			KeySize: keySize,
+			DwMagic: bcrypt.BCRYPT_DSA_MAGIC(bcrypt.DSA_PUBLIC_MAGIC),
+			CbKey:   keySize,
 			Count:   dsaCountNil,
 		}
 		if private {
 			size += uint32(len(hdr.Q)) // private key is always 20 bytes
-			hdr.Magic = bcrypt.DSA_PRIVATE_MAGIC
+			hdr.DwMagic = bcrypt.BCRYPT_DSA_MAGIC(bcrypt.DSA_PRIVATE_MAGIC)
 		}
 		copy(hdr.Seed[:], dsaSeedNil[:])
 		copy(hdr.Q[:], params.Q[:])
@@ -262,23 +262,23 @@ func encodeDSAKey(h bcrypt.ALG_HANDLE, params DSAParameters, X, Y BigInt) (bcryp
 			{Y, keySize},
 			{X, groupSize},
 		}); err != nil {
-			return 0, err
+			return nil, err
 		}
 	} else {
 		size := sizeOfDSAV2BlobHeader + 3*keySize + 2*groupSize
 		hashAlg := hashAlgFromGroup(int(groupSize))
 		hdr := bcrypt.DSA_KEY_BLOB_V2{
-			Magic:           bcrypt.DSA_PUBLIC_MAGIC_V2,
-			KeySize:         keySize,
-			GroupSize:       groupSize,
+			DwMagic:         bcrypt.BCRYPT_DSA_MAGIC(bcrypt.DSA_PUBLIC_MAGIC_V2),
+			CbKey:           keySize,
+			CbGroupSize:     groupSize,
 			HashAlgorithm:   hashAlg,
 			StandardVersion: bcrypt.DSA_FIPS186_3,
-			SeedLength:      groupSize, // crypto/dsa doesn't use the seed, but it must be equal to groupSize.
+			CbSeedLength:    groupSize, // crypto/dsa doesn't use the seed, but it must be equal to groupSize.
 			Count:           dsaCountNil,
 		}
 		if private {
 			size += groupSize
-			hdr.Magic = bcrypt.DSA_PRIVATE_MAGIC_V2
+			hdr.DwMagic = bcrypt.BCRYPT_DSA_MAGIC(bcrypt.DSA_PRIVATE_MAGIC_V2)
 		}
 		blob = make([]byte, size)
 		copy(blob, (*(*[sizeOfDSAV2BlobHeader]byte)(unsafe.Pointer(&hdr)))[:])
@@ -291,7 +291,7 @@ func encodeDSAKey(h bcrypt.ALG_HANDLE, params DSAParameters, X, Y BigInt) (bcryp
 			{Y, keySize},
 			{X, groupSize},
 		}); err != nil {
-			return 0, err
+			return nil, err
 		}
 	}
 	kind := bcrypt.DSA_PUBLIC_BLOB
@@ -299,9 +299,9 @@ func encodeDSAKey(h bcrypt.ALG_HANDLE, params DSAParameters, X, Y BigInt) (bcryp
 		kind = bcrypt.DSA_PRIVATE_BLOB
 	}
 	var hkey bcrypt.KEY_HANDLE
-	err := bcrypt.ImportKeyPair(h, 0, utf16PtrFromString(kind), &hkey, blob, 0)
+	err := bcrypt.ImportKeyPair(h, nil, utf16PtrFromString(kind), &hkey, blob, 0)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	return hkey, nil
 }
@@ -325,20 +325,20 @@ func decodeDSAKey(hkey bcrypt.KEY_HANDLE, private bool) (params DSAParameters, X
 		if err != nil {
 			return
 		}
-		magic := bcrypt.DSA_PUBLIC_MAGIC
+		magic := bcrypt.BCRYPT_DSA_MAGIC(bcrypt.DSA_PUBLIC_MAGIC)
 		if private {
-			magic = bcrypt.DSA_PRIVATE_MAGIC
+			magic = bcrypt.BCRYPT_DSA_MAGIC(bcrypt.DSA_PRIVATE_MAGIC)
 		}
-		if hdr.Magic != magic || hdr.KeySize*8 != uint32(L) {
+		if hdr.DwMagic != magic || hdr.CbKey*8 != uint32(L) {
 			err = errors.New("crypto/dsa: exported key is corrupted")
 			return
 		}
 		params = DSAParameters{
 			Q: hdr.Q[:],
-			P: consumeBigInt(hdr.KeySize),
-			G: consumeBigInt(hdr.KeySize),
+			P: consumeBigInt(hdr.CbKey),
+			G: consumeBigInt(hdr.CbKey),
 		}
-		Y = consumeBigInt(hdr.KeySize)
+		Y = consumeBigInt(hdr.CbKey)
 		if private {
 			X = consumeBigInt(uint32(len(hdr.Q))) // private key is always 20 bytes
 		}
@@ -348,24 +348,24 @@ func decodeDSAKey(hkey bcrypt.KEY_HANDLE, private bool) (params DSAParameters, X
 		if err != nil {
 			return
 		}
-		magic := bcrypt.DSA_PUBLIC_MAGIC_V2
+		magic := bcrypt.BCRYPT_DSA_MAGIC(bcrypt.DSA_PUBLIC_MAGIC_V2)
 		if private {
-			magic = bcrypt.DSA_PRIVATE_MAGIC_V2
+			magic = bcrypt.BCRYPT_DSA_MAGIC(bcrypt.DSA_PRIVATE_MAGIC_V2)
 		}
-		if hdr.Magic != magic || hdr.KeySize*8 != uint32(L) {
+		if hdr.DwMagic != magic || hdr.CbKey*8 != uint32(L) {
 			err = errors.New("crypto/dsa: exported key is corrupted")
 			return
 		}
 		// Discard the seed, crypto/dsa doesn't use it.
-		consumeBigInt(hdr.SeedLength)
+		consumeBigInt(hdr.CbSeedLength)
 		params = DSAParameters{
-			Q: consumeBigInt(hdr.GroupSize),
-			P: consumeBigInt(hdr.KeySize),
-			G: consumeBigInt(hdr.KeySize),
+			Q: consumeBigInt(hdr.CbGroupSize),
+			P: consumeBigInt(hdr.CbKey),
+			G: consumeBigInt(hdr.CbKey),
 		}
-		Y = consumeBigInt(hdr.KeySize)
+		Y = consumeBigInt(hdr.CbKey)
 		if private {
-			X = consumeBigInt(hdr.GroupSize)
+			X = consumeBigInt(hdr.CbGroupSize)
 		}
 	}
 	return params, X, Y, nil
@@ -379,10 +379,10 @@ func setDSAParameter(hkey bcrypt.KEY_HANDLE, params DSAParameters) error {
 	if keySize*8 <= 1024 {
 		blob = make([]byte, sizeOfDSAParamsHeader+keySize*2)
 		hdr := bcrypt.DSA_PARAMETER_HEADER{
-			Length:  uint32(len(blob)),
-			Magic:   bcrypt.DSA_PARAMETERS_MAGIC,
-			KeySize: keySize,
-			Count:   dsaCountNil,
+			CbLength:    uint32(len(blob)),
+			DwMagic:     uint32(bcrypt.DSA_PARAMETERS_MAGIC),
+			CbKeyLength: keySize,
+			Count:       dsaCountNil,
 		}
 		copy(hdr.Seed[:], dsaSeedNil[:])
 		copy(hdr.Q[:], params.Q[:])
@@ -398,13 +398,13 @@ func setDSAParameter(hkey bcrypt.KEY_HANDLE, params DSAParameters) error {
 		blob = make([]byte, sizeOfDSAParamsV2Header+2*keySize+2*groupSize)
 		hashAlg := hashAlgFromGroup(int(groupSize))
 		hdr := bcrypt.DSA_PARAMETER_HEADER_V2{
-			Length:          uint32(len(blob)),
-			Magic:           bcrypt.DSA_PARAMETERS_MAGIC_V2,
-			KeySize:         keySize,
-			GroupSize:       groupSize,
+			CbLength:        uint32(len(blob)),
+			DwMagic:         uint32(bcrypt.DSA_PARAMETERS_MAGIC_V2),
+			CbKeyLength:     keySize,
+			CbGroupSize:     groupSize,
 			HashAlgorithm:   hashAlg,
 			StandardVersion: bcrypt.DSA_FIPS186_3,
-			SeedLength:      groupSize, // crypto/dsa doesn't use the seed, but CNG expects it to be groupSize.
+			CbSeedLength:    groupSize, // crypto/dsa doesn't use the seed, but CNG expects it to be groupSize.
 			Count:           dsaCountNil,
 		}
 		copy(blob, (*(*[sizeOfDSAParamsV2Header]byte)(unsafe.Pointer(&hdr)))[:])
