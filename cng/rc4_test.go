@@ -147,6 +147,21 @@ func TestRC4Stream(t *testing.T) {
 	})
 }
 
+func TestRC4Reset(t *testing.T) {
+	c, err := cng.NewRC4Cipher(golden[0].key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Reset()
+	c.Reset()
+
+	dst := []byte{0xff}
+	c.XORKeyStream(dst, []byte{0})
+	if dst[0] != 0xff {
+		t.Fatal("XORKeyStream modified dst after Reset")
+	}
+}
+
 func benchmarkRC4(b *testing.B, size int64) {
 	buf := make([]byte, size)
 	c, err := cng.NewRC4Cipher(golden[0].key)
