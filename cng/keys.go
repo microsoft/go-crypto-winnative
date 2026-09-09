@@ -25,7 +25,7 @@ const (
 
 func destroyKey(hkey bcrypt.KEY_HANDLE) {
 	if hkey != nil {
-		bcrypt.DestroyKey(hkey)
+		_ = bcrypt.DestroyKey(hkey)
 	}
 }
 

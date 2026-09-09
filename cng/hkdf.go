@@ -41,7 +41,7 @@ func newHKDF[H hash.Hash](h func() H, secret, salt []byte) (bcrypt.KEY_HANDLE, e
 		return nil, err
 	}
 	if err := setString(bcrypt.HANDLE(kh), bcrypt.HKDF_HASH_ALGORITHM, hashID); err != nil {
-		bcrypt.DestroyKey(kh)
+		_ = bcrypt.DestroyKey(kh)
 		return nil, err
 	}
 	if salt != nil {
@@ -52,7 +52,7 @@ func newHKDF[H hash.Hash](h func() H, secret, salt []byte) (bcrypt.KEY_HANDLE, e
 		err = bcrypt.SetProperty(bcrypt.HANDLE(kh), utf16PtrFromString(bcrypt.HKDF_PRK_AND_FINALIZE), nil, 0)
 	}
 	if err != nil {
-		bcrypt.DestroyKey(kh)
+		_ = bcrypt.DestroyKey(kh)
 		return nil, err
 	}
 	return kh, nil
@@ -67,7 +67,7 @@ func ExtractHKDF[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer bcrypt.DestroyKey(kh)
+	defer func() { _ = bcrypt.DestroyKey(kh) }()
 	hdr, blob, err := exportKeyData(kh)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func ExpandHKDF[H hash.Hash](h func() H, pseudorandomKey, info []byte, keyLength
 	if err != nil {
 		return nil, err
 	}
-	defer bcrypt.DestroyKey(kh)
+	defer func() { _ = bcrypt.DestroyKey(kh) }()
 	out := make([]byte, keyLength)
 	if len(out) == 0 {
 		// Nothing to do, and CNG doesn't like zero-length output buffers.

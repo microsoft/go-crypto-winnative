@@ -86,7 +86,7 @@ func generateMLKEMKey(paramSet string, dst []byte) error {
 	if err != nil {
 		return err
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	// Set the parameter set
 	if err := setString(bcrypt.HANDLE(hKey), bcrypt.PARAMETER_SET_NAME, paramSet); err != nil {
@@ -170,7 +170,7 @@ func mlkemDecapsulate(paramSet string, seed []byte, ciphertext []byte, expectedC
 	if err != nil {
 		return nil, err
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	sharedKey := make([]byte, sharedKeySizeMLKEM)
 	var cbResult uint32
@@ -201,7 +201,7 @@ func mlkemEncapsulationKey(paramSet string, seed []byte, dst []byte) {
 	if err != nil {
 		panic(err)
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	// Export the public key blob
 	pubBlob := make([]byte, sizeOfPublicKeyMLKEM1024) // use the larger size to be safe and avoid an allocation
@@ -235,7 +235,7 @@ func mlkemEncapsulate(paramSet string, keyBytes []byte, expectedCiphertextSize i
 	if err != nil {
 		panic(err)
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	sharedKey := make([]byte, sharedKeySizeMLKEM)
 	var cbResult uint32

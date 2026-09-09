@@ -70,7 +70,7 @@ func ECDH(priv *PrivateKeyECDH, pub *PublicKeyECDH) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer bcrypt.DestroySecret(secret)
+	defer func() { _ = bcrypt.DestroySecret(secret) }()
 
 	// Then we need to export the raw shared secret from the secret opaque handler.
 	// The only way to do it is using BCryptDeriveKey with BCRYPT_KDF_RAW_SECRET as key derivation function (KDF).
@@ -112,7 +112,7 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	// The key cannot be used until BCryptFinalizeKeyPair has been called.
 	err = bcrypt.FinalizeKeyPair(hkey, 0)
 	if err != nil {
-		bcrypt.DestroyKey(hkey)
+		_ = bcrypt.DestroyKey(hkey)
 		return nil, nil, err
 	}
 
@@ -120,7 +120,7 @@ func GenerateKeyECDH(curve string) (*PrivateKeyECDH, []byte, error) {
 	// To get it we need to export the raw CNG key bytes.
 	hdr, bytes, err := exportECCKey(hkey, true)
 	if err != nil {
-		bcrypt.DestroyKey(hkey)
+		_ = bcrypt.DestroyKey(hkey)
 		return nil, nil, err
 	}
 	// Only take the private component of the key,

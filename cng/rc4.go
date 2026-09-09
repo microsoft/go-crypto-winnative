@@ -37,7 +37,7 @@ func (c *RC4Cipher) Reset() {
 		return
 	}
 	c.cleanup.Stop()
-	bcrypt.DestroyKey(c.kh)
+	_ = bcrypt.DestroyKey(c.kh)
 	c.kh = nil
 }
 

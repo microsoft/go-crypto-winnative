@@ -79,7 +79,7 @@ func GenerateParametersDSA(L int) (params DSAParameters, err error) {
 	if err := bcrypt.GenerateKeyPair(h.handle, &hkey, uint32(L), 0); err != nil {
 		return DSAParameters{}, err
 	}
-	defer bcrypt.DestroyKey(hkey)
+	defer func() { _ = bcrypt.DestroyKey(hkey) }()
 
 	if err := bcrypt.FinalizeKeyPair(hkey, 0); err != nil {
 		return DSAParameters{}, err
@@ -118,7 +118,7 @@ func GenerateKeyDSA(params DSAParameters) (x, y BigInt, err error) {
 	if err := bcrypt.GenerateKeyPair(h.handle, &hkey, keySize*8, 0); err != nil {
 		return nil, nil, err
 	}
-	defer bcrypt.DestroyKey(hkey)
+	defer func() { _ = bcrypt.DestroyKey(hkey) }()
 	if err := setDSAParameter(hkey, params); err != nil {
 		return nil, nil, err
 	}
