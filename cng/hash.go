@@ -193,7 +193,7 @@ func newHash(id string) *Hash {
 }
 
 func destroyHash(ctx bcrypt.HASH_HANDLE) {
-	bcrypt.DestroyHash(ctx)
+	_ = bcrypt.DestroyHash(ctx)
 }
 
 func (h *Hash) init() {
@@ -311,7 +311,7 @@ func hashSum(ctx bcrypt.HASH_HANDLE, size int, in []byte) []byte {
 	if err != nil {
 		panic(err)
 	}
-	defer bcrypt.DestroyHash(ctx2)
+	defer func() { _ = bcrypt.DestroyHash(ctx2) }()
 	buf := make([]byte, size, maxHashSize) // explicit cap to allow stack allocation
 	err = bcrypt.FinishHash(ctx2, buf, 0)
 	if err != nil {

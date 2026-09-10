@@ -63,14 +63,14 @@ func loadOrStoreAlg[T any](id string, flags bcrypt.AlgorithmProviderFlags, mode 
 	if ret.err = bcrypt.OpenAlgorithmProvider(&h, utf16PtrFromString(id), nil, flags); ret.err == nil {
 		ret.value, ret.err = fn(h)
 		if ret.err != nil {
-			bcrypt.CloseAlgorithmProvider(h, 0)
+			_ = bcrypt.CloseAlgorithmProvider(h, 0)
 		}
 	}
 
 	// Store the result in the cache.
 	if existing, loaded := algCache.LoadOrStore(entryKey, ret); loaded {
 		// Another goroutine stored it first concurrently, so use that one instead.
-		bcrypt.CloseAlgorithmProvider(h, 0)
+		_ = bcrypt.CloseAlgorithmProvider(h, 0)
 		ret = existing.(entryResult[T])
 	}
 	return ret.value, ret.err

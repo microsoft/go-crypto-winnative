@@ -55,7 +55,7 @@ func GenerateKeyECDSA(curve string) (X, Y, D BigInt, err error) {
 	if err != nil {
 		return
 	}
-	defer bcrypt.DestroyKey(hkey)
+	defer func() { _ = bcrypt.DestroyKey(hkey) }()
 	// The key cannot be used until BCryptFinalizeKeyPair has been called.
 	err = bcrypt.FinalizeKeyPair(hkey, 0)
 	if err != nil {

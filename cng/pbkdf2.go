@@ -35,7 +35,7 @@ func PBKDF2[H hash.Hash](password, salt []byte, iter, keyLen int, fh func() H) (
 	if err := bcrypt.GenerateSymmetricKey(alg, &kh, nil, password, 0); err != nil {
 		return nil, err
 	}
-	defer bcrypt.DestroyKey(kh)
+	defer func() { _ = bcrypt.DestroyKey(kh) }()
 	u16HashID := utf16FromString(hashID)
 	if iter <= 0 {
 		return nil, errors.New("cng: invalid iteration count")

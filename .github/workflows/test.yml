@@ -1,6 +1,21 @@
 on: [push, pull_request]
 name: Test
+permissions:
+  contents: read
 jobs:
+  staticcheck:
+    runs-on: windows-2022
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
+        go-download-base-url: 'https://aka.ms/golang/release/latest'
+
+    - name: Run staticcheck
+      run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 -checks=SA4006 ./...
+
   test:
     strategy:
       fail-fast: false
@@ -47,6 +62,7 @@ jobs:
 
   conclusion:
     needs:
+      - staticcheck
       - test
     runs-on: ubuntu-latest
     if: always()

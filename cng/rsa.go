@@ -47,7 +47,7 @@ func GenerateKeyRSA(bits int) (N, E, D, P, Q, Dp, Dq, Qinv BigInt, err error) {
 	if err != nil {
 		return bad(err)
 	}
-	defer bcrypt.DestroyKey(hkey)
+	defer func() { _ = bcrypt.DestroyKey(hkey) }()
 	// The key cannot be used until BcryptFinalizeKeyPair has been called.
 	err = bcrypt.FinalizeKeyPair(hkey, 0)
 	if err != nil {

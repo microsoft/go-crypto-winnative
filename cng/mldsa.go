@@ -69,7 +69,7 @@ func generateMLDSAKey(paramSet string, dst []byte) error {
 	if err := bcrypt.GenerateKeyPair(alg.handle, &hKey, 0, 0); err != nil {
 		return err
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	if err := setString(bcrypt.HANDLE(hKey), bcrypt.PARAMETER_SET_NAME, paramSet); err != nil {
 		return err
@@ -163,7 +163,7 @@ func mldsaPublicKey(paramSet string, seed, dst []byte) error {
 	if err != nil {
 		return err
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	var blob [sizeOfPublicKeyBlobMLDSA87]byte
 	var size uint32
@@ -192,7 +192,7 @@ func mldsaSign(paramSet string, seed, message []byte, signatureSize int, context
 	if err != nil {
 		return nil, err
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	info, contextBytes, flags, err := mldsaPadding(context)
 	if err != nil {
@@ -220,7 +220,7 @@ func mldsaSignExternalMu(paramSet string, seed, mu []byte, signatureSize int) ([
 	if err != nil {
 		return nil, err
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	signature := make([]byte, signatureSize)
 	var size uint32
@@ -238,7 +238,7 @@ func mldsaVerify(paramSet string, publicKey, message, signature []byte, signatur
 	if err != nil {
 		return err
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 
 	info, contextBytes, flags, err := mldsaPadding(context)
 	if err != nil {
@@ -263,7 +263,7 @@ func mldsaVerifyExternalMu(paramSet string, publicKey, mu, signature []byte, sig
 	if err != nil {
 		return err
 	}
-	defer bcrypt.DestroyKey(hKey)
+	defer func() { _ = bcrypt.DestroyKey(hKey) }()
 	return bcrypt.VerifySignature(hKey, nil, mu, signature, bcrypt.MLDSA_EXTERNAL_MU)
 }
 
@@ -409,7 +409,7 @@ func NewPublicKeyMLDSA(params MLDSAParameters, publicKey []byte) (*PublicKeyMLDS
 	if hKey, err := importMLDSAPublicKey(params.paramSet, publicKey); err != nil {
 		return nil, err
 	} else {
-		bcrypt.DestroyKey(hKey)
+		_ = bcrypt.DestroyKey(hKey)
 	}
 	key := &PublicKeyMLDSA{params: params}
 	copy(key.bytes[:], publicKey)
