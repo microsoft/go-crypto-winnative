@@ -125,6 +125,10 @@ type hashAlgorithm struct {
 	blockSize uint32
 }
 
+// Keep this out of line so newHash can be inlined and callers that only
+// need hash metadata can avoid allocating a Hash.
+//
+//go:noinline
 func mustLoadHash(id string, flags bcrypt.AlgorithmProviderFlags) *hashAlgorithm {
 	h, err := loadHash(id, flags)
 	if err != nil {

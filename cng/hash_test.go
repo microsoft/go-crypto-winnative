@@ -232,6 +232,37 @@ func TestHashAllocations(t *testing.T) {
 	}
 }
 
+func TestHashConstructorAllocations(t *testing.T) {
+	// Call the constructors directly inside each function so they can be
+	// inlined and the Hash need not escape when only its size is needed.
+	tests := []struct {
+		h    crypto.Hash
+		size func() int
+	}{
+		{crypto.MD4, func() int { return cng.NewMD4().Size() }},
+		{crypto.MD5, func() int { return cng.NewMD5().Size() }},
+		{crypto.SHA1, func() int { return cng.NewSHA1().Size() }},
+		{crypto.SHA256, func() int { return cng.NewSHA256().Size() }},
+		{crypto.SHA384, func() int { return cng.NewSHA384().Size() }},
+		{crypto.SHA512, func() int { return cng.NewSHA512().Size() }},
+		{crypto.SHA3_256, func() int { return cng.NewSHA3_256().Size() }},
+		{crypto.SHA3_384, func() int { return cng.NewSHA3_384().Size() }},
+		{crypto.SHA3_512, func() int { return cng.NewSHA3_512().Size() }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.h.String(), func(t *testing.T) {
+			if !cng.SupportsHash(tt.h) {
+				t.Skip("skipping: not supported")
+			}
+			if allocs := testing.AllocsPerRun(10, func() {
+				sink ^= byte(tt.size())
+			}); allocs != 0 {
+				t.Errorf("allocs = %v, want 0", allocs)
+			}
+		})
+	}
+}
+
 func TestHashStructAllocations(t *testing.T) {
 	msg := []byte("testing")
 
