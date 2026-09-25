@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   benchmark:
-    uses: microsoft/go-infra/.github/workflows/benchmark.yml@ebf0f3b5830787f246af9866e867e75db5ff9753 # v0.0.16
+    uses: microsoft/go-infra/.github/workflows/benchmark.yml@6b1ca4059143cb9fe597e9fb19ba40e16d051d3f # v0.0.17
     permissions:
       actions: read
       contents: read
