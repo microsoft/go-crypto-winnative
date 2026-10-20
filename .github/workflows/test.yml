@@ -35,12 +35,12 @@ jobs:
     env:
       GOARCH: ${{ matrix.target.goarch }}
     steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
     - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version: ${{ matrix.go-version }}
         go-download-base-url: 'https://aka.ms/golang/release/latest'
-
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Set FIPS mode
       run: REG ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy /v Enabled /t REG_DWORD /f /d ${{ matrix.fips }}
