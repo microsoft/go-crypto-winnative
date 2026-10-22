@@ -7,6 +7,10 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"go/ast"
+	"go/format"
+	"go/parser"
+	"go/token"
 	"log"
 	"os"
 	"os/exec"
@@ -132,6 +136,74 @@ func generateSyscalls(mkwinsyscall string) []byte {
 	zsys = bytes.ReplaceAll(zsys, []byte("\"internal/syscall/windows/sysdll\""), []byte("\"github.com/microsoft/go-crypto-winnative/internal/sysdll\""))
 	zsys = bytes.ReplaceAll(zsys, []byte("windows.NTStatus"), []byte("NTStatus"))
 	zsys = bytes.ReplaceAll(zsys, []byte(".dll.dll\""), []byte(".dll\""))
+	zsys, err = addBufferSizeChecks(zsys)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return zsys
+}
+
+func addBufferSizeChecks(src []byte) ([]byte, error) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "", src, parser.ParseComments)
+	if err != nil {
+		return nil, err
+	}
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Body == nil {
+			continue
+		}
+		var sizes []ast.Expr
+		for _, param := range fn.Type.Params.List {
+			slice, ok := param.Type.(*ast.ArrayType)
+			if !ok || slice.Len != nil {
+				continue
+			}
+			for _, name := range param.Names {
+				sizes = append(sizes, &ast.CallExpr{
+					Fun:  ast.NewIdent("len"),
+					Args: []ast.Expr{ast.NewIdent(name.Name)},
+				})
+			}
+		}
+		if len(sizes) == 0 {
+			continue
+		}
+		var result string
+		if fn.Type.Results != nil {
+			for _, field := range fn.Type.Results.List {
+				typ, ok := field.Type.(*ast.Ident)
+				if ok && typ.Name == "error" && len(field.Names) == 1 {
+					result = field.Names[0].Name
+				}
+			}
+		}
+		if result == "" {
+			return nil, fmt.Errorf("%s has slice parameters but no named error result", fn.Name.Name)
+		}
+		check := &ast.IfStmt{
+			Init: &ast.AssignStmt{
+				Lhs: []ast.Expr{ast.NewIdent(result)},
+				Tok: token.ASSIGN,
+				Rhs: []ast.Expr{&ast.CallExpr{
+					Fun:  ast.NewIdent("CheckBufferSizes"),
+					Args: sizes,
+				}},
+			},
+			Cond: &ast.BinaryExpr{
+				X:  ast.NewIdent(result),
+				Op: token.NEQ,
+				Y:  ast.NewIdent("nil"),
+			},
+			Body: &ast.BlockStmt{List: []ast.Stmt{&ast.ReturnStmt{}}},
+		}
+		fn.Body.List = append([]ast.Stmt{check}, fn.Body.List...)
+	}
+	var out bytes.Buffer
+	if err := format.Node(&out, fset, file); err != nil {
+		return nil, err
+	}
+	return out.Bytes(), nil
 }

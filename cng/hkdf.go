@@ -92,7 +92,11 @@ func ExtractHKDF[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
 }
 
 // ExpandHKDF derives a key from the given hash, key, and optional context info.
+// It returns an error if info or keyLength exceeds the native buffer limit.
 func ExpandHKDF[H hash.Hash](h func() H, pseudorandomKey, info []byte, keyLength int) ([]byte, error) {
+	if err := bcrypt.CheckBufferSizes(len(info), keyLength); err != nil {
+		return nil, err
+	}
 	kh, err := newHKDF(h, pseudorandomKey, nil)
 	if err != nil {
 		return nil, err
