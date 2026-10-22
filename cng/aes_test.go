@@ -88,7 +88,9 @@ func TestSealWithRandomNonce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := block.(interface {
+		NewGCM(nonceSize, tagSize int) (cipher.AEAD, error)
+	}).NewGCM(gcmStandardNonceSize, gcmTagSize)
 	if err != nil {
 		t.Fatal(err)
 	}

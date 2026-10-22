@@ -13,11 +13,7 @@ import (
 
 func TestOversizedAEADData(t *testing.T) {
 	large := cryptotest.OversizedBuffer(t)
-	block, err := NewAESCipher(make([]byte, 16))
-	if err != nil {
-		t.Fatal(err)
-	}
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := newGCM(make([]byte, 16), cipherGCMTLSNone)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,9 +67,7 @@ func TestOversizedAEADData(t *testing.T) {
 				t.Error("expected a panic for oversized AAD")
 			}
 		}()
-		gcm.(interface {
-			SealWithRandomNonce(out, nonce, plaintext, additionalData []byte)
-		}).SealWithRandomNonce(make([]byte, gcm.Overhead()), make([]byte, gcm.NonceSize()), nil, large)
+		gcm.SealWithRandomNonce(make([]byte, gcm.Overhead()), make([]byte, gcm.NonceSize()), nil, large)
 	})
 }
 

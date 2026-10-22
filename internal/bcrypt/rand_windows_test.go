@@ -17,7 +17,9 @@ func TestGCMNonceReadFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := block.(interface {
+		NewGCM(nonceSize, tagSize int) (cipher.AEAD, error)
+	}).NewGCM(12, 16)
 	if err != nil {
 		t.Fatal(err)
 	}
