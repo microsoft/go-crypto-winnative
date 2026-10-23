@@ -3,14 +3,12 @@
 
 package bcrypt
 
-type bufferSizeError struct{}
+import "syscall"
 
-func (bufferSizeError) Error() string { return "bcrypt: buffer length out of range" }
-
-var errBufferTooLarge error = bufferSizeError{}
+const errBufferTooLarge = syscall.EINVAL
 
 // CheckBufferSizes checks that sizes fit in the unsigned 32-bit length fields
-// used by BCrypt.
+// used by BCrypt. It returns syscall.EINVAL, like the generated slice wrappers.
 func CheckBufferSizes(sizes ...int) error {
 	for _, size := range sizes {
 		if uint64(size) > (1<<32)-1 {

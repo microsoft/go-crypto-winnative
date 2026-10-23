@@ -13,7 +13,7 @@ import (
 
 const (
 	goWinMDModule       = "github.com/microsoft/go-winmd"
-	goWinMDVersion      = "v0.0.0-20260825140017-369639105e55"
+	goWinMDVersion      = "v0.0.0-20261023093100-de87d4c2a6a1"
 	metadataPackage     = "Microsoft.Windows.SDK.Win32Metadata"
 	metadataVersion     = "71.0.20-preview"
 	metadataArchivePath = "Windows.Win32.winmd"
@@ -42,7 +42,7 @@ func downloadMetadata(goTool string) string {
 	}
 
 	runGo(goTool,
-		"run", goWinMDModule+"/cmd/getwinmd@"+goWinMDVersion,
+		"run", goWinMDModule+"/cmd/getwin32md@"+goWinMDVersion,
 		"-version", metadataVersion,
 		"-output", path,
 	)

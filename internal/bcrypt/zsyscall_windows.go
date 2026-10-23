@@ -81,10 +81,7 @@ func CloseAlgorithmProvider(hAlgorithm BCRYPT_ALG_HANDLE, dwFlags uint32) (ntsta
 	return
 }
 
-func CreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbHashObject), len(pbSecret)); ntstatus != nil {
-		return
-	}
+func _winmd_CreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbHashObject) > 0 {
 		_p0 = &pbHashObject[0]
@@ -100,10 +97,7 @@ func CreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHash
 	return
 }
 
-func Decapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText []byte, pbSecretKey []byte, pcbSecretKey *uint32, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbCipherText), len(pbSecretKey)); ntstatus != nil {
-		return
-	}
+func _winmd_Decapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText []byte, pbSecretKey []byte, pcbSecretKey *uint32, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbCipherText) > 0 {
 		_p0 = &pbCipherText[0]
@@ -120,9 +114,6 @@ func Decapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText []byte, pbSecretKey []byte
 }
 
 func _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbIV)); ntstatus != nil {
-		return
-	}
 	var _p0 *byte
 	if len(pbIV) > 0 {
 		_p0 = &pbIV[0]
@@ -134,10 +125,7 @@ func _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsaf
 	return
 }
 
-func DeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *uint16, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbDerivedKey)); ntstatus != nil {
-		return
-	}
+func _winmd_DeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *uint16, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbDerivedKey) > 0 {
 		_p0 = &pbDerivedKey[0]
@@ -173,10 +161,7 @@ func DestroySecret(hSecret BCRYPT_SECRET_HANDLE) (ntstatus error) {
 	return
 }
 
-func DuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbHashObject)); ntstatus != nil {
-		return
-	}
+func _winmd_DuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbHashObject) > 0 {
 		_p0 = &pbHashObject[0]
@@ -188,10 +173,7 @@ func DuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHa
 	return
 }
 
-func Encapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey []byte, pcbSecretKey *uint32, pbCipherText []byte, pcbCipherText *uint32, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbSecretKey), len(pbCipherText)); ntstatus != nil {
-		return
-	}
+func _winmd_Encapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey []byte, pcbSecretKey *uint32, pbCipherText []byte, pcbCipherText *uint32, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbSecretKey) > 0 {
 		_p0 = &pbSecretKey[0]
@@ -208,9 +190,6 @@ func Encapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey []byte, pcbSecretKey *uint3
 }
 
 func _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbIV), len(pbOutput)); ntstatus != nil {
-		return
-	}
 	var _p0 *byte
 	if len(pbIV) > 0 {
 		_p0 = &pbIV[0]
@@ -226,10 +205,7 @@ func _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsaf
 	return
 }
 
-func ExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbOutput)); ntstatus != nil {
-		return
-	}
+func _winmd_ExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
@@ -249,10 +225,7 @@ func FinalizeKeyPair(hKey BCRYPT_KEY_HANDLE, dwFlags uint32) (ntstatus error) {
 	return
 }
 
-func FinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbOutput)); ntstatus != nil {
-		return
-	}
+func _winmd_FinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
@@ -264,10 +237,7 @@ func FinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntst
 	return
 }
 
-func GenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer []byte, dwFlags BCRYPTGENRANDOM_FLAGS) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbBuffer)); ntstatus != nil {
-		return
-	}
+func _winmd_GenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer []byte, dwFlags BCRYPTGENRANDOM_FLAGS) (ntstatus error) {
 	var _p0 *byte
 	if len(pbBuffer) > 0 {
 		_p0 = &pbBuffer[0]
@@ -288,9 +258,6 @@ func GenerateKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, dwL
 }
 
 func _GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbKeyObject)); ntstatus != nil {
-		return
-	}
 	var _p0 *byte
 	if len(pbKeyObject) > 0 {
 		_p0 = &pbKeyObject[0]
@@ -310,10 +277,7 @@ func GetFipsAlgorithmMode(pfEnabled *uint8) (ntstatus error) {
 	return
 }
 
-func GetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbOutput)); ntstatus != nil {
-		return
-	}
+func _winmd_GetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
@@ -325,10 +289,7 @@ func GetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pc
 	return
 }
 
-func Hash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbSecret), len(pbInput), len(pbOutput)); ntstatus != nil {
-		return
-	}
+func _winmd_Hash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) {
 	var _p0 *byte
 	if len(pbSecret) > 0 {
 		_p0 = &pbSecret[0]
@@ -348,10 +309,7 @@ func Hash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutpu
 	return
 }
 
-func HashData(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbInput)); ntstatus != nil {
-		return
-	}
+func _winmd_HashData(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
@@ -371,10 +329,7 @@ func HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint3
 	return
 }
 
-func ImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, phKey *BCRYPT_KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbInput)); ntstatus != nil {
-		return
-	}
+func _winmd_ImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, phKey *BCRYPT_KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
@@ -386,10 +341,7 @@ func ImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, p
 	return
 }
 
-func KeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbDerivedKey)); ntstatus != nil {
-		return
-	}
+func _winmd_KeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbDerivedKey) > 0 {
 		_p0 = &pbDerivedKey[0]
@@ -417,10 +369,7 @@ func SecretAgreement(hPrivKey BCRYPT_KEY_HANDLE, hPubKey BCRYPT_KEY_HANDLE, phAg
 	return
 }
 
-func SetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbInput)); ntstatus != nil {
-		return
-	}
+func _winmd_SetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) {
 	var _p0 *byte
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
@@ -432,10 +381,7 @@ func SetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwF
 	return
 }
 
-func SignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbInput), len(pbOutput)); ntstatus != nil {
-		return
-	}
+func _winmd_SignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (ntstatus error) {
 	var _p0 *byte
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
@@ -451,10 +397,7 @@ func SignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byt
 	return
 }
 
-func VerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags BCRYPT_FLAGS) (ntstatus error) {
-	if ntstatus = CheckBufferSizes(len(pbHash), len(pbSignature)); ntstatus != nil {
-		return
-	}
+func _winmd_VerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags BCRYPT_FLAGS) (ntstatus error) {
 	var _p0 *byte
 	if len(pbHash) > 0 {
 		_p0 = &pbHash[0]
@@ -471,9 +414,6 @@ func VerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash
 }
 
 func formatMessage(flags uint32, msgsrc uintptr, msgid uint32, langid uint32, buf []uint16, args *byte) (n uint32, err error) {
-	if err = CheckBufferSizes(len(buf)); err != nil {
-		return
-	}
 	var _p0 *uint16
 	if len(buf) > 0 {
 		_p0 = &buf[0]

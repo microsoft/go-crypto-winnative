@@ -12,7 +12,7 @@ import (
 )
 
 // OversizedBuffer reserves a 4 GiB buffer and capacity for a 16-byte AEAD tag
-// without committing memory. The slice is only for length checks, not access.
+// without committing the full range. Only the first page is writable.
 func OversizedBuffer(t *testing.T) []byte {
 	t.Helper()
 	if unsafe.Sizeof(uintptr(0)) == 4 {
@@ -23,9 +23,11 @@ func OversizedBuffer(t *testing.T) []byte {
 	free := dll.NewProc("NtFreeVirtualMemory")
 	size := (uint64(1) << 32) + 16
 	const (
-		memReserve   = 0x2000
-		memRelease   = 0x8000
-		pageNoAccess = 0x01
+		memCommit     = 0x1000
+		memReserve    = 0x2000
+		memRelease    = 0x8000
+		pageNoAccess  = 0x01
+		pageReadWrite = 0x04
 	)
 	var addr unsafe.Pointer
 	regionSize := uintptr(size)
@@ -41,6 +43,11 @@ func OversizedBuffer(t *testing.T) []byte {
 			t.Errorf("NtFreeVirtualMemory: NTSTATUS %#x", uint32(status))
 		}
 	})
+	prefixAddr, prefixSize := addr, uintptr(1)
+	status, _, _ = alloc.Call(currentProcess, uintptr(unsafe.Pointer(&prefixAddr)), 0, uintptr(unsafe.Pointer(&prefixSize)), memCommit, pageReadWrite)
+	if int32(status) < 0 {
+		t.Skipf("cannot commit buffer prefix: NTSTATUS %#x", uint32(status))
+	}
 	buf := unsafe.Slice((*byte)(addr), int(size))
 	return buf[:len(buf)-16]
 }

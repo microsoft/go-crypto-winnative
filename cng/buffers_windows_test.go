@@ -106,11 +106,26 @@ func TestOversizedKDFParameters(t *testing.T) {
 			return err
 		}},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.call(); err != want {
 				t.Fatalf("got %v, want %v", err, want)
 			}
 		})
+	}
+}
+
+func TestRC4OversizedDestination(t *testing.T) {
+	dst := cryptotest.OversizedBuffer(t)
+	cipher, err := NewRC4Cipher([]byte{0x57, 0x69, 0x6b, 0x69})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cipher.Reset()
+	dst[1] = 0xa5
+	cipher.XORKeyStream(dst, []byte{0})
+	if dst[0] != 0x60 || dst[1] != 0xa5 {
+		t.Fatalf("output prefix = %x, want 60a5", dst[:2])
 	}
 }
