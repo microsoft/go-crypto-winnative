@@ -2,35 +2,181 @@
 
 package bcrypt
 
+import "syscall"
+
 import "unsafe"
 
 var _ unsafe.Pointer
 
 // APIs for Windows.Win32.Security.Cryptography
 //sys	OpenAlgorithmProvider(phAlgorithm *BCRYPT_ALG_HANDLE, pszAlgId *uint16, pszImplementation *uint16, dwFlags BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS) (ntstatus error) = bcrypt.BCryptOpenAlgorithmProvider
-//sys	GetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty
-//sys	SetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSetProperty
+//sys	_winmd_GetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty
+
+func GetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbOutput)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_GetProperty(hObject, pszProperty, pbOutput, pcbResult, dwFlags)
+}
+
+//sys	_winmd_SetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSetProperty
+
+func SetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbInput)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_SetProperty(hObject, pszProperty, pbInput, dwFlags)
+}
+
 //sys	CloseAlgorithmProvider(hAlgorithm BCRYPT_ALG_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCloseAlgorithmProvider
 //sys	GenerateKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, dwLength uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenerateKeyPair
-//sys	ExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptExportKey
-//sys	ImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, phKey *BCRYPT_KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptImportKeyPair
+//sys	_winmd_ExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptExportKey
+
+func ExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbOutput)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_ExportKey(hKey, hExportKey, pszBlobType, pbOutput, pcbResult, dwFlags)
+}
+
+//sys	_winmd_ImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, phKey *BCRYPT_KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptImportKeyPair
+
+func ImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType *uint16, phKey *BCRYPT_KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbInput)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_ImportKeyPair(hAlgorithm, hImportKey, pszBlobType, phKey, pbInput, dwFlags)
+}
+
 //sys	FinalizeKeyPair(hKey BCRYPT_KEY_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinalizeKeyPair
 //sys	DestroyKey(hKey BCRYPT_KEY_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyKey
 //sys	DestroySecret(hSecret BCRYPT_SECRET_HANDLE) (ntstatus error) = bcrypt.BCryptDestroySecret
-//sys	SignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (ntstatus error) = bcrypt.BCryptSignHash
-//sys	VerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags BCRYPT_FLAGS) (ntstatus error) = bcrypt.BCryptVerifySignature
+//sys	_winmd_SignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (ntstatus error) = bcrypt.BCryptSignHash
+
+func SignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags BCRYPT_FLAGS) (ntstatus error) {
+	if uint64(len(pbInput)) > 1<<32-1 || uint64(len(pbOutput)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_SignHash(hKey, pPaddingInfo, pbInput, pbOutput, pcbResult, dwFlags)
+}
+
+//sys	_winmd_VerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags BCRYPT_FLAGS) (ntstatus error) = bcrypt.BCryptVerifySignature
+
+func VerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags BCRYPT_FLAGS) (ntstatus error) {
+	if uint64(len(pbHash)) > 1<<32-1 || uint64(len(pbSignature)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_VerifySignature(hKey, pPaddingInfo, pbHash, pbSignature, dwFlags)
+}
+
 //sys	SecretAgreement(hPrivKey BCRYPT_KEY_HANDLE, hPubKey BCRYPT_KEY_HANDLE, phAgreedSecret *BCRYPT_SECRET_HANDLE, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSecretAgreement
-//sys	DeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *uint16, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDeriveKey
-//sys	KeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptKeyDerivation
-//sys	CreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCreateHash
-//sys	HashData(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
-//sys	FinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinishHash
-//sys	DuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDuplicateHash
+//sys	_winmd_DeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *uint16, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDeriveKey
+
+func DeriveKey(hSharedSecret BCRYPT_SECRET_HANDLE, pwszKDF *uint16, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbDerivedKey)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_DeriveKey(hSharedSecret, pwszKDF, pParameterList, pbDerivedKey, pcbResult, dwFlags)
+}
+
+//sys	_winmd_KeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptKeyDerivation
+
+func KeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbDerivedKey)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_KeyDerivation(hKey, pParameterList, pbDerivedKey, pcbResult, dwFlags)
+}
+
+//sys	_winmd_CreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptCreateHash
+
+func CreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbHashObject)) > 1<<32-1 || uint64(len(pbSecret)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_CreateHash(hAlgorithm, phHash, pbHashObject, pbSecret, dwFlags)
+}
+
+//sys	_winmd_HashData(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
+
+func HashData(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbInput)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_HashData(hHash, pbInput, dwFlags)
+}
+
+//sys	_winmd_FinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptFinishHash
+
+func FinishHash(hHash BCRYPT_HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbOutput)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_FinishHash(hHash, pbOutput, dwFlags)
+}
+
+//sys	_winmd_DuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDuplicateHash
+
+func DuplicateHash(hHash BCRYPT_HASH_HANDLE, phNewHash *BCRYPT_HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbHashObject)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_DuplicateHash(hHash, phNewHash, pbHashObject, dwFlags)
+}
+
 //sys	DestroyHash(hHash BCRYPT_HASH_HANDLE) (ntstatus error) = bcrypt.BCryptDestroyHash
-//sys	Hash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) = bcrypt.BCryptHash
-//sys	GenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer []byte, dwFlags BCRYPTGENRANDOM_FLAGS) (ntstatus error) = bcrypt.BCryptGenRandom
-//sys	Encapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey []byte, pcbSecretKey *uint32, pbCipherText []byte, pcbCipherText *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptEncapsulate
-//sys	Decapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText []byte, pbSecretKey []byte, pcbSecretKey *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDecapsulate
+//sys	_winmd_Hash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) = bcrypt.BCryptHash
+
+func Hash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) {
+	if uint64(len(pbSecret)) > 1<<32-1 || uint64(len(pbInput)) > 1<<32-1 || uint64(len(pbOutput)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_Hash(hAlgorithm, pbSecret, pbInput, pbOutput)
+}
+
+//sys	_winmd_GenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer []byte, dwFlags BCRYPTGENRANDOM_FLAGS) (ntstatus error) = bcrypt.BCryptGenRandom
+
+func GenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer []byte, dwFlags BCRYPTGENRANDOM_FLAGS) (ntstatus error) {
+	if uint64(len(pbBuffer)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_GenRandom(hAlgorithm, pbBuffer, dwFlags)
+}
+
+//sys	_winmd_Encapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey []byte, pcbSecretKey *uint32, pbCipherText []byte, pcbCipherText *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptEncapsulate
+
+func Encapsulate(hKey BCRYPT_KEY_HANDLE, pbSecretKey []byte, pcbSecretKey *uint32, pbCipherText []byte, pcbCipherText *uint32, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbSecretKey)) > 1<<32-1 || uint64(len(pbCipherText)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_Encapsulate(hKey, pbSecretKey, pcbSecretKey, pbCipherText, pcbCipherText, dwFlags)
+}
+
+//sys	_winmd_Decapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText []byte, pbSecretKey []byte, pcbSecretKey *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptDecapsulate
+
+func Decapsulate(hKey BCRYPT_KEY_HANDLE, pbCipherText []byte, pbSecretKey []byte, pcbSecretKey *uint32, dwFlags uint32) (ntstatus error) {
+	if uint64(len(pbCipherText)) > 1<<32-1 || uint64(len(pbSecretKey)) > 1<<32-1 {
+		ntstatus = syscall.EINVAL
+		return
+	}
+	return _winmd_Decapsulate(hKey, pbCipherText, pbSecretKey, pcbSecretKey, dwFlags)
+}
+
 //sys	GetFipsAlgorithmMode(pfEnabled *uint8) (ntstatus error) = bcrypt.BCryptGetFipsAlgorithmMode
 
 // Types used in generated APIs for

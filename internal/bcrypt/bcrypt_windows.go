@@ -255,7 +255,11 @@ func NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag []byte) *AUTHE
 //sys _GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGenerateSymmetricKey
 //sys HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData
 
+// Encrypt treats an empty ciphertext buffer as an output-size query.
 func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, ciphertext []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+	if err := CheckBufferSizes(len(plaintext), len(pbIV), len(ciphertext)); err != nil {
+		return err
+	}
 	var pInput *byte
 	if len(plaintext) > 0 {
 		pInput = &plaintext[0]
@@ -269,6 +273,9 @@ func Encrypt(hKey KEY_HANDLE, plaintext []byte, pPaddingInfo unsafe.Pointer, pbI
 }
 
 func Decrypt(hKey KEY_HANDLE, ciphertext []byte, pPaddingInfo unsafe.Pointer, pbIV []byte, plaintext []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+	if err := CheckBufferSizes(len(ciphertext), len(pbIV), len(plaintext)); err != nil {
+		return err
+	}
 	// Previous to Windows 2025, BCryptDescrypt did not validate the padding info when ciphertext and plaintext were both zero-length.
 	// To maintain compatibility with those versions, we allocate a zero byte when ciphertext is empty.
 	var pInput, pOutput *byte
@@ -287,6 +294,9 @@ func Decrypt(hKey KEY_HANDLE, ciphertext []byte, pPaddingInfo unsafe.Pointer, pb
 }
 
 func GenerateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret []byte, dwFlags uint32) error {
+	if err := CheckBufferSizes(len(pbKeyObject), len(pbSecret)); err != nil {
+		return err
+	}
 	cbLen := uint32(len(pbSecret))
 	if cbLen == 0 {
 		// BCryptGenerateSymmetricKey does not support nil pbSecret,

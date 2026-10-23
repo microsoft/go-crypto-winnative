@@ -284,6 +284,9 @@ func rsaCrypt(pkey bcrypt.KEY_HANDLE, info unsafe.Pointer, in []byte, flags bcry
 }
 
 func rsaOAEP(h hash.Hash, pkey bcrypt.KEY_HANDLE, in, label []byte, encrypt bool) ([]byte, error) {
+	if err := bcrypt.CheckBufferSizes(len(label)); err != nil {
+		return nil, err
+	}
 	hashID := hashToID(h)
 	if hashID == "" {
 		return nil, errors.New("crypto/rsa: unsupported hash function")
