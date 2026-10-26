@@ -181,6 +181,7 @@ func (x *cbcCipher) CryptBlocks(dst, src []byte) {
 	if len(src) == 0 {
 		return
 	}
+	dst = dst[:len(src)]
 	var ret uint32
 	var err error
 	if x.encrypt {
@@ -271,6 +272,9 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 	if len(dst)+len(plaintext)+gcmTagSize < len(dst) {
 		panic("cipher: message too large for buffer")
 	}
+	if err := bcrypt.CheckBufferSizes(len(plaintext), len(additionalData)); err != nil {
+		panic(err)
+	}
 	if g.tls != cipherGCMTLSNone {
 		if g.tls == cipherGCMTLS12 && len(additionalData) != gcmTls12AddSize {
 			panic("cipher: incorrect additional data length given to GCM TLS 1.2")
@@ -326,7 +330,7 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, out[len(out)-gcmTagSize:])
 	var encSize uint32
-	err := bcrypt.Encrypt(g.kh, plaintext, unsafe.Pointer(info), nil, out, &encSize, 0)
+	err := bcrypt.Encrypt(g.kh, plaintext, unsafe.Pointer(info), nil, out[:max(len(plaintext), 1)], &encSize, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -337,6 +341,7 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 	return ret
 }
 
+// SealWithRandomNonce panics if nonce generation or encryption fails.
 func (g *aesGCM) SealWithRandomNonce(out, nonce, plaintext, additionalData []byte) {
 	if uint64(len(plaintext)) > uint64((1<<32)-2)*aesBlockSize {
 		panic("crypto/cipher: message too large for GCM")
@@ -346,6 +351,9 @@ func (g *aesGCM) SealWithRandomNonce(out, nonce, plaintext, additionalData []byt
 	}
 	if len(out) != len(plaintext)+gcmTagSize {
 		panic("crypto/cipher: incorrect output length given to GCMWithRandomNonce")
+	}
+	if err := bcrypt.CheckBufferSizes(len(plaintext), len(additionalData)); err != nil {
+		panic(err)
 	}
 	if subtle.InexactOverlap(out, plaintext) {
 		panic("crypto/cipher: invalid buffer overlap of output and input")
@@ -358,10 +366,12 @@ func (g *aesGCM) SealWithRandomNonce(out, nonce, plaintext, additionalData []byt
 		panic("cipher: TLS 1.2 and 1.3 modes do not support random nonce")
 	}
 
-	RandReader.Read(nonce)
+	if _, err := RandReader.Read(nonce); err != nil {
+		panic(err)
+	}
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, out[len(out)-gcmTagSize:])
 	var encSize uint32
-	err := bcrypt.Encrypt(g.kh, plaintext, unsafe.Pointer(info), nil, out, &encSize, 0)
+	err := bcrypt.Encrypt(g.kh, plaintext, unsafe.Pointer(info), nil, out[:max(len(plaintext), 1)], &encSize, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -381,6 +391,9 @@ func (g *aesGCM) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, er
 		return nil, errOpen
 	}
 	if uint64(len(ciphertext)) > ((1<<32)-2)*aesBlockSize+gcmTagSize {
+		return nil, errOpen
+	}
+	if err := bcrypt.CheckBufferSizes(len(ciphertext)-gcmTagSize, len(additionalData)); err != nil {
 		return nil, errOpen
 	}
 

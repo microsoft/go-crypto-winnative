@@ -66,6 +66,9 @@ func (c *chacha20poly1305) Seal(dst, nonce, plaintext, additionalData []byte) []
 	if uint64(len(plaintext)) > (1<<38)-64 {
 		panic("chacha20poly1305: plaintext too large")
 	}
+	if err := bcrypt.CheckBufferSizes(len(plaintext), len(additionalData)); err != nil {
+		panic("chacha20poly1305: " + err.Error())
+	}
 	ret, out := sliceForAppend(dst, len(plaintext)+chacha20Poly1305Overhead)
 	if subtle.InexactOverlap(out, plaintext) {
 		panic("chacha20poly1305: invalid buffer overlap of output and input")
@@ -75,7 +78,7 @@ func (c *chacha20poly1305) Seal(dst, nonce, plaintext, additionalData []byte) []
 	}
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, out[len(out)-chacha20Poly1305Overhead:])
 	var encSize uint32
-	if err := bcrypt.Encrypt(c.kh, plaintext, unsafe.Pointer(info), nil, out, &encSize, 0); err != nil {
+	if err := bcrypt.Encrypt(c.kh, plaintext, unsafe.Pointer(info), nil, out[:max(len(plaintext), 1)], &encSize, 0); err != nil {
 		panic("chacha20poly1305: encryption failed: " + err.Error())
 	}
 	if int(encSize) != len(plaintext) {
@@ -94,6 +97,9 @@ func (c *chacha20poly1305) Open(dst, nonce, ciphertext, additionalData []byte) (
 	}
 	if uint64(len(ciphertext)) > (1<<38)-48 {
 		panic("chacha20poly1305: ciphertext too large")
+	}
+	if err := bcrypt.CheckBufferSizes(len(ciphertext)-chacha20Poly1305Overhead, len(additionalData)); err != nil {
+		return nil, errOpen
 	}
 	tag := ciphertext[len(ciphertext)-chacha20Poly1305Overhead:]
 	ciphertext = ciphertext[:len(ciphertext)-chacha20Poly1305Overhead]
