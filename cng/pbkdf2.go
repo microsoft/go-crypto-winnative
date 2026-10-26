@@ -22,6 +22,9 @@ func loadPBKDF2() (bcrypt.ALG_HANDLE, error) {
 }
 
 func PBKDF2[H hash.Hash](password, salt []byte, iter, keyLen int, fh func() H) ([]byte, error) {
+	if err := bcrypt.CheckBufferSizes(len(salt), keyLen); err != nil {
+		return nil, err
+	}
 	ch := fh()
 	hashID := hashToID(ch)
 	if hashID == "" {

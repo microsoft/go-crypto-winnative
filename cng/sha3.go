@@ -94,6 +94,9 @@ type SHAKE struct {
 }
 
 func newShake(id string, N, S []byte) *SHAKE {
+	if err := bcrypt.CheckBufferSizes(len(N), len(S)); err != nil {
+		panic(err)
+	}
 	alg := mustLoadHash(id, bcrypt.ALG_NONE_FLAG)
 	h := &SHAKE{blockSize: alg.blockSize}
 	err := bcrypt.CreateHash(alg.handle, &h.ctx, nil, nil, bcrypt.HASH_REUSABLE_FLAG)
@@ -162,15 +165,21 @@ func (s *SHAKE) Read(p []byte) (n int, err error) {
 		return 0, nil
 	}
 	defer runtime.KeepAlive(s)
-	for n < len(p) && err == nil {
-		nn := len32(p[n:])
-		err = bcrypt.FinishHash(s.ctx, p[n:n+nn], bcrypt.HASH_DONT_RESET_FLAG)
-		n += nn
-	}
-	if err != nil {
+	if err := shakeRead(s.ctx, p); err != nil {
 		panic(err)
 	}
 	return len(p), nil
+}
+
+func shakeRead(ctx bcrypt.HASH_HANDLE, p []byte) error {
+	for len(p) > 0 {
+		n := len32(p)
+		if err := bcrypt.FinishHash(ctx, p[:n], bcrypt.HASH_DONT_RESET_FLAG); err != nil {
+			return err
+		}
+		p = p[n:]
+	}
+	return nil
 }
 
 // Reset resets the XOF to its initial state.
