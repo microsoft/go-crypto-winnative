@@ -25,6 +25,9 @@ func loadTLS1PRF(id string) (bcrypt.ALG_HANDLE, error) {
 // else it implements the TLS 1.2 pseudo-random function.
 // The pseudo-random number will be written to result and will be of length len(result).
 func TLS1PRF(result, secret, label, seed []byte, h func() hash.Hash) error {
+	if err := bcrypt.CheckBufferSizes(len(result), len(label), len(seed)); err != nil {
+		return err
+	}
 	// TLS 1.0/1.1 PRF uses MD5SHA1.
 	algID := bcrypt.TLS1_1_KDF_ALGORITHM
 	var hashID string

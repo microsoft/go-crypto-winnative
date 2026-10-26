@@ -81,6 +81,40 @@ func TestSealAndOpen(t *testing.T) {
 	}
 }
 
+func TestSealWithRandomNonce(t *testing.T) {
+	block, err := cng.NewAESCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gcm, err := block.(interface {
+		NewGCM(nonceSize, tagSize int) (cipher.AEAD, error)
+	}).NewGCM(gcmStandardNonceSize, gcmTagSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := gcm.(interface {
+		SealWithRandomNonce(out, nonce, plaintext, additionalData []byte)
+	})
+	for _, size := range []int{0, 1, 32, 1024} {
+		plaintext := bytes.Repeat([]byte{0x5a}, size)
+		nonce := make([]byte, gcm.NonceSize())
+		out := make([]byte, len(plaintext)+gcm.Overhead())
+		g.SealWithRandomNonce(out, nonce, plaintext, nil)
+		got, err := gcm.Open(nil, nonce, out, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, plaintext) {
+			t.Fatalf("round trip = %x, want %x", got, plaintext)
+		}
+		if allocs := testing.AllocsPerRun(10, func() {
+			g.SealWithRandomNonce(out, nonce, plaintext, nil)
+		}); allocs != 0 {
+			t.Fatalf("size %d: allocations = %v, want 0", size, allocs)
+		}
+	}
+}
+
 func TestSealAndOpenTLS(t *testing.T) {
 	tests := []struct {
 		name string

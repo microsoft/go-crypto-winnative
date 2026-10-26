@@ -82,6 +82,9 @@ func CloseAlgorithmProvider(hAlgorithm ALG_HANDLE, dwFlags uint32) (ntstatus err
 }
 
 func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte, pbSecret []byte, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbHashObject), len(pbSecret)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbHashObject) > 0 {
 		_p0 = &pbHashObject[0]
@@ -98,6 +101,9 @@ func CreateHash(hAlgorithm ALG_HANDLE, phHash *HASH_HANDLE, pbHashObject []byte,
 }
 
 func Decapsulate(hKey KEY_HANDLE, pbCiphertext []byte, pbSecret []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbCiphertext), len(pbSecret)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbCiphertext) > 0 {
 		_p0 = &pbCiphertext[0]
@@ -114,6 +120,9 @@ func Decapsulate(hKey KEY_HANDLE, pbCiphertext []byte, pbSecret []byte, pcbResul
 }
 
 func _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput *byte, cbOutput uint32, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbIV)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbIV) > 0 {
 		_p0 = &pbIV[0]
@@ -126,6 +135,9 @@ func _Decrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsaf
 }
 
 func DeriveKey(hSharedSecret SECRET_HANDLE, pwszKDF *uint16, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbDerivedKey)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbDerivedKey) > 0 {
 		_p0 = &pbDerivedKey[0]
@@ -162,6 +174,9 @@ func DestroySecret(hSecret SECRET_HANDLE) (ntstatus error) {
 }
 
 func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byte, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbHashObject)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbHashObject) > 0 {
 		_p0 = &pbHashObject[0]
@@ -174,6 +189,9 @@ func DuplicateHash(hHash HASH_HANDLE, phNewHash *HASH_HANDLE, pbHashObject []byt
 }
 
 func Encapsulate(hKey KEY_HANDLE, pbSecret []byte, pcbResult *uint32, pbCiphertext []byte, pcbCiphertext *uint32, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbSecret), len(pbCiphertext)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbSecret) > 0 {
 		_p0 = &pbSecret[0]
@@ -190,6 +208,9 @@ func Encapsulate(hKey KEY_HANDLE, pbSecret []byte, pcbResult *uint32, pbCipherte
 }
 
 func _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbIV), len(pbOutput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbIV) > 0 {
 		_p0 = &pbIV[0]
@@ -206,6 +227,9 @@ func _Encrypt(hKey KEY_HANDLE, pbInput *byte, cbInput uint32, pPaddingInfo unsaf
 }
 
 func ExportKey(hKey KEY_HANDLE, hExportKey KEY_HANDLE, pszBlobType *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbOutput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
@@ -226,6 +250,9 @@ func FinalizeKeyPair(hKey KEY_HANDLE, dwFlags uint32) (ntstatus error) {
 }
 
 func FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbOutput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
@@ -238,6 +265,9 @@ func FinishHash(hHash HASH_HANDLE, pbOutput []byte, dwFlags uint32) (ntstatus er
 }
 
 func GenRandom(hAlgorithm ALG_HANDLE, pbBuffer []byte, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbBuffer)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbBuffer) > 0 {
 		_p0 = &pbBuffer[0]
@@ -258,6 +288,9 @@ func GenerateKeyPair(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, dwLength uint32, 
 }
 
 func generateSymmetricKey(hAlgorithm ALG_HANDLE, phKey *KEY_HANDLE, pbKeyObject []byte, pbSecret *byte, cbSecret uint32, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbKeyObject)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbKeyObject) > 0 {
 		_p0 = &pbKeyObject[0]
@@ -283,6 +316,9 @@ func GetFipsAlgorithmMode(enabled *bool) (ntstatus error) {
 }
 
 func GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbOutput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbOutput) > 0 {
 		_p0 = &pbOutput[0]
@@ -295,6 +331,9 @@ func GetProperty(hObject HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult
 }
 
 func Hash(hAlgorithm ALG_HANDLE, pbSecret []byte, pbInput []byte, pbOutput []byte) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbSecret), len(pbInput), len(pbOutput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbSecret) > 0 {
 		_p0 = &pbSecret[0]
@@ -323,6 +362,9 @@ func HashDataRaw(hHash HASH_HANDLE, pbInput *byte, cbInput uint32, dwFlags uint3
 }
 
 func HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbInput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
@@ -335,6 +377,9 @@ func HashData(hHash HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error
 }
 
 func ImportKeyPair(hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *uint16, phKey *KEY_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbInput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
@@ -347,6 +392,9 @@ func ImportKeyPair(hAlgorithm ALG_HANDLE, hImportKey KEY_HANDLE, pszBlobType *ui
 }
 
 func KeyDerivation(hKey KEY_HANDLE, pParameterList *BufferDesc, pbDerivedKey []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbDerivedKey)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbDerivedKey) > 0 {
 		_p0 = &pbDerivedKey[0]
@@ -375,6 +423,9 @@ func SecretAgreement(hPrivKey KEY_HANDLE, hPubKey KEY_HANDLE, phAgreedSecret *SE
 }
 
 func SetProperty(hObject HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbInput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
@@ -387,6 +438,9 @@ func SetProperty(hObject HANDLE, pszProperty *uint16, pbInput []byte, dwFlags ui
 }
 
 func SignHash(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOutput []byte, pcbResult *uint32, dwFlags PadMode) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbInput), len(pbOutput)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbInput) > 0 {
 		_p0 = &pbInput[0]
@@ -403,6 +457,9 @@ func SignHash(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput []byte, pbOu
 }
 
 func VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte, pbSignature []byte, dwFlags PadMode) (ntstatus error) {
+	if ntstatus = CheckBufferSizes(len(pbHash), len(pbSignature)); ntstatus != nil {
+		return
+	}
 	var _p0 *byte
 	if len(pbHash) > 0 {
 		_p0 = &pbHash[0]
@@ -419,6 +476,9 @@ func VerifySignature(hKey KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash []byte
 }
 
 func formatMessage(flags uint32, msgsrc uintptr, msgid uint32, langid uint32, buf []uint16, args *byte) (n uint32, err error) {
+	if err = CheckBufferSizes(len(buf)); err != nil {
+		return
+	}
 	var _p0 *uint16
 	if len(buf) > 0 {
 		_p0 = &buf[0]

@@ -39,11 +39,31 @@ func SupportsHash(h crypto.Hash) bool {
 }
 
 func hashOneShot(id string, p, sum []byte) error {
+	if bcrypt.CheckBufferSizes(len(p), len(sum)) != nil {
+		return hashOneShotWithContext(id, p, sum)
+	}
 	h, err := loadHash(id, 0)
 	if err != nil {
 		return err
 	}
 	return bcrypt.Hash(h.handle, nil, p, sum)
+}
+
+func hashOneShotWithContext(id string, p, sum []byte) error {
+	h, err := loadHash(id, 0)
+	if err != nil {
+		return err
+	}
+	var ctx bcrypt.HASH_HANDLE
+	if err := bcrypt.CreateHash(h.handle, &ctx, nil, nil, bcrypt.HASH_REUSABLE_FLAG); err != nil {
+		return err
+	}
+	defer func() { _ = bcrypt.DestroyHash(ctx) }()
+	hashData(ctx, p)
+	if id == bcrypt.CSHAKE128_ALGORITHM || id == bcrypt.CSHAKE256_ALGORITHM {
+		return shakeRead(ctx, sum)
+	}
+	return bcrypt.FinishHash(ctx, sum, 0)
 }
 
 func MD4(p []byte) (sum [16]byte) {
