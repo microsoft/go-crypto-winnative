@@ -15,8 +15,7 @@ import (
 
 // A RC4Cipher is an instance of RC4 using a particular key.
 type RC4Cipher struct {
-	kh      bcrypt.KEY_HANDLE
-	cleanup runtime.Cleanup
+	kh bcrypt.KEY_HANDLE
 }
 
 // NewRC4Cipher creates and returns a new Cipher.
@@ -26,8 +25,14 @@ func NewRC4Cipher(key []byte) (*RC4Cipher, error) {
 		return nil, err
 	}
 	c := &RC4Cipher{kh: kh}
-	c.cleanup = runtime.AddCleanup(c, destroyKey, c.kh)
+	runtime.SetFinalizer(c, (*RC4Cipher).finalize)
 	return c, nil
+}
+
+func (c *RC4Cipher) finalize() {
+	if c.kh != nil {
+		_ = bcrypt.DestroyKey(c.kh)
+	}
 }
 
 // Reset zeros the key data and makes the Cipher unusable.
@@ -36,7 +41,6 @@ func (c *RC4Cipher) Reset() {
 	if c.kh == nil {
 		return
 	}
-	c.cleanup.Stop()
 	_ = bcrypt.DestroyKey(c.kh)
 	c.kh = nil
 }

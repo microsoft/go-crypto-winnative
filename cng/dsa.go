@@ -96,12 +96,20 @@ type PrivateKeyDSA struct {
 	hkey bcrypt.KEY_HANDLE
 }
 
+func (k *PrivateKeyDSA) finalize() {
+	_ = bcrypt.DestroyKey(k.hkey)
+}
+
 // PublicKeyDSA represents a DSA public key.
 type PublicKeyDSA struct {
 	DSAParameters
 	Y BigInt
 
 	hkey bcrypt.KEY_HANDLE
+}
+
+func (k *PublicKeyDSA) finalize() {
+	_ = bcrypt.DestroyKey(k.hkey)
 }
 
 // GenerateKeyDSA generates a new private DSA key using the given parameters.
@@ -147,7 +155,7 @@ func NewPrivateKeyDSA(params DSAParameters, X, Y BigInt) (*PrivateKeyDSA, error)
 		return nil, err
 	}
 	k := &PrivateKeyDSA{params, X, Y, hkey}
-	runtime.AddCleanup(k, destroyKey, k.hkey)
+	runtime.SetFinalizer(k, (*PrivateKeyDSA).finalize)
 	return k, nil
 }
 
@@ -166,7 +174,7 @@ func NewPublicKeyDSA(params DSAParameters, Y BigInt) (*PublicKeyDSA, error) {
 		return nil, err
 	}
 	k := &PublicKeyDSA{params, Y, hkey}
-	runtime.AddCleanup(k, destroyKey, k.hkey)
+	runtime.SetFinalizer(k, (*PublicKeyDSA).finalize)
 	return k, nil
 }
 

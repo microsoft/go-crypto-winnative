@@ -23,12 +23,6 @@ const (
 	sizeOfDSAParamsV2Header = uint32(unsafe.Sizeof(bcrypt.DSA_PARAMETER_HEADER_V2{}))
 )
 
-func destroyKey(hkey bcrypt.KEY_HANDLE) {
-	if hkey != nil {
-		_ = bcrypt.DestroyKey(hkey)
-	}
-}
-
 // exportDSAKey exports hkey into a bcrypt.DSA_KEY_BLOB header and data.
 func exportDSAKey(hkey bcrypt.KEY_HANDLE, private bool) (bcrypt.DSA_KEY_BLOB, []byte, error) {
 	var magic string

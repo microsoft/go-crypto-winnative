@@ -216,8 +216,8 @@ func newHash(id string) *Hash {
 	return &Hash{alg: mustLoadHash(id, bcrypt.ALG_NONE_FLAG)}
 }
 
-func destroyHash(ctx bcrypt.HASH_HANDLE) {
-	_ = bcrypt.DestroyHash(ctx)
+func (h *Hash) finalize() {
+	_ = bcrypt.DestroyHash(h.ctx)
 }
 
 func (h *Hash) init() {
@@ -229,7 +229,7 @@ func (h *Hash) init() {
 	if err != nil {
 		panic(err)
 	}
-	runtime.AddCleanup(h, destroyHash, h.ctx)
+	runtime.SetFinalizer(h, (*Hash).finalize)
 }
 
 func (h *Hash) Clone() (hash.Cloner, error) {
@@ -237,7 +237,7 @@ func (h *Hash) Clone() (hash.Cloner, error) {
 	h2 := &Hash{alg: h.alg, key: bytes.Clone(h.key)}
 	if h.ctx != nil {
 		hashClone(h.ctx, &h2.ctx)
-		runtime.AddCleanup(h2, destroyHash, h2.ctx)
+		runtime.SetFinalizer(h2, (*Hash).finalize)
 	}
 	return h2, nil
 }
