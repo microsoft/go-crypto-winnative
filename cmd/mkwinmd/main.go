@@ -13,7 +13,7 @@ import (
 
 const (
 	goWinMDModule       = "github.com/microsoft/go-winmd"
-	goWinMDVersion      = "v0.0.0-20261023093100-de87d4c2a6a1"
+	goWinMDVersion      = "v0.0.0-20261026085843-5b48fee0edb4"
 	metadataPackage     = "Microsoft.Windows.SDK.Win32Metadata"
 	metadataVersion     = "71.0.20-preview"
 	metadataArchivePath = "Windows.Win32.winmd"
