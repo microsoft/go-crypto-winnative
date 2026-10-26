@@ -30,8 +30,12 @@ func NewAESCipher(key []byte) (cipher.Block, error) {
 		return nil, err
 	}
 	c := &aesCipher{kh: kh, key: bytes.Clone(key)}
-	runtime.AddCleanup(c, destroyKey, c.kh)
+	runtime.SetFinalizer(c, (*aesCipher).finalize)
 	return c, nil
+}
+
+func (c *aesCipher) finalize() {
+	_ = bcrypt.DestroyKey(c.kh)
 }
 
 func (c *aesCipher) BlockSize() int { return aesBlockSize }
@@ -161,9 +165,13 @@ func newCBC(encrypt bool, alg string, key, iv []byte) *cbcCipher {
 		panic(err)
 	}
 	x := &cbcCipher{kh: kh, encrypt: encrypt, blockSize: blockSize}
-	runtime.AddCleanup(x, destroyKey, x.kh)
+	runtime.SetFinalizer(x, (*cbcCipher).finalize)
 	x.SetIV(iv)
 	return x
+}
+
+func (x *cbcCipher) finalize() {
+	_ = bcrypt.DestroyKey(x.kh)
 }
 
 func (x *cbcCipher) BlockSize() int { return x.blockSize }
@@ -240,13 +248,17 @@ type aesGCM struct {
 	maskInitialized bool
 }
 
+func (g *aesGCM) finalize() {
+	_ = bcrypt.DestroyKey(g.kh)
+}
+
 func newGCM(key []byte, tls cipherGCMTLS) (*aesGCM, error) {
 	kh, err := newCipherHandle(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_GCM, key)
 	if err != nil {
 		return nil, err
 	}
 	g := &aesGCM{kh: kh, tls: tls}
-	runtime.AddCleanup(g, destroyKey, g.kh)
+	runtime.SetFinalizer(g, (*aesGCM).finalize)
 	return g, nil
 }
 

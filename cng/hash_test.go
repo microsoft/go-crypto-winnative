@@ -296,9 +296,8 @@ func TestHashStructAllocations(t *testing.T) {
 		sha384Hash.Reset()
 		sha512Hash.Reset()
 	}))
-	// Each hash allocates 3 times: once for the hash struct, and twice
-	// for the AddCleanup call (argument and func).
-	want := 18
+	// Each initialized hash should allocate only its Hash struct.
+	want := 6
 	if n > want {
 		t.Errorf("allocs = %d, want %d", n, want)
 	}
