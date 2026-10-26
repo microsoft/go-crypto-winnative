@@ -55,7 +55,7 @@ func (c *RC4Cipher) XORKeyStream(dst, src []byte) {
 		panic("crypto/rc4: invalid buffer overlap")
 	}
 	var outLen uint32
-	if err := bcrypt.Encrypt(c.kh, src, nil, nil, dst, &outLen, 0); err != nil {
+	if err := bcrypt.Encrypt(c.kh, src, nil, nil, dst[:len(src)], &outLen, 0); err != nil {
 		panic("crypto/rc4: encryption failed: " + err.Error())
 	}
 	if int(outLen) != len(src) {
