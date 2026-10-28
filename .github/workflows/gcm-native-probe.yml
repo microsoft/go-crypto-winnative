@@ -1,0 +1,24 @@
+name: CNG GCM native probe
+on:
+  push:
+    branches:
+      - probe/cng-gcm-native-params-20261028
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+        fips: [0, 1]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Configure FIPS policy on the hosted runner
+        shell: pwsh
+        run: Set-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy' -Name Enabled -Value ${{ matrix.fips }}
+      - name: Probe BCrypt directly
+        shell: pwsh
+        run: .\gcm-native-probe.ps1 -ExpectedFips ${{ matrix.fips }}
