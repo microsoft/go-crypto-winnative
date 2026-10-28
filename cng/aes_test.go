@@ -8,6 +8,7 @@ package cng_test
 
 import (
 	"bytes"
+	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
 	"math"
@@ -35,8 +36,8 @@ func TestNewGCMNonce(t *testing.T) {
 		NewGCM(nonceSize, tagSize int) (cipher.AEAD, error)
 	})
 	_, err = c.NewGCM(gcmStandardNonceSize-1, gcmTagSize-1)
-	if err == nil {
-		t.Error("expected error for non-standard tag and nonce size at the same time, got none")
+	if err != nil {
+		t.Errorf("expected no error for non-standard tag and nonce sizes, got: %#v", err)
 	}
 	_, err = c.NewGCM(gcmStandardNonceSize-1, gcmTagSize)
 	if err != nil {
@@ -50,6 +51,186 @@ func TestNewGCMNonce(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected no error for standard tag / nonce size, got: %#v", err)
 	}
+}
+
+func TestAESGCMParameters(t *testing.T) {
+	for _, keySize := range []int{16, 24, 32} {
+		t.Run(fmt.Sprintf("AES-%d", keySize*8), func(t *testing.T) {
+			key := bytes.Repeat([]byte{0x42}, keySize)
+			block, err := cng.NewAESCipher(key)
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := block.(interface {
+				NewGCM(nonceSize, tagSize int) (cipher.AEAD, error)
+			})
+			stdBlock, err := aes.NewCipher(key)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, nonceSize := range []int{1, 8, 11, 12, 13, 16, 100} {
+				stdGCM, err := cipher.NewGCMWithNonceSize(stdBlock, nonceSize)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for tagSize := 12; tagSize <= gcmTagSize; tagSize++ {
+					t.Run(fmt.Sprintf("Nonce-%d/Tag-%d", nonceSize, tagSize), func(t *testing.T) {
+						gcm, err := c.NewGCM(nonceSize, tagSize)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if gcm.NonceSize() != nonceSize || gcm.Overhead() != tagSize {
+							t.Fatalf("NonceSize, Overhead = %d, %d, want %d, %d", gcm.NonceSize(), gcm.Overhead(), nonceSize, tagSize)
+						}
+						nonce := bytes.Repeat([]byte{0x24}, nonceSize)
+						for size := 0; size < tagSize; size++ {
+							got, err := gcm.Open(nil, nonce, make([]byte, size), nil)
+							if got != nil || err == nil {
+								t.Fatalf("Open with ciphertext size %d = (%x, %v), want (nil, error)", size, got, err)
+							}
+						}
+						for _, size := range []int{0, 1, 16, 17, 1024} {
+							for _, additionalData := range [][]byte{nil, []byte("additional data")} {
+								plaintext := bytes.Repeat([]byte{0x5a}, size)
+								want := stdGCM.Seal(nil, nonce, plaintext, additionalData)
+								// GCM truncates the tag without changing the ciphertext.
+								want = want[:len(want)-gcmTagSize+tagSize]
+								got := gcm.Seal(nil, nonce, plaintext, additionalData)
+								if !bytes.Equal(got, want) {
+									t.Fatalf("Seal with plaintext size %d and AAD size %d = %x, want %x", size, len(additionalData), got, want)
+								}
+								got, err = gcm.Open(nil, nonce, want, additionalData)
+								if err != nil || !bytes.Equal(got, plaintext) {
+									t.Fatalf("Open = (%x, %v), want (%x, nil)", got, err, plaintext)
+								}
+
+								buf := make([]byte, len(plaintext), len(plaintext)+tagSize)
+								copy(buf, plaintext)
+								got = gcm.Seal(buf[:0], nonce, buf, additionalData)
+								if !bytes.Equal(got, want) {
+									t.Fatalf("in-place Seal = %x, want %x", got, want)
+								}
+								got, err = gcm.Open(got[:0], nonce, got, additionalData)
+								if err != nil || !bytes.Equal(got, plaintext) {
+									t.Fatalf("in-place Open = (%x, %v), want (%x, nil)", got, err, plaintext)
+								}
+
+								bad := bytes.Clone(want)
+								bad[len(bad)-1] ^= 1
+								prefix := []byte("prefix")
+								out := bytes.Repeat([]byte{0xaa}, len(prefix)+len(plaintext))
+								copy(out, prefix)
+								got, err = gcm.Open(out[:len(prefix)], nonce, bad, additionalData)
+								if got != nil || err == nil {
+									t.Fatalf("Open with invalid tag = (%x, %v), want (nil, error)", got, err)
+								}
+								if !bytes.Equal(out[:len(prefix)], prefix) {
+									t.Fatalf("Open modified output prefix: %x", out[:len(prefix)])
+								}
+								if !bytes.Equal(out[len(prefix):], make([]byte, len(plaintext))) {
+									t.Fatalf("Open did not clear unauthenticated plaintext: %x", out[len(prefix):])
+								}
+							}
+						}
+						t.Run("SealAdditionalDataOverlap", func(t *testing.T) {
+							out := make([]byte, 16+gcm.Overhead())
+							assertPanic(t, func() {
+								gcm.Seal(out[:0], nonce, make([]byte, 16), out[:1])
+							})
+						})
+						t.Run("OpenAdditionalDataOverlap", func(t *testing.T) {
+							out := make([]byte, 16)
+							ciphertext := gcm.Seal(nil, nonce, make([]byte, 16), out[:1])
+							assertPanic(t, func() {
+								gcm.Open(out[:0], nonce, ciphertext, out[:1])
+							})
+						})
+					})
+				}
+			}
+		})
+	}
+}
+
+func TestAESGCMInvalidParameters(t *testing.T) {
+	block, err := cng.NewAESCipher(make([]byte, 16))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := block.(interface {
+		NewGCM(nonceSize, tagSize int) (cipher.AEAD, error)
+	})
+	for _, tt := range []struct {
+		nonceSize int
+		tagSize   int
+	}{
+		{-1, gcmTagSize},
+		{0, gcmTagSize},
+		{gcmStandardNonceSize, -1},
+		{gcmStandardNonceSize, 0},
+		{gcmStandardNonceSize, 11},
+		{gcmStandardNonceSize, 17},
+		{1, 11},
+		{1, 17},
+	} {
+		t.Run(fmt.Sprintf("Nonce-%d/Tag-%d", tt.nonceSize, tt.tagSize), func(t *testing.T) {
+			gcm, err := c.NewGCM(tt.nonceSize, tt.tagSize)
+			if err == nil || gcm != nil {
+				t.Fatalf("NewGCM = (%v, %v), want (nil, error)", gcm, err)
+			}
+		})
+	}
+}
+
+func TestAESGCMRandomNonceParameters(t *testing.T) {
+	block, err := cng.NewAESCipher(make([]byte, 16))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := block.(interface {
+		NewGCM(nonceSize, tagSize int) (cipher.AEAD, error)
+	})
+	for _, tt := range []struct {
+		nonceSize int
+		tagSize   int
+	}{
+		{1, gcmTagSize},
+		{gcmStandardNonceSize, 12},
+		{16, 15},
+	} {
+		t.Run(fmt.Sprintf("Nonce-%d/Tag-%d", tt.nonceSize, tt.tagSize), func(t *testing.T) {
+			gcm, err := c.NewGCM(tt.nonceSize, tt.tagSize)
+			if err != nil {
+				t.Fatal(err)
+			}
+			g := gcm.(interface {
+				SealWithRandomNonce(out, nonce, plaintext, additionalData []byte)
+			})
+			assertPanic(t, func() {
+				g.SealWithRandomNonce(make([]byte, gcmTagSize), make([]byte, gcmStandardNonceSize), nil, nil)
+			})
+		})
+	}
+}
+
+func TestAESGCMOversizedNonce(t *testing.T) {
+	nonce := cryptotest.OversizedBuffer(t)
+	block, err := cng.NewAESCipher(make([]byte, 16))
+	if err != nil {
+		t.Fatal(err)
+	}
+	gcm, err := block.(interface {
+		NewGCM(nonceSize, tagSize int) (cipher.AEAD, error)
+	}).NewGCM(len(nonce), gcmTagSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, err := gcm.Open(nil, nonce, make([]byte, gcm.Overhead()), nil); err == nil || out != nil {
+		t.Fatalf("Open with oversized nonce = (%x, %v), want (nil, error)", out, err)
+	}
+	assertPanic(t, func() {
+		gcm.Seal(nil, nonce, nil, nil)
+	})
 }
 
 func TestSealAndOpen(t *testing.T) {
@@ -241,9 +422,20 @@ func TestSealPanic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertPanic(t, func() {
-		gcm.Seal(nil, make([]byte, gcmStandardNonceSize-1), []byte{0x01, 0x02, 0x03}, nil)
-	})
+	for _, nonceSize := range []int{1, gcmStandardNonceSize, 16, 100} {
+		gcm, err := cipher.NewGCMWithNonceSize(ci, nonceSize)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, size := range []int{nonceSize - 1, nonceSize + 1} {
+			assertPanic(t, func() {
+				gcm.Seal(nil, make([]byte, size), []byte{0x01, 0x02, 0x03}, nil)
+			})
+			assertPanic(t, func() {
+				gcm.Open(nil, make([]byte, size), make([]byte, gcm.Overhead()), nil)
+			})
+		}
+	}
 	if runtime.GOARCH != "386" {
 		assertPanic(t, func() {
 			gcm.Seal(nil, make([]byte, gcmStandardNonceSize), make([]byte, math.MaxInt), nil)
@@ -429,8 +621,6 @@ func TestAESBlockMode(t *testing.T) {
 
 // Test GCM against the general cipher.AEAD interface tester.
 func TestAESGCMAEAD(t *testing.T) {
-	minTagSize := 12
-
 	for _, keySize := range []int{128, 192, 256} {
 		// Use AES as underlying block cipher at different key sizes for GCM.
 		t.Run(fmt.Sprintf("AES-%d", keySize), func(t *testing.T) {
@@ -449,12 +639,14 @@ func TestAESGCMAEAD(t *testing.T) {
 			cryptotest.TestAEAD(t, func() (cipher.AEAD, error) { return cipher.NewGCM(block) })
 
 			// Test non-standard tag sizes.
-			t.Run("MinTagSize", func(t *testing.T) {
-				cryptotest.TestAEAD(t, func() (cipher.AEAD, error) { return cipher.NewGCMWithTagSize(block, minTagSize) })
-			})
+			for tagSize := 12; tagSize < gcmTagSize; tagSize++ {
+				t.Run(fmt.Sprintf("TagSize-%d", tagSize), func(t *testing.T) {
+					cryptotest.TestAEAD(t, func() (cipher.AEAD, error) { return cipher.NewGCMWithTagSize(block, tagSize) })
+				})
+			}
 
 			// Test non-standard nonce sizes.
-			for _, nonceSize := range []int{1, 16, 100} {
+			for _, nonceSize := range []int{1, 8, 11, 13, 16, 100} {
 				t.Run(fmt.Sprintf("NonceSize-%d", nonceSize), func(t *testing.T) {
 
 					cryptotest.TestAEAD(t, func() (cipher.AEAD, error) { return cipher.NewGCMWithNonceSize(block, nonceSize) })

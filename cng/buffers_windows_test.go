@@ -13,7 +13,7 @@ import (
 
 func TestOversizedAEADData(t *testing.T) {
 	large := cryptotest.OversizedBuffer(t)
-	gcm, err := newGCM(make([]byte, 16), cipherGCMTLSNone)
+	gcm, err := newGCM(make([]byte, 16), gcmStandardNonceSize, gcmTagSize, cipherGCMTLSNone)
 	if err != nil {
 		t.Fatal(err)
 	}

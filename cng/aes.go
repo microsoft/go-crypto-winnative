@@ -103,22 +103,18 @@ func (c *aesCipher) NewFIPSCBCDecrypter(iv []byte) cipher.BlockMode {
 	return newCBC(false, bcrypt.AES_ALGORITHM, c.key, iv)
 }
 
-type noGCM struct {
-	cipher.Block
-}
-
 func (c *aesCipher) NewGCM(nonceSize, tagSize int) (cipher.AEAD, error) {
-	if nonceSize != gcmStandardNonceSize && tagSize != gcmTagSize {
-		return nil, errors.New("crypto/aes: GCM tag and nonce sizes can't be non-standard at the same time")
+	if tagSize < gcmMinimumTagSize || tagSize > gcmTagSize {
+		return nil, errors.New("cipher: incorrect tag size given to GCM")
 	}
-	// Fall back to standard library for GCM with non-standard nonce or tag size.
-	if nonceSize != gcmStandardNonceSize {
-		return cipher.NewGCMWithNonceSize(&noGCM{c}, nonceSize) // CodeQL [SM04391] This is to keep compatibility with upstream, it's on end user teams to raise exceptions with the Crypto Board.
+	if nonceSize <= 0 {
+		return nil, errors.New("cipher: the nonce can't have zero length")
 	}
-	if tagSize != gcmTagSize {
-		return cipher.NewGCMWithTagSize(&noGCM{c}, tagSize) // CodeQL [SM04391] This is to keep compatibility with upstream, it's on end user teams to raise exceptions with the Crypto Board.
+	g, err := newGCM(c.key, nonceSize, tagSize, cipherGCMTLSNone)
+	if err != nil {
+		return nil, err
 	}
-	return newGCM(c.key, cipherGCMTLSNone)
+	return g, nil
 }
 
 // NewGCMTLS returns a GCM cipher specific to TLS
@@ -128,7 +124,7 @@ func NewGCMTLS(c cipher.Block) (cipher.AEAD, error) {
 }
 
 func (c *aesCipher) NewGCMTLS() (cipher.AEAD, error) {
-	return newGCM(c.key, cipherGCMTLS12)
+	return newGCM(c.key, gcmStandardNonceSize, gcmTagSize, cipherGCMTLS12)
 }
 
 // NewGCMTLS13 returns a GCM cipher specific to TLS 1.3 and should not be used
@@ -138,7 +134,7 @@ func NewGCMTLS13(c cipher.Block) (cipher.AEAD, error) {
 }
 
 func (c *aesCipher) NewGCMTLS13() (cipher.AEAD, error) {
-	return newGCM(c.key, cipherGCMTLS13)
+	return newGCM(c.key, gcmStandardNonceSize, gcmTagSize, cipherGCMTLS13)
 }
 
 type cbcCipher struct {
@@ -215,6 +211,7 @@ func (x *cbcCipher) SetIV(iv []byte) {
 
 const (
 	gcmTagSize           = 16
+	gcmMinimumTagSize    = 12
 	gcmStandardNonceSize = 12
 	// TLS 1.2 additional data is constructed as:
 	//
@@ -236,8 +233,10 @@ const (
 )
 
 type aesGCM struct {
-	kh  bcrypt.KEY_HANDLE
-	tls cipherGCMTLS
+	kh        bcrypt.KEY_HANDLE
+	nonceSize int
+	tagSize   int
+	tls       cipherGCMTLS
 	// minNextNonce is the minimum value that the next nonce can be, enforced by
 	// all TLS modes.
 	minNextNonce uint64
@@ -252,35 +251,35 @@ func (g *aesGCM) finalize() {
 	_ = bcrypt.DestroyKey(g.kh)
 }
 
-func newGCM(key []byte, tls cipherGCMTLS) (*aesGCM, error) {
+func newGCM(key []byte, nonceSize, tagSize int, tls cipherGCMTLS) (*aesGCM, error) {
 	kh, err := newCipherHandle(bcrypt.AES_ALGORITHM, bcrypt.CHAIN_MODE_GCM, key)
 	if err != nil {
 		return nil, err
 	}
-	g := &aesGCM{kh: kh, tls: tls}
+	g := &aesGCM{kh: kh, nonceSize: nonceSize, tagSize: tagSize, tls: tls}
 	runtime.SetFinalizer(g, (*aesGCM).finalize)
 	return g, nil
 }
 
 func (g *aesGCM) NonceSize() int {
-	return gcmStandardNonceSize
+	return g.nonceSize
 }
 
 func (g *aesGCM) Overhead() int {
-	return gcmTagSize
+	return g.tagSize
 }
 
 func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
-	if len(nonce) != gcmStandardNonceSize {
+	if len(nonce) != g.nonceSize {
 		panic("cipher: incorrect nonce length given to GCM")
 	}
-	if uint64(len(plaintext)) > ((1<<32)-2)*aesBlockSize || len(plaintext)+gcmTagSize < len(plaintext) {
+	if uint64(len(plaintext)) > ((1<<32)-2)*aesBlockSize || len(plaintext)+g.tagSize < len(plaintext) {
 		panic("cipher: message too large for GCM")
 	}
-	if len(dst)+len(plaintext)+gcmTagSize < len(dst) {
+	if len(dst)+len(plaintext)+g.tagSize < len(dst) {
 		panic("cipher: message too large for buffer")
 	}
-	if err := bcrypt.CheckBufferSizes(len(plaintext), len(additionalData)); err != nil {
+	if err := bcrypt.CheckBufferSizes(len(nonce), len(plaintext), len(additionalData)); err != nil {
 		panic(err)
 	}
 	if g.tls != cipherGCMTLSNone {
@@ -329,14 +328,17 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 		}()
 	}
 	// Make room in dst to append plaintext+overhead.
-	ret, out := sliceForAppend(dst, len(plaintext)+gcmTagSize)
+	ret, out := sliceForAppend(dst, len(plaintext)+g.tagSize)
 
 	// Check delayed until now to make sure len(dst) is accurate.
 	if subtle.InexactOverlap(out, plaintext) {
 		panic("cipher: invalid buffer overlap")
 	}
+	if subtle.AnyOverlap(out, additionalData) {
+		panic("cipher: invalid buffer overlap of output and additional data")
+	}
 
-	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, out[len(out)-gcmTagSize:])
+	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, out[len(out)-g.tagSize:])
 	var encSize uint32
 	err := bcrypt.Encrypt(g.kh, plaintext, unsafe.Pointer(info), nil, out[:max(len(plaintext), 1)], &encSize, 0)
 	if err != nil {
@@ -349,8 +351,12 @@ func (g *aesGCM) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 	return ret
 }
 
-// SealWithRandomNonce panics if nonce generation or encryption fails.
+// SealWithRandomNonce requires standard nonce and tag sizes and panics if nonce
+// generation or encryption fails.
 func (g *aesGCM) SealWithRandomNonce(out, nonce, plaintext, additionalData []byte) {
+	if g.nonceSize != gcmStandardNonceSize || g.tagSize != gcmTagSize {
+		panic("crypto/cipher: GCMWithRandomNonce requires standard nonce and tag sizes")
+	}
 	if uint64(len(plaintext)) > uint64((1<<32)-2)*aesBlockSize {
 		panic("crypto/cipher: message too large for GCM")
 	}
@@ -392,21 +398,21 @@ func (g *aesGCM) SealWithRandomNonce(out, nonce, plaintext, additionalData []byt
 var errOpen = errors.New("cipher: message authentication failed")
 
 func (g *aesGCM) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, error) {
-	if len(nonce) != gcmStandardNonceSize {
+	if len(nonce) != g.nonceSize {
 		panic("cipher: incorrect nonce length given to GCM")
 	}
-	if len(ciphertext) < gcmTagSize {
+	if len(ciphertext) < g.tagSize {
 		return nil, errOpen
 	}
-	if uint64(len(ciphertext)) > ((1<<32)-2)*aesBlockSize+gcmTagSize {
+	if uint64(len(ciphertext)) > ((1<<32)-2)*aesBlockSize+uint64(g.tagSize) {
 		return nil, errOpen
 	}
-	if err := bcrypt.CheckBufferSizes(len(ciphertext)-gcmTagSize, len(additionalData)); err != nil {
+	if err := bcrypt.CheckBufferSizes(len(nonce), len(ciphertext)-g.tagSize, len(additionalData)); err != nil {
 		return nil, errOpen
 	}
 
-	tag := ciphertext[len(ciphertext)-gcmTagSize:]
-	ciphertext = ciphertext[:len(ciphertext)-gcmTagSize]
+	tag := ciphertext[len(ciphertext)-g.tagSize:]
+	ciphertext = ciphertext[:len(ciphertext)-g.tagSize]
 
 	// Make room in dst to append ciphertext without tag.
 	ret, out := sliceForAppend(dst, len(ciphertext))
@@ -414,6 +420,9 @@ func (g *aesGCM) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, er
 	// Check delayed until now to make sure len(dst) is accurate.
 	if subtle.InexactOverlap(out, ciphertext) {
 		panic("cipher: invalid buffer overlap")
+	}
+	if subtle.AnyOverlap(out, additionalData) {
+		panic("cipher: invalid buffer overlap of output and additional data")
 	}
 
 	info := bcrypt.NewAUTHENTICATED_CIPHER_MODE_INFO(nonce, additionalData, tag)
