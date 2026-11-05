@@ -27,14 +27,4 @@ jobs:
 
       - name: Check vendored package imports
         shell: bash
-        run: |
-          go run github.com/microsoft/go-infra/cmd/check-imports@v0.0.13 \
-            -pkg ./internal/bcrypt \
-            -allow strconv,syscall,unicode/utf16,unsafe \
-            -pkg ./internal/sysdll \
-            -allow syscall,unsafe \
-            -pkg ./internal/subtle \
-            -allow unsafe \
-            -pkg ./cng/bbig \
-            -allow math/big \
-            -pkg ./cng
+        run: go test -count=1 ./internal/importcheck
