@@ -12,17 +12,6 @@ Visit the [FIPS documentation in the microsoft/go repository](https://github.com
 
 A program directly or indirectly using this package in FIPS mode can claim it is using a FIPS-certified cryptographic module (CNG), but it can't claim the program as a whole is FIPS certified without passing the certification process, nor claim it is FIPS compliant without ensuring all crypto APIs and workflows are implemented in a FIPS-compliant manner.
 
-## Testing vendored imports
-
-On Windows, run the import policy checks with the same pinned checker and allowlists as CI:
-
-```sh
-go test -count=1 ./internal/importcheck
-```
-
-Use `-count=1` because the checker reads backend sources in a subprocess, and Go's test cache does not track changes to those sources.
-The Check Vendored Imports workflow runs the same command on pull requests and pushes to `main`.
-
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
